@@ -24,8 +24,14 @@ function getUser() {
 
 // Auth state management
 const _authCallbacks = [];
+let _authInitialized = false;
+
 function onAuthChange(cb) {
   _authCallbacks.push(cb);
+  // If auth already initialized, immediately call with current session
+  if (_authInitialized) {
+    cb(_session);
+  }
 }
 
 function _notifyAuth() {
@@ -40,6 +46,7 @@ async function initAuth() {
   // Get current session
   const { data: { session } } = await sb.auth.getSession();
   _session = session;
+  _authInitialized = true;
   _notifyAuth();
 
   // Listen for changes
