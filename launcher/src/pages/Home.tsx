@@ -155,11 +155,57 @@ export default function Home() {
         .select("*")
         .eq("status", "approved");
       if (data) {
-        setGames(data);
+        // Load player counts from recent heartbeats (last 2 minutes)
+        const twoMinAgo = new Date(Date.now() - 120000).toISOString();
+        const { data: activity } = await supabase
+          .from("player_activity")
+          .select("game_id")
+          .gte("last_heartbeat", twoMinAgo);
+
+        const counts: Record<string, number> = {};
+        if (activity) {
+          for (const row of activity) {
+            counts[row.game_id] = (counts[row.game_id] || 0) + 1;
+          }
+        }
+
+        setGames(data.map(g => ({ ...g, player_count: counts[g.id] || 0 })));
         return;
       }
     }
     setGames(PLACEHOLDER_GAMES);
+  }
+
+  // Heartbeat ref to track playing state
+  const heartbeatRef = { current: null as ReturnType<typeof setInterval> | null };
+
+  async function startHeartbeat(gameId: string) {
+    if (!supabase) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    // Insert initial activity
+    await supabase.from("player_activity").upsert({
+      game_id: gameId,
+      user_id: session.user.id,
+      last_heartbeat: new Date().toISOString(),
+    }, { onConflict: "game_id,user_id" });
+
+    // Heartbeat every 60 seconds
+    heartbeatRef.current = setInterval(async () => {
+      await supabase.from("player_activity").upsert({
+        game_id: gameId,
+        user_id: session.user.id,
+        last_heartbeat: new Date().toISOString(),
+      }, { onConflict: "game_id,user_id" });
+    }, 60000);
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
   }
 
   async function handlePlay(game: Game) {
@@ -175,6 +221,7 @@ export default function Home() {
           server_address: game.server_address || null,
         }
       });
+      startHeartbeat(game.id);
       alert(result);
     } catch (e) {
       alert(`Launch error: ${e}`);

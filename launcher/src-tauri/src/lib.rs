@@ -181,15 +181,16 @@ async fn launch_game(request: LaunchRequest) -> Result<String, String> {
     // Download assets
     mc_launcher::download_assets(&client, &version_json, &assets_dir).await?;
 
-    // Install mod loader (Fabric for now)
-    let (main_class, fabric_libs) = if request.mod_loader == "fabric" {
-        mc_launcher::install_fabric(&client, &request.mc_version, &base_dir, &libraries_dir).await?
-    } else {
-        (version_json.main_class.clone(), vec![])
+    // Install mod loader
+    let (main_class, loader_libs) = match request.mod_loader.as_str() {
+        "fabric" => mc_launcher::install_fabric(&client, &request.mc_version, &base_dir, &libraries_dir).await?,
+        "forge" => mc_launcher::install_forge(&client, &request.mc_version, &base_dir, &libraries_dir).await?,
+        "neoforge" => mc_launcher::install_neoforge(&client, &request.mc_version, &base_dir, &libraries_dir).await?,
+        _ => (version_json.main_class.clone(), vec![]),
     };
 
     // Build classpath
-    let classpath = mc_launcher::build_classpath(&client_jar, &lib_paths, &fabric_libs);
+    let classpath = mc_launcher::build_classpath(&client_jar, &lib_paths, &loader_libs);
 
     // Find or download Java
     let java = ensure_java().await?;
