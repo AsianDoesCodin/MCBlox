@@ -28,20 +28,49 @@ pub async fn resolve_download_url(url: &str) -> Result<String, Box<dyn std::erro
         return Ok(file["url"].as_str().ok_or("No URL in Modrinth file")?.to_string());
     }
 
-    // CurseForge: https://www.curseforge.com/minecraft/modpacks/<slug>
-    if url.contains("curseforge.com/minecraft/modpacks/") {
-        let slug = url.split("/modpacks/").last()
-            .and_then(|s| s.split(&['/', '?'][..]).next())
-            .ok_or("Invalid CurseForge URL")?;
+    // CurseForge: https://www.curseforge.com/minecraft/modpacks/<slug>/download/<fileId>
+    // or: https://www.curseforge.com/minecraft/modpacks/<slug>
+    if url.contains("curseforge.com/minecraft/") {
+        // Check if URL has /download/<fileId> pattern
+        if url.contains("/download/") {
+            // Try the CurseForge CDN redirect approach
+            // The download page redirects via JS, but we can try following the HTML redirect
+            let page = client.get(url)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                .send().await?
+                .text().await?;
 
-        // CurseForge API requires an API key, use the public search endpoint
-        let search_url = format!(
-            "https://api.curseforge.com/v1/mods/search?gameId=432&slug={}",
-            slug
-        );
-        // Note: CurseForge API requires $2b7...key header. For now, return the URL as-is
-        // and let the user provide a direct download link instead
-        println!("[McBlox] CurseForge API requires auth key — using URL as-is");
+            // Look for a CDN link in the page
+            if let Some(pos) = page.find("https://edge.forgecdn.net/files/") {
+                if let Some(end) = page[pos..].find('"') {
+                    return Ok(page[pos..pos+end].to_string());
+                }
+            }
+            if let Some(pos) = page.find("https://mediafilez.forgecdn.net/files/") {
+                if let Some(end) = page[pos..].find('"') {
+                    return Ok(page[pos..pos+end].to_string());
+                }
+            }
+
+            // Fallback: construct CDN URL from fileId
+            // File ID 6695155 → files/6695/155/
+            if let Some(file_id_str) = url.split("/download/").last().and_then(|s| s.split(&['/', '?'][..]).next()) {
+                if let Ok(file_id) = file_id_str.parse::<u64>() {
+                    let first = file_id / 1000;
+                    let last = file_id % 1000;
+                    // We don't know the filename, so try the page again for it
+                    // or just use the redirect approach
+                    println!("[McBlox] CurseForge file ID: {} → {}/{}", file_id, first, last);
+                }
+            }
+
+            // If nothing worked, return URL and let reqwest follow redirects
+            println!("[McBlox] CurseForge: following redirects for download URL");
+            return Ok(url.to_string());
+        }
+
+        // Slug-only URL (no file ID) — need API key for latest file
+        println!("[McBlox] CurseForge slug URL — provide a direct download link or /download/<fileId> URL");
         return Ok(url.to_string());
     }
 
