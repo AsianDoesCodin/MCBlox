@@ -1,0 +1,231 @@
+// Publish page — uses shared supabase-client.js for auth
+
+// --- Predefined tags ---
+const TAGS = [
+  'Adventure', 'RPG', 'PvP', 'Creative', 'Survival',
+  'Skyblock', 'Horror', 'Puzzle', 'Minigame', 'Parkour',
+  'Tech', 'Magic', 'Quests', 'Building', 'Exploration',
+  'Competitive', 'Coop', 'Story', 'Open World', 'Hardcore'
+];
+const MAX_TAGS = 5;
+
+// --- Auth ---
+const authGate = document.getElementById('auth-gate');
+const publishForm = document.getElementById('publish-form');
+
+function updatePublishAuth() {
+  const user = getUser();
+  if (user) {
+    authGate.style.display = 'none';
+    publishForm.style.display = '';
+  } else {
+    authGate.style.display = '';
+    publishForm.style.display = 'none';
+  }
+}
+
+// Listen to shared auth changes
+onAuthChange(updatePublishAuth);
+
+const signinBtn = document.getElementById('signin-btn');
+signinBtn.addEventListener('click', () => showAuthModal());
+
+// --- Tag picker ---
+const tagPicker = document.getElementById('tag-picker');
+const tagsInput = document.getElementById('tags');
+const selectedTags = new Set();
+
+function renderTags() {
+  tagPicker.innerHTML = '';
+  TAGS.forEach(tag => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tag-btn' + (selectedTags.has(tag) ? ' selected' : '');
+    btn.textContent = tag;
+    btn.addEventListener('click', () => {
+      if (selectedTags.has(tag)) {
+        selectedTags.delete(tag);
+      } else if (selectedTags.size < MAX_TAGS) {
+        selectedTags.add(tag);
+      }
+      tagsInput.value = [...selectedTags].join(',');
+      renderTags();
+    });
+    tagPicker.appendChild(btn);
+  });
+}
+renderTags();
+
+// --- Game type toggle ---
+const gameTypeSelect = document.getElementById('game-type');
+const serverField = document.getElementById('server-field');
+const worldField = document.getElementById('world-field');
+
+gameTypeSelect.addEventListener('change', () => {
+  const v = gameTypeSelect.value;
+  serverField.style.display = v === 'server' ? '' : 'none';
+  worldField.style.display = v === 'world' ? '' : 'none';
+});
+
+// --- Image crop tool ---
+function setupCrop(container, canvasEl, inputEl, placeholderEl, controlsEl, zoomEl) {
+  let img = null;
+  let zoom = 1;
+  let offsetX = 0;
+  let offsetY = 0;
+  let dragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let startOffsetX = 0;
+  let startOffsetY = 0;
+
+  const ctx = canvasEl.getContext('2d');
+
+  function draw() {
+    const cw = canvasEl.width;
+    const ch = canvasEl.height;
+    ctx.clearRect(0, 0, cw, ch);
+    if (!img) return;
+
+    const scale = Math.max(cw / img.width, ch / img.height) * zoom;
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+
+    // Clamp offset
+    const maxOx = Math.max(0, (dw - cw) / 2);
+    const maxOy = Math.max(0, (dh - ch) / 2);
+    offsetX = Math.max(-maxOx, Math.min(maxOx, offsetX));
+    offsetY = Math.max(-maxOy, Math.min(maxOy, offsetY));
+
+    const dx = (cw - dw) / 2 + offsetX;
+    const dy = (ch - dh) / 2 + offsetY;
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  container.addEventListener('click', (e) => {
+    if (e.target === zoomEl) return;
+    if (!img) inputEl.click();
+  });
+
+  inputEl.addEventListener('change', () => {
+    const file = inputEl.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      img = new Image();
+      img.onload = () => {
+        zoom = 1;
+        offsetX = 0;
+        offsetY = 0;
+        if (zoomEl) zoomEl.value = 1;
+        placeholderEl.style.display = 'none';
+        if (controlsEl) controlsEl.style.display = '';
+        draw();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  if (zoomEl) {
+    zoomEl.addEventListener('input', () => {
+      zoom = parseFloat(zoomEl.value);
+      draw();
+    });
+  }
+
+  canvasEl.addEventListener('mousedown', (e) => {
+    if (!img) return;
+    dragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    startOffsetX = offsetX;
+    startOffsetY = offsetY;
+    canvasEl.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    offsetX = startOffsetX + (e.clientX - dragStartX);
+    offsetY = startOffsetY + (e.clientY - dragStartY);
+    draw();
+  });
+
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+    canvasEl.style.cursor = '';
+  });
+
+  return { getCanvas: () => canvasEl, hasImage: () => !!img };
+}
+
+// Thumbnail crop
+const thumbCrop = setupCrop(
+  document.getElementById('thumb-crop'),
+  document.getElementById('thumb-canvas'),
+  document.getElementById('thumb-input'),
+  document.getElementById('thumb-placeholder'),
+  document.getElementById('thumb-controls'),
+  document.getElementById('thumb-zoom')
+);
+
+// Screenshot crops
+const screenshotCrops = [];
+document.querySelectorAll('.screenshot-slot').forEach(slot => {
+  const input = slot.querySelector('input[type="file"]');
+  const canvas = slot.querySelector('canvas');
+  const placeholder = slot.querySelector('.crop-placeholder');
+  screenshotCrops.push(setupCrop(slot, canvas, input, placeholder, null, null));
+});
+
+// --- Form submission ---
+document.getElementById('game-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const sb = getSupabase();
+  const user = getUser();
+  if (!sb || !user) {
+    alert('Please sign in first.');
+    return;
+  }
+
+  if (selectedTags.size === 0) {
+    alert('Please select at least one tag.');
+    return;
+  }
+
+  const gameData = {
+    creator_id: user.id,
+    title: document.getElementById('title').value.trim(),
+    description: document.getElementById('description').value.trim(),
+    tags: [...selectedTags],
+    modpack_url: document.getElementById('modpack-url').value.trim(),
+    mc_version: document.getElementById('mc-version').value.trim(),
+    mod_loader: document.getElementById('mod-loader').value,
+    game_type: gameTypeSelect.value,
+    server_address: gameTypeSelect.value === 'server'
+      ? document.getElementById('server-address').value.trim() || null
+      : null,
+    world_name: gameTypeSelect.value === 'world'
+      ? document.getElementById('world-name').value.trim() || null
+      : null,
+    status: 'pending_review',
+    thumbs_up: 0,
+    thumbs_down: 0,
+    total_plays: 0,
+    player_count: 0,
+    is_promoted: false
+  };
+
+  // TODO: Upload thumbnail + screenshots to Supabase Storage
+  // For now, thumbnail_url stays null
+
+  try {
+    const { error } = await sb.from('games').insert(gameData);
+    if (error) throw error;
+    alert('Game submitted for review! You can track it in your Dashboard.');
+    window.location.href = 'dashboard.html';
+  } catch (e) {
+    alert('Error submitting: ' + (e.message || 'Unknown error'));
+  }
+});

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — McBlox</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="publish.css">
+  <link rel="stylesheet" href="dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-client.js" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="logo">McBlox</a>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="games.html">Games</a>
+      <a href="publish.html">Publish</a>
+      <a href="dashboard.html" class="active">Dashboard</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-sm" id="auth-btn">Sign In</button>
+    </div>
+  </nav>
+
+  <!-- Auth gate -->
+  <div id="auth-gate" class="auth-gate">
+    <h2>Creator Dashboard</h2>
+    <p class="auth-gate-sub">Sign in to manage your games.</p>
+    <button class="btn btn-lg" id="signin-btn">Sign in with McBlox</button>
+  </div>
+
+  <!-- Dashboard content -->
+  <main id="dashboard" style="display:none">
+    <div class="dash-header">
+      <h1>My Games</h1>
+      <a href="publish.html" class="btn btn-sm">+ New Game</a>
+    </div>
+
+    <div class="dash-games" id="dash-games">
+      <!-- Game cards rendered by JS -->
+    </div>
+
+    <div class="empty-state" id="dash-empty" style="display:none">
+      <p>You haven't published any games yet.</p>
+      <a href="publish.html" class="btn btn-sm" style="margin-top:12px;display:inline-block;">Publish Your First Game</a>
+    </div>
+
+    <!-- Edit modal -->
+    <div class="modal-overlay" id="edit-modal" style="display:none">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Edit Game</h2>
+          <button class="modal-close" id="modal-close">&times;</button>
+        </div>
+        <form id="edit-form" class="edit-form">
+          <label>Title</label>
+          <input type="text" id="edit-title" required maxlength="60">
+
+          <label>Description</label>
+          <textarea id="edit-description" required rows="4" maxlength="500"></textarea>
+
+          <label>Tags</label>
+          <div class="tag-picker" id="edit-tag-picker"></div>
+
+          <label>Modpack Download Link</label>
+          <input type="url" id="edit-modpack-url" required>
+
+          <label>Minecraft Version</label>
+          <input type="text" id="edit-mc-version" required>
+
+          <label>Mod Loader</label>
+          <select id="edit-mod-loader">
+            <option value="fabric">Fabric</option>
+            <option value="forge">Forge</option>
+            <option value="neoforge">NeoForge</option>
+            <option value="quilt">Quilt</option>
+          </select>
+
+          <label>Game Type</label>
+          <select id="edit-game-type">
+            <option value="server">Server</option>
+            <option value="world">Singleplayer World</option>
+          </select>
+
+          <div id="edit-server-field">
+            <label>Server Address</label>
+            <input type="text" id="edit-server-address">
+          </div>
+
+          <div id="edit-world-field" style="display:none">
+            <label>World Name</label>
+            <input type="text" id="edit-world-name">
+          </div>
+
+          <div class="edit-actions">
+            <button type="button" class="btn btn-danger" id="edit-unlist">Unlist Game</button>
+            <div class="edit-actions-right">
+              <button type="button" class="btn btn-secondary" id="edit-cancel">Cancel</button>
+              <button type="submit" class="btn btn-sm">Save Changes</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>McBlox — Not affiliated with Mojang or Microsoft.</p>
+  </footer>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

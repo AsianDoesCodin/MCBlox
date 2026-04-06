@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg: #2b2b2b;
+  --surface: #3a3a3a;
+  --card: #484848;
+  --card-hover: #525252;
+  --border: #555555;
+  --accent: #5b8731;
+  --accent-hover: #6b9b3a;
+  --blue: #3b82f6;
+  --text: #e8e8e8;
+  --text-secondary: #b0b0b0;
+  --text-dim: #808080;
+  --sidebar-bg: #1a1a1a;
+  --sidebar-active: #3a3a3a;
+  --topbar-bg: #1a1a1a;
+  --danger: #ef4444;
+  --green: #55ff55;
+  --gold: #ffaa00;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  background-image: 
+    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.06) 31px, rgba(0,0,0,0.06) 32px),
+    repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(0,0,0,0.06) 31px, rgba(0,0,0,0.06) 32px);
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* Selection */
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* Smooth transitions */
+button, a, input, select {
+  transition: all 0.15s ease;
+}

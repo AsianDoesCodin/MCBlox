@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>McBlox</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-client.js" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="logo">McBlox</a>
+    </div>
+    <div class="nav-links">
+      <a href="index.html" class="active">Home</a>
+      <a href="games.html">Games</a>
+      <a href="publish.html">Publish</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-sm" id="auth-btn">Sign In</button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero" id="download">
+      <h1>McBlox</h1>
+      <p>Play Minecraft games. One click. No setup.</p>
+      <a href="#" class="btn btn-lg">Download for Windows</a>
+      <span class="version">v0.1.0 &middot; Windows 10+</span>
+    </section>
+
+    <section class="features">
+      <div class="feature">
+        <div class="feature-icon">&#9654;</div>
+        <h3>Click &amp; Play</h3>
+        <p>Browse games, hit Play. Mods, Java, everything handled.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#9881;</div>
+        <h3>No Setup</h3>
+        <p>No modpack managers. No manual installs. Just games.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#9733;</div>
+        <h3>Create</h3>
+        <p>Publish your own games. Share with everyone.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 McBlox</p>
+  </footer>
+</body>
+</html>

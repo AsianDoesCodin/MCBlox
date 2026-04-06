@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+target/
+
+# Environment
+.env
+
+# Build output
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+*.swp
+*.swo
+
+# Tauri
+src-tauri/target/
+
+# Logs
+*.log

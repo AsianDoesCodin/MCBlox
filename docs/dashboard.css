@@ -1,0 +1,238 @@
+/* Dashboard styles */
+
+.dash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32px 24px 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.dash-header h1 {
+  font-family: 'Silkscreen', monospace;
+  font-size: 24px;
+  color: var(--gold);
+  text-shadow: 2px 2px 0 #000;
+}
+
+.dash-games {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 24px 40px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.dash-game-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  border-bottom: 4px solid rgba(0,0,0,0.3);
+}
+
+.dash-game-card:hover {
+  border-color: var(--accent);
+}
+
+.dash-thumb {
+  width: 120px;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: linear-gradient(135deg, #3a5f1e 0%, #2d4a17 50%, #1e3310 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 24px;
+  font-family: 'Silkscreen', monospace;
+  flex-shrink: 0;
+}
+
+.dash-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dash-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-info h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-info .dash-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.dash-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: 'Silkscreen', monospace;
+}
+
+.dash-status.approved {
+  background: #2d5a1e;
+  color: #55ff55;
+}
+
+.dash-status.pending_review {
+  background: #5a4a1e;
+  color: #ffaa00;
+}
+
+.dash-status.rejected {
+  background: #5a1e1e;
+  color: #ff5555;
+}
+
+.dash-status.unlisted {
+  background: #3a3a3a;
+  color: #808080;
+}
+
+.dash-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  border-bottom: 4px solid rgba(0,0,0,0.3);
+  width: 580px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modal-header h2 {
+  font-family: 'Silkscreen', monospace;
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: var(--text);
+}
+
+.edit-form label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  margin-top: 12px;
+}
+
+.edit-form input,
+.edit-form textarea,
+.edit-form select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+
+.edit-form input:focus,
+.edit-form textarea:focus,
+.edit-form select:focus {
+  border-color: var(--accent);
+}
+
+.edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.edit-actions-right {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-secondary {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text);
+  padding: 6px 16px;
+  font-size: 13px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent);
+}
+
+.btn-danger {
+  background: #5a1e1e;
+  border: 2px solid #7a2e2e;
+  color: #ff5555;
+  padding: 6px 16px;
+  font-size: 13px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-danger:hover {
+  background: #6a2222;
+}

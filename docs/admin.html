@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — McBlox</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-client.js" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="logo">McBlox</a>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="games.html">Games</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="admin.html" class="active">Admin</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-sm" id="auth-btn">Sign In</button>
+    </div>
+  </nav>
+
+  <!-- Auth gate -->
+  <div id="admin-gate" class="auth-gate">
+    <h2>Admin Panel</h2>
+    <p class="auth-gate-sub">This area is restricted to McBlox admins.</p>
+    <button class="btn btn-lg" id="signin-btn">Sign In</button>
+  </div>
+
+  <!-- Admin content -->
+  <main id="admin-panel" style="display:none">
+    <div class="admin-header">
+      <h1>Review Queue</h1>
+      <div class="admin-stats" id="admin-stats"></div>
+    </div>
+
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="pending">Pending Review</button>
+      <button class="admin-tab" data-tab="approved">Approved</button>
+      <button class="admin-tab" data-tab="rejected">Rejected</button>
+      <button class="admin-tab" data-tab="all">All Games</button>
+    </div>
+
+    <div class="admin-queue" id="admin-queue">
+      <!-- Game review cards rendered by JS -->
+    </div>
+
+    <div class="empty-state" id="admin-empty" style="display:none">
+      <p>No games to review.</p>
+    </div>
+
+    <!-- Review modal -->
+    <div class="modal-overlay" id="review-modal" style="display:none">
+      <div class="modal review-modal">
+        <div class="modal-header">
+          <h2>Review Game</h2>
+          <button class="modal-close" id="review-close">&times;</button>
+        </div>
+        <div id="review-content"></div>
+        <div class="review-actions">
+          <button class="btn btn-approve" id="review-approve">Approve</button>
+          <button class="btn btn-reject" id="review-reject">Reject</button>
+          <button class="btn btn-secondary" id="review-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>McBlox — Not affiliated with Mojang or Microsoft.</p>
+  </footer>
+
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Games — McBlox</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-client.js" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="logo">McBlox</a>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="games.html" class="active">Games</a>
+      <a href="publish.html">Publish</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-sm" id="auth-btn">Sign In</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="page-header">
+      <h1>Games</h1>
+    </div>
+
+    <div class="catalog-bar">
+      <input type="text" class="search-input" id="search" placeholder="Search games...">
+      <select class="filter-select" id="sort">
+        <option value="popular">Most Popular</option>
+        <option value="newest">Newest</option>
+        <option value="top-rated">Top Rated</option>
+      </select>
+      <div class="tag-dropdown-wrap" id="tag-dropdown-wrap">
+        <button class="filter-select tag-toggle-btn" id="tag-toggle-btn">Tags</button>
+        <div class="tag-dropdown" id="tag-dropdown" style="display:none">
+          <div class="tag-filter-bar" id="tag-filter-bar"></div>
+          <button class="tag-clear-btn" id="tag-clear-btn" style="display:none">Clear all</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="featured" id="featured-section">
+      <h2>Featured</h2>
+      <div class="featured-grid" id="featured-grid"></div>
+    </section>
+
+    <div class="game-grid" id="game-grid"></div>
+
+    <div class="empty-state" id="empty" style="display:none">
+      <p>No games yet. Be the first to publish one!</p>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 McBlox</p>
+  </footer>
+
+  <script src="games.js"></script>
+</body>
+</html>

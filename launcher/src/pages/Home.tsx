@@ -1,0 +1,366 @@
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import GameCard from "../components/GameCard";
+import GameDetail from "../components/GameDetail";
+import type { Game } from "../types";
+import { supabase } from "../lib/supabase";
+
+// Placeholder games for development (removed once Supabase is connected)
+const PLACEHOLDER_GAMES: Game[] = [
+  {
+    id: "1",
+    title: "Epic Adventure RPG",
+    description: "Explore a massive open world with custom quests, dungeons, and boss fights. Over 200 custom mobs and 50 unique weapons await.",
+    tags: ["Adventure", "RPG", "Quests"],
+    thumbnail_url: null,
+    modpack_url: "https://modrinth.com/modpack/example",
+    mc_version: "1.21.1",
+    mod_loader: "fabric",
+    game_type: "server",
+    server_address: "play.epicrpg.com",
+    world_name: null,
+    thumbs_up: 842,
+    thumbs_down: 31,
+    total_plays: 15420,
+    player_count: 127,
+    is_promoted: true,
+    status: "approved",
+    created_at: "2026-04-01T00:00:00Z",
+  },
+  {
+    id: "2",
+    title: "SkyBlock Evolved",
+    description: "Classic skyblock with a twist — tech mods, magic, and automation. Start from nothing and build an empire in the sky.",
+    tags: ["Skyblock", "Survival", "Tech"],
+    thumbnail_url: null,
+    modpack_url: "https://modrinth.com/modpack/example2",
+    mc_version: "1.20.1",
+    mod_loader: "forge",
+    game_type: "server",
+    server_address: "sky.evolved.gg",
+    world_name: null,
+    thumbs_up: 531,
+    thumbs_down: 22,
+    total_plays: 8930,
+    player_count: 64,
+    is_promoted: false,
+    status: "approved",
+    created_at: "2026-03-20T00:00:00Z",
+  },
+  {
+    id: "3",
+    title: "Horror Mansion",
+    description: "A singleplayer horror adventure map. Solve puzzles, survive the dark, and uncover the mansion's secrets.",
+    tags: ["Horror", "Adventure", "Puzzle"],
+    thumbnail_url: null,
+    modpack_url: "https://mediafire.com/example",
+    mc_version: "1.21.1",
+    mod_loader: "fabric",
+    game_type: "world",
+    server_address: null,
+    world_name: "Horror Mansion",
+    thumbs_up: 203,
+    thumbs_down: 8,
+    total_plays: 3100,
+    player_count: 12,
+    is_promoted: false,
+    status: "approved",
+    created_at: "2026-04-05T00:00:00Z",
+  },
+  {
+    id: "4",
+    title: "PvP Arena Champions",
+    description: "Fast-paced PvP with custom kits, arenas, and ranked matchmaking. Compete to reach the top of the leaderboard.",
+    tags: ["PvP", "Competitive", "Parkour"],
+    thumbnail_url: null,
+    modpack_url: "https://curseforge.com/example",
+    mc_version: "1.21.1",
+    mod_loader: "neoforge",
+    game_type: "server",
+    server_address: "pvp.champions.net",
+    world_name: null,
+    thumbs_up: 670,
+    thumbs_down: 89,
+    total_plays: 12500,
+    player_count: 201,
+    is_promoted: true,
+    status: "approved",
+    created_at: "2026-03-15T00:00:00Z",
+  },
+  {
+    id: "5",
+    title: "Create & Chill",
+    description: "A relaxing creative server with the Create mod. Build incredible machines and share them with the community.",
+    tags: ["Creative", "Tech", "Building"],
+    thumbnail_url: null,
+    modpack_url: "https://modrinth.com/modpack/example3",
+    mc_version: "1.20.1",
+    mod_loader: "forge",
+    game_type: "server",
+    server_address: "create.chill.gg",
+    world_name: null,
+    thumbs_up: 412,
+    thumbs_down: 15,
+    total_plays: 6200,
+    player_count: 38,
+    is_promoted: false,
+    status: "approved",
+    created_at: "2026-04-02T00:00:00Z",
+  },
+  {
+    id: "6",
+    title: "Dragon Quest Map",
+    description: "An epic singleplayer quest to defeat 5 elemental dragons. Custom terrain, NPCs, and storyline.",
+    tags: ["Adventure", "Quests", "Exploration"],
+    thumbnail_url: null,
+    modpack_url: "https://drive.google.com/example",
+    mc_version: "1.21.1",
+    mod_loader: "fabric",
+    game_type: "world",
+    server_address: null,
+    world_name: "Dragon Quest",
+    thumbs_up: 156,
+    thumbs_down: 5,
+    total_plays: 2100,
+    player_count: 8,
+    is_promoted: false,
+    status: "approved",
+    created_at: "2026-04-06T00:00:00Z",
+  },
+];
+
+const TAGS = [
+  'Adventure', 'RPG', 'PvP', 'Creative', 'Survival',
+  'Skyblock', 'Horror', 'Puzzle', 'Minigame', 'Parkour',
+  'Tech', 'Magic', 'Quests', 'Building', 'Exploration',
+  'Competitive', 'Coop', 'Story', 'Open World', 'Hardcore'
+];
+
+export default function Home() {
+  const [games, setGames] = useState<Game[]>([]);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<"popular" | "newest" | "top-rated">("popular");
+  const [selected, setSelected] = useState<Game | null>(null);
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+  const [showTags, setShowTags] = useState(false);
+
+  useEffect(() => {
+    loadGames();
+  }, []);
+
+  async function loadGames() {
+    if (supabase) {
+      const { data } = await supabase
+        .from("games")
+        .select("*")
+        .eq("status", "approved");
+      if (data) {
+        setGames(data);
+        return;
+      }
+    }
+    setGames(PLACEHOLDER_GAMES);
+  }
+
+  async function handlePlay(game: Game) {
+    try {
+      const result = await invoke("launch_game", {
+        request: {
+          game_id: game.id,
+          title: game.title,
+          modpack_url: game.modpack_url || "",
+          mc_version: game.mc_version || "1.21.1",
+          mod_loader: game.mod_loader || "fabric",
+          game_type: game.game_type || "server",
+          server_address: game.server_address || null,
+        }
+      });
+      alert(result);
+    } catch (e) {
+      alert(`Launch error: ${e}`);
+    }
+  }
+
+  function toggleTag(tag: string) {
+    const key = tag.toLowerCase();
+    setActiveTags(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  const query = search.toLowerCase().trim();
+  let filtered = games.filter((g) => {
+    if (query && !g.title.toLowerCase().includes(query)) return false;
+    if (activeTags.size > 0) {
+      const gameTags = (g.tags || []).map(t => t.toLowerCase());
+      if (![...activeTags].every(t => gameTags.includes(t))) return false;
+    }
+    return true;
+  });
+
+  if (sort === "popular") filtered.sort((a, b) => (b.total_plays || 0) - (a.total_plays || 0));
+  else if (sort === "newest") filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  else if (sort === "top-rated") filtered.sort((a, b) => (b.thumbs_up || 0) - (a.thumbs_up || 0));
+
+  const featured = filtered.filter((g) => g.is_promoted);
+  const rest = filtered.filter((g) => !g.is_promoted);
+
+  if (selected) {
+    return (
+      <GameDetail
+        game={selected}
+        onBack={() => setSelected(null)}
+        onPlay={handlePlay}
+      />
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-6 py-3 bg-[#1a1a1a] border-b-[3px] border-[#5b8731] shrink-0">
+        <div className="relative flex-1 max-w-md">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080] text-sm">🔍</span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search games..."
+            className="w-full pl-9 pr-4 py-2 bg-[#2b2b2b] border-2 border-[#555] rounded text-sm text-white outline-none focus:border-[#5b8731] placeholder:text-[#808080]"
+          />
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as typeof sort)}
+          className="px-4 py-2 bg-[#2b2b2b] border-2 border-[#555] rounded text-xs text-[#b0b0b0] outline-none cursor-pointer hover:border-[#5b8731]"
+        >
+          <option value="popular">Most Popular</option>
+          <option value="newest">Newest</option>
+          <option value="top-rated">Top Rated</option>
+        </select>
+
+        {/* Tags dropdown button */}
+        <div className="relative">
+          <button
+            onClick={() => setShowTags(!showTags)}
+            className={`px-4 py-2 rounded text-xs font-medium cursor-pointer transition-all border-2 ${
+              activeTags.size > 0
+                ? 'bg-[#5b8731] border-[#5b8731] text-white'
+                : 'bg-[#2b2b2b] border-[#555] text-[#b0b0b0] hover:border-[#5b8731]'
+            }`}
+            style={{fontFamily: "'Silkscreen', monospace", borderBottom: '2px solid rgba(0,0,0,0.2)'}}
+          >
+            Tags {activeTags.size > 0 ? `(${activeTags.size})` : ''}
+          </button>
+          {showTags && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowTags(false)} />
+              <div className="absolute right-0 top-full mt-2 z-50 w-[320px] p-3 bg-[#2b2b2b] border-2 border-[#5b8731] rounded shadow-xl" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+                <div className="flex flex-wrap gap-1.5">
+                  {TAGS.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`px-2.5 py-1 rounded text-[11px] cursor-pointer transition-all border-2 ${
+                        activeTags.has(tag.toLowerCase())
+                          ? 'bg-[#5b8731] border-[#5b8731] text-white font-bold'
+                          : 'bg-[#3a3a3a] border-[#555] text-[#808080] hover:border-[#5b8731] hover:text-white'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+                {activeTags.size > 0 && (
+                  <button
+                    onClick={() => setActiveTags(new Set())}
+                    className="mt-2 text-[11px] text-[#808080] hover:text-white cursor-pointer"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Featured banner */}
+        {!search && featured.length > 0 && (
+          <div className="px-6 pt-5 pb-2">
+            <div
+              onClick={() => setSelected(featured[0])}
+              className="relative h-[220px] rounded overflow-hidden cursor-pointer group border-2 border-[#555] hover:border-[#5b8731]"
+              style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}
+            >
+              {featured[0].thumbnail_url ? (
+                <img src={featured[0].thumbnail_url} alt={featured[0].title} className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0" style={{background: 'linear-gradient(135deg, #3a5f1e 0%, #2d4a17 50%, #1e3310 100%)'}} />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              <div className="absolute inset-0 flex items-end p-6">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 bg-[#ffaa00] rounded text-[10px] font-bold text-black uppercase" style={{fontFamily: "'Silkscreen', monospace"}}>★ Featured</span>
+                    <span className="flex items-center gap-1 text-xs text-[#b0b0b0]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#55ff55]" />
+                      {featured[0].player_count || 0} playing
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-bold mb-1" style={{fontFamily: "'Silkscreen', monospace", textShadow: '2px 2px 0 #000'}}>{featured[0].title}</h2>
+                  <p className="text-sm text-[#b0b0b0] line-clamp-2 max-w-lg">{featured[0].description}</p>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handlePlay(featured[0]); }}
+                  className="px-8 py-3 bg-[#5b8731] hover:bg-[#6b9b3a] text-white font-bold rounded text-sm cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]"
+                  style={{fontFamily: "'Silkscreen', monospace"}}
+                >
+                  ▶ PLAY
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Promoted row */}
+        {!search && featured.length > 1 && (
+          <div className="px-6 pt-4">
+            <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+              ★ Sponsored
+            </h2>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+              {featured.slice(1).map((g) => (
+                <GameCard key={g.id} game={g} onClick={setSelected} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All games / search results */}
+        <div className="px-6 pt-5 pb-8">
+          <h2 className="text-base font-bold mb-3" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+            {search ? `Results for "${search}"` : "Popular Right Now"}
+          </h2>
+          {rest.length > 0 ? (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+              {rest.map((g) => (
+                <GameCard key={g.id} game={g} onClick={setSelected} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <span className="text-4xl mb-3 block">⛏</span>
+              <p className="text-[#808080]" style={{fontFamily: "'Silkscreen', monospace"}}>No games found</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

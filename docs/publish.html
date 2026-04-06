@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publish — McBlox</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="publish.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-client.js" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="logo">McBlox</a>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="games.html">Games</a>
+      <a href="publish.html" class="active">Publish</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-sm" id="auth-btn">Sign In</button>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Auth gate -->
+    <div id="auth-gate" class="auth-gate">
+      <h2>Sign in to publish</h2>
+      <p>You need a McBlox account to publish games.</p>
+      <button class="btn btn-lg" id="signin-btn">Sign In</button>
+    </div>
+
+    <!-- Publish form -->
+    <div id="publish-form" style="display:none">
+      <div class="page-header">
+        <h1>Publish a Game</h1>
+      </div>
+
+      <form id="game-form" class="form">
+        <!-- Basic info -->
+        <div class="form-section">
+          <h2>Basic Info</h2>
+
+          <label>Title</label>
+          <input type="text" id="title" required placeholder="My Awesome Game" maxlength="60">
+
+          <label>Description</label>
+          <textarea id="description" required placeholder="What's your game about?" rows="4" maxlength="500"></textarea>
+
+          <label>Tags <span class="req">*</span></label>
+          <p class="hint">Select up to 5 tags that describe your game.</p>
+          <div class="tag-picker" id="tag-picker"></div>
+          <input type="hidden" id="tags">
+        </div>
+
+        <!-- Modpack source -->
+        <div class="form-section">
+          <h2>Modpack</h2>
+
+          <label>Modpack Download Link</label>
+          <p class="hint">Modrinth, CurseForge, MediaFire, or Google Drive link</p>
+          <input type="url" id="modpack-url" required placeholder="https://modrinth.com/modpack/... or https://www.curseforge.com/...">
+
+          <label>Minecraft Version</label>
+          <input type="text" id="mc-version" required placeholder="e.g. 1.21.1">
+
+          <label>Mod Loader</label>
+          <select id="mod-loader" required>
+            <option value="">Select mod loader</option>
+            <option value="fabric">Fabric</option>
+            <option value="forge">Forge</option>
+            <option value="neoforge">NeoForge</option>
+          </select>
+        </div>
+
+        <!-- Game Type -->
+        <div class="form-section">
+          <h2>Game Type</h2>
+
+          <label>Type</label>
+          <select id="game-type" required>
+            <option value="">Select type</option>
+            <option value="server">Server (Multiplayer)</option>
+            <option value="world">World (Singleplayer)</option>
+          </select>
+
+          <div id="server-field" style="display:none">
+            <label>Server Address</label>
+            <input type="text" id="server-address" placeholder="play.example.com:25565">
+          </div>
+
+          <div id="world-field" style="display:none">
+            <label>World Name</label>
+            <input type="text" id="world-name" placeholder="e.g. My Adventure Map">
+          </div>
+        </div>
+
+        <!-- Images -->
+        <div class="form-section">
+          <h2>Images</h2>
+
+          <label>Thumbnail / Banner <span class="req">*</span></label>
+          <p class="hint">Will be cropped to 16:9. Click the area below to upload.</p>
+          <div class="crop-area" id="thumb-crop">
+            <input type="file" accept="image/*" id="thumb-input" hidden>
+            <canvas id="thumb-canvas" width="640" height="360"></canvas>
+            <div class="crop-placeholder" id="thumb-placeholder">Click to upload</div>
+            <div class="crop-controls" id="thumb-controls" style="display:none">
+              <input type="range" id="thumb-zoom" min="1" max="3" step="0.01" value="1">
+              <span class="hint">Drag to reposition, slider to zoom</span>
+            </div>
+          </div>
+
+          <label>Screenshots <span class="optional">(up to 4)</span></label>
+          <div class="screenshot-row" id="screenshot-row">
+            <div class="screenshot-slot" data-index="0">
+              <input type="file" accept="image/*" hidden>
+              <canvas width="320" height="180"></canvas>
+              <div class="crop-placeholder">+</div>
+            </div>
+            <div class="screenshot-slot" data-index="1">
+              <input type="file" accept="image/*" hidden>
+              <canvas width="320" height="180"></canvas>
+              <div class="crop-placeholder">+</div>
+            </div>
+            <div class="screenshot-slot" data-index="2">
+              <input type="file" accept="image/*" hidden>
+              <canvas width="320" height="180"></canvas>
+              <div class="crop-placeholder">+</div>
+            </div>
+            <div class="screenshot-slot" data-index="3">
+              <input type="file" accept="image/*" hidden>
+              <canvas width="320" height="180"></canvas>
+              <div class="crop-placeholder">+</div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-lg submit-btn">Submit for Review</button>
+      </form>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 McBlox</p>
+  </footer>
+
+  <script src="publish.js"></script>
+</body>
+</html>
