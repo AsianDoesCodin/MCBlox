@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import type { Game } from "../types";
+import { supabase } from "../lib/supabase";
 
 interface Props {
   game: Game;
@@ -7,10 +9,64 @@ interface Props {
 }
 
 export default function GameDetail({ game, onBack, onPlay }: Props) {
-  const likes = game.thumbs_up || 0;
-  const dislikes = game.thumbs_down || 0;
+  const [likes, setLikes] = useState(game.thumbs_up || 0);
+  const [dislikes, setDislikes] = useState(game.thumbs_down || 0);
+  const [myRating, setMyRating] = useState<boolean | null>(null); // true=like, false=dislike, null=none
+
   const total = likes + dislikes;
   const pct = total > 0 ? Math.round((likes / total) * 100) : 0;
+
+  useEffect(() => {
+    loadMyRating();
+  }, [game.id]);
+
+  async function loadMyRating() {
+    if (!supabase) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { data } = await supabase
+      .from("game_ratings")
+      .select("is_positive")
+      .eq("game_id", game.id)
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+    if (data) setMyRating(data.is_positive);
+  }
+
+  async function rate(positive: boolean) {
+    if (!supabase) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { alert("Sign in to rate games"); return; }
+
+    // Optimistic UI update
+    const oldRating = myRating;
+    if (oldRating === positive) return; // already rated same way
+
+    if (oldRating === null) {
+      // New rating
+      if (positive) setLikes(l => l + 1); else setDislikes(d => d + 1);
+    } else {
+      // Changing rating
+      if (positive) { setLikes(l => l + 1); setDislikes(d => d - 1); }
+      else { setDislikes(d => d + 1); setLikes(l => l - 1); }
+    }
+    setMyRating(positive);
+
+    const { error } = await supabase
+      .from("game_ratings")
+      .upsert({
+        game_id: game.id,
+        user_id: session.user.id,
+        is_positive: positive,
+      }, { onConflict: "game_id,user_id" });
+
+    if (error) {
+      // Revert
+      setMyRating(oldRating);
+      setLikes(game.thumbs_up || 0);
+      setDislikes(game.thumbs_down || 0);
+    }
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -64,12 +120,31 @@ export default function GameDetail({ game, onBack, onPlay }: Props) {
 
           {/* Stats row */}
           <div className="flex gap-3 mb-6">
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#3a3a3a] rounded border-2 border-[#555]">
+            <button
+              onClick={() => rate(true)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded border-2 cursor-pointer transition-colors ${
+                myRating === true
+                  ? "bg-[#2d5a11] border-[#5b8731] text-[#55ff55]"
+                  : "bg-[#3a3a3a] border-[#555] hover:border-[#5b8731]"
+              }`}
+            >
               <span className="text-lg">👍</span>
-              <div>
-                <p className="text-sm font-bold">{pct}%</p>
-                <p className="text-[10px] text-[#808080]">{total} ratings</p>
-              </div>
+              <span className="text-sm font-bold">{likes}</span>
+            </button>
+            <button
+              onClick={() => rate(false)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded border-2 cursor-pointer transition-colors ${
+                myRating === false
+                  ? "bg-[#5a1e1e] border-[#7a2e2e] text-[#ff5555]"
+                  : "bg-[#3a3a3a] border-[#555] hover:border-[#7a2e2e]"
+              }`}
+            >
+              <span className="text-lg">👎</span>
+              <span className="text-sm font-bold">{dislikes}</span>
+            </button>
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#3a3a3a] rounded border-2 border-[#555]">
+              <span className="text-sm font-bold">{pct}%</span>
+              <span className="text-[10px] text-[#808080]">positive</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2.5 bg-[#3a3a3a] rounded border-2 border-[#555]">
               <span className="text-lg">{game.game_type === 'server' ? '🌐' : '🗺️'}</span>

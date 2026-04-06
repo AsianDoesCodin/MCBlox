@@ -45,13 +45,20 @@ nav {
 }
 
 .logo {
-  font-family: 'Silkscreen', monospace;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--green);
   text-decoration: none;
-  text-shadow: 2px 2px 0 #000;
-  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+}
+
+.nav-logo {
+  height: 40px;
+  width: auto;
+}
+
+.hero-logo {
+  width: 280px;
+  height: auto;
+  margin-bottom: 16px;
 }
 
 .nav-links {

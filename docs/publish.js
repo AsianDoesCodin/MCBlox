@@ -156,7 +156,12 @@ function setupCrop(container, canvasEl, inputEl, placeholderEl, controlsEl, zoom
     canvasEl.style.cursor = '';
   });
 
-  return { getCanvas: () => canvasEl, hasImage: () => !!img };
+  return { getCanvas: () => canvasEl, hasImage: () => !!img, getBlob: () => {
+    return new Promise(resolve => {
+      if (!img) { resolve(null); return; }
+      canvasEl.toBlob(resolve, 'image/jpeg', 0.8);
+    });
+  }};
 }
 
 // Thumbnail crop
@@ -189,16 +194,61 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  if (selectedTags.size === 0) {
-    alert('Please select at least one tag.');
+  if (!thumbCrop.hasImage()) {
+    alert('Please upload a thumbnail.');
     return;
   }
 
+  // Generate a unique game ID for file paths
+  const gameId = crypto.randomUUID();
+
+  // Upload thumbnail
+  let thumbnailUrl = null;
+  try {
+    const thumbBlob = await thumbCrop.getBlob();
+    if (thumbBlob) {
+      const thumbPath = `${gameId}/thumbnail.jpg`;
+      const { error: upErr } = await sb.storage.from('game-images').upload(thumbPath, thumbBlob, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+      if (upErr) throw upErr;
+      const { data: urlData } = sb.storage.from('game-images').getPublicUrl(thumbPath);
+      thumbnailUrl = urlData.publicUrl;
+    }
+  } catch (err) {
+    alert('Failed to upload thumbnail: ' + (err.message || 'Unknown error'));
+    return;
+  }
+
+  // Upload screenshots
+  const screenshotUrls = [];
+  for (let i = 0; i < screenshotCrops.length; i++) {
+    if (!screenshotCrops[i].hasImage()) continue;
+    try {
+      const blob = await screenshotCrops[i].getBlob();
+      if (!blob) continue;
+      const ssPath = `${gameId}/screenshot_${i}.jpg`;
+      const { error: upErr } = await sb.storage.from('game-images').upload(ssPath, blob, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+      if (upErr) throw upErr;
+      const { data: urlData } = sb.storage.from('game-images').getPublicUrl(ssPath);
+      screenshotUrls.push(urlData.publicUrl);
+    } catch (err) {
+      console.warn('Screenshot upload failed:', err);
+    }
+  }
+
   const gameData = {
+    id: gameId,
     creator_id: user.id,
     title: document.getElementById('title').value.trim(),
     description: document.getElementById('description').value.trim(),
     tags: [...selectedTags],
+    thumbnail_url: thumbnailUrl,
+    screenshots: screenshotUrls,
     modpack_url: document.getElementById('modpack-url').value.trim(),
     mc_version: document.getElementById('mc-version').value.trim(),
     mod_loader: document.getElementById('mod-loader').value,
@@ -213,12 +263,8 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     thumbs_up: 0,
     thumbs_down: 0,
     total_plays: 0,
-    player_count: 0,
     is_promoted: false
   };
-
-  // TODO: Upload thumbnail + screenshots to Supabase Storage
-  // For now, thumbnail_url stays null
 
   try {
     const { error } = await sb.from('games').insert(gameData);

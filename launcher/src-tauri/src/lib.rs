@@ -32,21 +32,92 @@ fn get_instances_dir() -> PathBuf {
 }
 
 fn get_java_path() -> Option<String> {
-    // Check common Java locations on Windows
-    let candidates = vec![
-        // JAVA_HOME env var
-        std::env::var("JAVA_HOME").ok().map(|h| format!("{}\\bin\\javaw.exe", h)),
-        // Commonly installed paths
-        Some("javaw.exe".to_string()), // On PATH
-    ];
-
-    for candidate in candidates.into_iter().flatten() {
-        let path = PathBuf::from(&candidate);
-        if path.exists() || which_java(&candidate) {
-            return Some(candidate);
+    // 1. Check our bundled Java first
+    let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
+    let bundled = base.join("McBlox").join("java");
+    if bundled.exists() {
+        // Find javaw.exe inside the extracted JRE
+        if let Ok(entries) = std::fs::read_dir(&bundled) {
+            for entry in entries.flatten() {
+                let javaw = entry.path().join("bin").join("javaw.exe");
+                if javaw.exists() {
+                    return Some(javaw.display().to_string());
+                }
+            }
         }
     }
+
+    // 2. JAVA_HOME env var
+    if let Ok(home) = std::env::var("JAVA_HOME") {
+        let javaw = PathBuf::from(&home).join("bin").join("javaw.exe");
+        if javaw.exists() {
+            return Some(javaw.display().to_string());
+        }
+    }
+
+    // 3. On PATH
+    if which_java("javaw.exe") {
+        return Some("javaw.exe".to_string());
+    }
+
     None
+}
+
+async fn ensure_java() -> Result<String, String> {
+    if let Some(java) = get_java_path() {
+        return Ok(java);
+    }
+
+    // Auto-download Adoptium JRE 21
+    println!("[McBlox] Java not found, downloading Adoptium JRE 21...");
+    let base = dirs::data_local_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("McBlox")
+        .join("java");
+    std::fs::create_dir_all(&base).map_err(|e| format!("Failed to create java dir: {}", e))?;
+
+    let url = "https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse?project=jdk";
+
+    let client = reqwest::Client::builder()
+        .user_agent("McBlox/0.1.0")
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client.get(url).send().await.map_err(|e| format!("Download failed: {}", e))?;
+    if !resp.status().is_success() {
+        return Err(format!("Adoptium download returned status {}", resp.status()));
+    }
+
+    let zip_path = base.join("jre.zip");
+    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+    std::fs::write(&zip_path, &bytes).map_err(|e| format!("Failed to save JRE: {}", e))?;
+
+    // Extract
+    let file = std::fs::File::open(&zip_path).map_err(|e| e.to_string())?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Bad JRE zip: {}", e))?;
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
+        let name = entry.name().to_string();
+        if name.contains("..") { continue; }
+        let out_path = base.join(&name);
+        if entry.is_dir() {
+            std::fs::create_dir_all(&out_path).ok();
+        } else {
+            if let Some(parent) = out_path.parent() {
+                std::fs::create_dir_all(parent).ok();
+            }
+            let mut outfile = std::fs::File::create(&out_path).map_err(|e| e.to_string())?;
+            std::io::copy(&mut entry, &mut outfile).map_err(|e| e.to_string())?;
+        }
+    }
+
+    // Clean up zip
+    std::fs::remove_file(&zip_path).ok();
+
+    println!("[McBlox] Java installed successfully");
+
+    get_java_path().ok_or_else(|| "Java was downloaded but javaw.exe not found in extracted files".to_string())
 }
 
 fn which_java(cmd: &str) -> bool {
@@ -120,9 +191,8 @@ async fn launch_game(request: LaunchRequest) -> Result<String, String> {
     // Build classpath
     let classpath = mc_launcher::build_classpath(&client_jar, &lib_paths, &fabric_libs);
 
-    // Find Java
-    let java = get_java_path()
-        .ok_or("Java not found. Please install Java 17+ and make sure it's on your PATH or set JAVA_HOME.")?;
+    // Find or download Java
+    let java = ensure_java().await?;
 
     // Build launch args
     let args = mc_launcher::build_launch_args(

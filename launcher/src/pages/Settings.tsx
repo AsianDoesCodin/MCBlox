@@ -209,9 +209,7 @@ export default function Settings() {
           {/* McBlox Account */}
           <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded bg-[#5b8731] flex items-center justify-center text-white font-black text-lg shrink-0" style={{fontFamily: "'Silkscreen', monospace"}}>
-                M
-              </div>
+              <img src="/mcbloxlogo.png" alt="McBlox" className="w-11 h-11 rounded shrink-0" />
               {mcbloxUser ? (
                 <>
                   <div className="flex-1">
@@ -229,7 +227,7 @@ export default function Settings() {
                 <>
                   <div className="flex-1">
                     <h2 className="font-bold text-sm">McBlox Account</h2>
-                    <p className="text-xs text-[#808080] mt-0.5">Rate games, add friends, and publish</p>
+                    <p className="text-xs text-[#808080] mt-0.5">Rate games and publish</p>
                   </div>
                   <button
                     onClick={() => setShowAuthModal(true)}

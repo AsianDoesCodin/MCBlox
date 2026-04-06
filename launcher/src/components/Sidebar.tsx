@@ -1,4 +1,4 @@
-type Page = "home" | "friends" | "settings";
+type Page = "home" | "settings";
 
 interface Props {
   current: Page;
@@ -7,7 +7,6 @@ interface Props {
 
 const nav: { page: Page; label: string; icon: string }[] = [
   { page: "home", label: "Discover", icon: "⛏" },
-  { page: "friends", label: "Friends", icon: "👥" },
   { page: "settings", label: "Settings", icon: "⚙" },
 ];
 
@@ -16,10 +15,7 @@ export default function Sidebar({ current, onNavigate }: Props) {
     <div className="w-[200px] min-w-[200px] bg-[#1a1a1a] flex flex-col border-r-[3px] border-[#5b8731]">
       {/* Logo */}
       <div className="px-5 py-5 flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded bg-[#5b8731] flex items-center justify-center text-white font-black text-lg border-b-[3px] border-[rgba(0,0,0,0.3)]" style={{fontFamily: "'Silkscreen', monospace"}}>
-          M
-        </div>
-        <span className="text-lg font-bold tracking-wide text-[#55ff55]" style={{fontFamily: "'Silkscreen', monospace", textShadow: '2px 2px 0 #000'}}>McBlox</span>
+        <img src="/mcbloxlogo.png" alt="McBlox" className="h-10 w-auto" />
       </div>
 
       {/* Nav */}
