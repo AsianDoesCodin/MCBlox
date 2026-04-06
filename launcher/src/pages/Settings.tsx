@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { supabase } from "../lib/supabase";
+import type { User } from "@supabase/supabase-js";
 
 interface McAccount {
   username: string;
@@ -10,18 +12,43 @@ interface McAccount {
 export default function Settings() {
   const [mcAccount, setMcAccount] = useState<McAccount | null>(null);
   const [authState, setAuthState] = useState<"idle" | "waiting" | "polling">("idle");
+  const [authError, setAuthError] = useState<string | null>(null);
   const [deviceCode, setDeviceCode] = useState<{user_code: string; verification_uri: string} | null>(null);
+
+  // McBlox account
+  const [mcbloxUser, setMcbloxUser] = useState<User | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authUsername, setAuthUsername] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authModalError, setAuthModalError] = useState("");
 
   useEffect(() => {
     invoke("mc_auth_get_account").then((acc: any) => {
       if (acc) setMcAccount(acc);
     }).catch(() => {});
+
+    // Check McBlox auth
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setMcbloxUser(session?.user || null);
+      });
+      supabase.auth.onAuthStateChange((_event, session) => {
+        setMcbloxUser(session?.user || null);
+      });
+    }
   }, []);
 
   async function startMcAuth() {
     try {
       setAuthState("waiting");
+      setAuthError(null);
       const code: any = await invoke("mc_auth_start_device_flow");
+      if (!code.user_code) {
+        throw new Error("No device code received from Microsoft");
+      }
       setDeviceCode({ user_code: code.user_code, verification_uri: code.verification_uri });
       setAuthState("polling");
 
@@ -36,8 +63,9 @@ export default function Settings() {
       setMcAccount(account);
       setAuthState("idle");
       setDeviceCode(null);
+      setAuthError(null);
     } catch (e: any) {
-      alert(`Auth failed: ${e}`);
+      setAuthError(typeof e === "string" ? e : e?.message || "Auth failed");
       setAuthState("idle");
       setDeviceCode(null);
     }
@@ -46,6 +74,42 @@ export default function Settings() {
   async function logoutMc() {
     await invoke("mc_auth_logout");
     setMcAccount(null);
+  }
+
+  async function handleMcbloxAuth(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supabase) {
+      setAuthModalError("Supabase not configured");
+      return;
+    }
+    setAuthLoading(true);
+    setAuthModalError("");
+    try {
+      if (isSignUp) {
+        if (!authUsername.trim()) throw new Error("Username required");
+        const { error } = await supabase.auth.signUp({
+          email: authEmail, password: authPassword,
+          options: { data: { username: authUsername.trim() } }
+        });
+        if (error) throw error;
+        setShowAuthModal(false);
+        setAuthEmail(""); setAuthPassword(""); setAuthUsername("");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authEmail, password: authPassword
+        });
+        if (error) throw error;
+        setShowAuthModal(false);
+        setAuthEmail(""); setAuthPassword("");
+      }
+    } catch (err: any) {
+      setAuthModalError(err.message || "Something went wrong");
+    }
+    setAuthLoading(false);
+  }
+
+  async function mcbloxSignOut() {
+    if (supabase) await supabase.auth.signOut();
   }
 
   return (
@@ -116,19 +180,47 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* MC Auth Error */}
+          {authError && (
+            <div className="bg-[#5a1e1e] border-2 border-[#7a2e2e] rounded p-3 text-sm text-[#ff5555]">
+              MC Auth Error: {authError}
+            </div>
+          )}
+
           {/* McBlox Account */}
           <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
             <div className="flex items-center gap-4">
               <div className="w-11 h-11 rounded bg-[#5b8731] flex items-center justify-center text-white font-black text-lg shrink-0" style={{fontFamily: "'Silkscreen', monospace"}}>
                 M
               </div>
-              <div className="flex-1">
-                <h2 className="font-bold text-sm">McBlox Account</h2>
-                <p className="text-xs text-[#808080] mt-0.5">Rate games, add friends, and publish</p>
-              </div>
-              <button className="px-5 py-2 bg-[#5b8731] hover:bg-[#6b9b3a] rounded text-white text-sm font-semibold cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]" style={{fontFamily: "'Silkscreen', monospace"}}>
-                Sign In
-              </button>
+              {mcbloxUser ? (
+                <>
+                  <div className="flex-1">
+                    <h2 className="font-bold text-sm">{mcbloxUser.user_metadata?.username || mcbloxUser.email?.split("@")[0]}</h2>
+                    <p className="text-xs text-[#55ff55] mt-0.5">Signed in</p>
+                  </div>
+                  <button
+                    onClick={mcbloxSignOut}
+                    className="px-5 py-2 bg-[#5a1e1e] hover:bg-[#6a2222] border-2 border-[#7a2e2e] rounded text-sm font-medium cursor-pointer text-[#ff5555]"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1">
+                    <h2 className="font-bold text-sm">McBlox Account</h2>
+                    <p className="text-xs text-[#808080] mt-0.5">Rate games, add friends, and publish</p>
+                  </div>
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="px-5 py-2 bg-[#5b8731] hover:bg-[#6b9b3a] rounded text-white text-sm font-semibold cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]"
+                    style={{fontFamily: "'Silkscreen', monospace"}}
+                  >
+                    Sign In
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -214,6 +306,68 @@ export default function Settings() {
           </p>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAuthModal(false); }}
+        >
+          <div className="bg-[#2b2b2b] border-2 border-[#5b8731] rounded w-[380px] p-7" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+            <h2 className="text-center text-lg font-bold mb-4" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+              {isSignUp ? "Sign Up" : "Sign In"}
+            </h2>
+            <form onSubmit={handleMcbloxAuth} className="space-y-3">
+              {isSignUp && (
+                <input
+                  type="text"
+                  value={authUsername}
+                  onChange={(e) => setAuthUsername(e.target.value)}
+                  placeholder="Username"
+                  className="w-full px-3 py-2 bg-[#3a3a3a] border-2 border-[#555] rounded text-sm text-white outline-none focus:border-[#5b8731]"
+                />
+              )}
+              <input
+                type="email"
+                value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                placeholder="Email"
+                required
+                className="w-full px-3 py-2 bg-[#3a3a3a] border-2 border-[#555] rounded text-sm text-white outline-none focus:border-[#5b8731]"
+              />
+              <input
+                type="password"
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                placeholder="Password"
+                required
+                minLength={6}
+                className="w-full px-3 py-2 bg-[#3a3a3a] border-2 border-[#555] rounded text-sm text-white outline-none focus:border-[#5b8731]"
+              />
+              {authModalError && (
+                <p className="text-[#ff5555] text-xs">{authModalError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-2.5 bg-[#5b8731] hover:bg-[#6b9b3a] border-2 border-[rgba(255,255,255,0.1)] rounded text-white font-bold text-sm cursor-pointer disabled:opacity-50"
+                style={{fontFamily: "'Silkscreen', monospace", borderBottom: '4px solid rgba(0,0,0,0.3)'}}
+              >
+                {authLoading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In"}
+              </button>
+            </form>
+            <p className="text-center text-xs text-[#808080] mt-3">
+              {isSignUp ? "Already have an account?" : "Don't have an account?"}
+              <button
+                onClick={() => { setIsSignUp(!isSignUp); setAuthModalError(""); }}
+                className="text-[#5b8731] font-semibold ml-1 cursor-pointer bg-transparent border-none"
+              >
+                {isSignUp ? "Sign In" : "Sign Up"}
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
