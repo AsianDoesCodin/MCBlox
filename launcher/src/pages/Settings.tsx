@@ -26,8 +26,22 @@ export default function Settings() {
   const [authModalError, setAuthModalError] = useState("");
 
   useEffect(() => {
+    // Check for saved MC account
     invoke("mc_auth_get_account").then((acc: any) => {
       if (acc) setMcAccount(acc);
+    }).catch(() => {});
+
+    // Check if MC auth is in progress (e.g. user navigated away and back)
+    invoke("mc_auth_status").then((status: any) => {
+      if (status.state === "polling" || status.state === "authenticating") {
+        setAuthState("polling");
+      } else if (status.state === "done" && status.account) {
+        setMcAccount(status.account);
+        setAuthState("idle");
+      } else if (status.state === "error" && status.error) {
+        setAuthError(status.error);
+        setAuthState("idle");
+      }
     }).catch(() => {});
 
     // Check McBlox auth

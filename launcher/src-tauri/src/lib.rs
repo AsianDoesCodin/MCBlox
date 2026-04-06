@@ -210,19 +210,78 @@ async fn delete_instance(game_id: String) -> Result<(), String> {
 
 // --- Microsoft/Minecraft Auth ---
 
+use std::sync::Mutex;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct McAuthStatus {
+    state: String, // "idle", "waiting_code", "polling", "authenticating", "done", "error"
+    error: Option<String>,
+    account: Option<McAccount>,
+}
+
+struct McAuthState(Mutex<McAuthStatus>);
+
 #[tauri::command]
-async fn mc_auth_start_device_flow() -> Result<DeviceCodeResponse, String> {
+async fn mc_auth_start_device_flow(state: tauri::State<'_, McAuthState>) -> Result<DeviceCodeResponse, String> {
+    {
+        let mut s = state.0.lock().unwrap();
+        *s = McAuthStatus { state: "waiting_code".to_string(), error: None, account: None };
+    }
     let client = reqwest::Client::new();
-    mc_auth::request_device_code(&client).await
+    match mc_auth::request_device_code(&client).await {
+        Ok(code) => {
+            let mut s = state.0.lock().unwrap();
+            s.state = "polling".to_string();
+            Ok(code)
+        }
+        Err(e) => {
+            let mut s = state.0.lock().unwrap();
+            *s = McAuthStatus { state: "error".to_string(), error: Some(e.clone()), account: None };
+            Err(e)
+        }
+    }
 }
 
 #[tauri::command]
-async fn mc_auth_poll(device_code: String, interval: u64) -> Result<McAccount, String> {
+async fn mc_auth_poll(device_code: String, interval: u64, state: tauri::State<'_, McAuthState>) -> Result<McAccount, String> {
     let client = reqwest::Client::new();
-    let (msa_token, refresh_token) = mc_auth::poll_for_msa_token(&client, &device_code, interval).await?;
-    let account = mc_auth::full_auth_flow(&client, &msa_token, refresh_token).await?;
+    
+    let (msa_token, refresh_token) = match mc_auth::poll_for_msa_token(&client, &device_code, interval).await {
+        Ok(v) => v,
+        Err(e) => {
+            let mut s = state.0.lock().unwrap();
+            *s = McAuthStatus { state: "error".to_string(), error: Some(e.clone()), account: None };
+            return Err(e);
+        }
+    };
+
+    {
+        let mut s = state.0.lock().unwrap();
+        s.state = "authenticating".to_string();
+    }
+
+    let account = match mc_auth::full_auth_flow(&client, &msa_token, refresh_token).await {
+        Ok(a) => a,
+        Err(e) => {
+            let mut s = state.0.lock().unwrap();
+            *s = McAuthStatus { state: "error".to_string(), error: Some(e.clone()), account: None };
+            return Err(e);
+        }
+    };
+
     mc_auth::save_account(&account)?;
+    
+    {
+        let mut s = state.0.lock().unwrap();
+        *s = McAuthStatus { state: "done".to_string(), error: None, account: Some(account.clone()) };
+    }
     Ok(account)
+}
+
+#[tauri::command]
+async fn mc_auth_status(state: tauri::State<'_, McAuthState>) -> Result<McAuthStatus, String> {
+    let s = state.0.lock().unwrap();
+    Ok(s.clone())
 }
 
 #[tauri::command]
@@ -241,7 +300,11 @@ async fn mc_auth_refresh() -> Result<McAccount, String> {
 }
 
 #[tauri::command]
-async fn mc_auth_logout() -> Result<(), String> {
+async fn mc_auth_logout(state: tauri::State<'_, McAuthState>) -> Result<(), String> {
+    {
+        let mut s = state.0.lock().unwrap();
+        *s = McAuthStatus { state: "idle".to_string(), error: None, account: None };
+    }
     mc_auth::delete_account()
 }
 
@@ -249,12 +312,14 @@ async fn mc_auth_logout() -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(McAuthState(Mutex::new(McAuthStatus { state: "idle".to_string(), error: None, account: None })))
         .invoke_handler(tauri::generate_handler![
             launch_game,
             get_instances,
             delete_instance,
             mc_auth_start_device_flow,
             mc_auth_poll,
+            mc_auth_status,
             mc_auth_get_account,
             mc_auth_refresh,
             mc_auth_logout
