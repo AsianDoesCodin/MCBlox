@@ -1,0 +1,46 @@
+McBlox Project Status — April 7, 2026
+======================================
+
+WHAT'S DONE:
+- Website (GitHub Pages): Landing, Games catalog, Publish form, Dashboard, Admin panel
+- Supabase backend: Auth, games table, ratings, player_activity, profiles, RLS policies, storage
+- Launcher (Tauri + React): Game grid, search/sort/filter by tags, game detail page, settings
+- McBlox Account: Sign up/in via Supabase (both website and launcher)
+- Minecraft Auth: Full Microsoft → Xbox → XSTS → MC device code flow (working!)
+- MC Launch Engine (Rust): Fabric, Forge, NeoForge installers, Mojang version manifest,
+  client JAR + libraries + assets download, classpath builder, launch args, auto-join server
+- Java auto-download: Adoptium JRE 21 if not installed
+- Modpack URL resolver: Modrinth API, CurseForge CDN scraping, Google Drive, MediaFire
+- Image upload: Thumbnail + screenshots to Supabase Storage from Publish form
+- Rating system: Thumbs up/down in launcher game detail
+- Player heartbeat: 60s ping while playing, live player counts
+- Auto-updater: Checks GitHub releases on startup, shows banner
+- Logo: Everywhere (website nav/hero, launcher sidebar, Tauri icons, favicon)
+- GitHub Release v0.1.0: .exe + .msi installers uploaded
+
+STILL MISSING (Required):
+- End-to-end MC launch test — all Rust code is written but untested with a real game
+- Supabase email redirect URL — still points to localhost:3000, needs to be updated in
+  Supabase Dashboard > Authentication > URL Configuration to the live site URL
+- Game thumbnails on website game cards — games.js needs to render thumbnail_url images
+- Dashboard edit form — needs image re-upload capability
+- Admin featured/promoted toggle — manual promotion via admin panel (you said DMs for now)
+
+NICE TO HAVES:
+- Progress bar during game download/install (currently just "Launching...")
+- Game search on website games page via Supabase full-text search
+- Sorting by rating on game cards (website + launcher)
+- Remember last played games section in launcher
+- Mod loader version selector on publish form (e.g., specific Fabric/Forge version)
+- Multi-screenshot gallery viewer on game detail page
+- Terms of Service / content guidelines on publish page
+- Discord webhook for new game submissions (notify you when someone publishes)
+- Analytics dashboard for creators (play counts over time)
+- Launcher minimize to system tray while MC is running
+- Quilt mod loader support
+
+REPO INFO:
+- GitHub: https://github.com/AsianDoesCodin/MCBlox
+- Supabase: https://ldipundnojizgnykqvdd.supabase.co
+- Website: https://asiandoescodin.github.io/MCBlox/ (GitHub Pages from /docs)
+- Build: cd launcher && npm run tauri dev (dev) or npm run tauri build (release)
