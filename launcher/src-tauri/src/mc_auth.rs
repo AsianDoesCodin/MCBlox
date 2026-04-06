@@ -69,7 +69,7 @@ struct McProfileResponse {
 pub async fn request_device_code(client: &reqwest::Client) -> Result<DeviceCodeResponse, String> {
     let params = [
         ("client_id", MSA_CLIENT_ID),
-        ("scope", "XboxLive.signin offline_access"),
+        ("scope", "service::user.auth.xboxlive.com::MBI_SSL"),
         ("response_type", "device_code"),
     ];
 
@@ -125,8 +125,11 @@ pub async fn poll_for_msa_token(
     device_code: &str,
     interval: u64,
 ) -> Result<(String, Option<String>), String> {
+    let mut attempts = 0;
     loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(interval)).await;
+        attempts += 1;
+        eprintln!("[McBlox MC Auth] Poll attempt {}", attempts);
 
         let params = [
             ("client_id", MSA_CLIENT_ID),
@@ -141,38 +144,53 @@ pub async fn poll_for_msa_token(
             .await
             .map_err(|e| format!("Token poll failed: {}", e))?;
 
+        let status = resp.status();
         let text = resp.text().await.map_err(|e| format!("Failed to read token response: {}", e))?;
+        eprintln!("[McBlox MC Auth] Poll response status={}, len={}, preview={}", status, text.len(), &text[..200.min(text.len())]);
 
-        // Check if it's a JSON error (authorization_pending) or URL-encoded
-        if text.contains("authorization_pending") {
-            continue;
-        }
-        if text.contains("authorization_declined") || text.contains("expired_token") {
-            return Err("Authentication was declined or expired.".to_string());
-        }
-
-        // Try JSON parse first
-        if let Ok(token_resp) = serde_json::from_str::<MsaTokenResponse>(&text) {
-            if !token_resp.access_token.is_empty() {
-                return Ok((token_resp.access_token, token_resp.refresh_token));
+        // Try JSON parse first (Azure AD v2 style)
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
+            if let Some(err) = json["error"].as_str() {
+                if err == "authorization_pending" {
+                    eprintln!("[McBlox MC Auth] Still pending...");
+                    continue;
+                }
+                if err == "authorization_declined" || err == "expired_token" {
+                    return Err("Authentication was declined or expired.".to_string());
+                }
+                // Any other error is fatal
+                let desc = json["error_description"].as_str().unwrap_or("Unknown error");
+                return Err(format!("MSA token error: {} - {}", err, desc));
+            }
+            // Has access_token
+            if let Some(token) = json["access_token"].as_str() {
+                if !token.is_empty() {
+                    eprintln!("[McBlox MC Auth] Got MSA token via JSON!");
+                    let refresh = json["refresh_token"].as_str().map(|s| s.to_string());
+                    return Ok((token.to_string(), refresh));
+                }
             }
         }
 
-        // Try URL-encoded parse
+        // Try URL-encoded parse (Live SDK style)
         let parsed: std::collections::HashMap<String, String> = 
             url::form_urlencoded::parse(text.as_bytes())
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect();
 
         if let Some(token) = parsed.get("access_token") {
-            return Ok((token.clone(), parsed.get("refresh_token").cloned()));
+            if !token.is_empty() {
+                eprintln!("[McBlox MC Auth] Got MSA token via URL-encoded!");
+                return Ok((token.clone(), parsed.get("refresh_token").cloned()));
+            }
         }
 
         if let Some(err) = parsed.get("error") {
             if err == "authorization_pending" {
                 continue;
             }
-            return Err(format!("Auth error: {}", err));
+            let desc = parsed.get("error_description").map(|s| s.as_str()).unwrap_or("Unknown");
+            return Err(format!("Auth error: {} - {}", err, desc));
         }
     }
 }
@@ -186,7 +204,7 @@ pub async fn authenticate_xbox(
         "Properties": {
             "AuthMethod": "RPS",
             "SiteName": "user.auth.xboxlive.com",
-            "RpsTicket": format!("d={}", msa_token)
+            "RpsTicket": msa_token
         },
         "RelyingParty": "http://auth.xboxlive.com",
         "TokenType": "JWT"
@@ -194,13 +212,23 @@ pub async fn authenticate_xbox(
 
     let resp = client
         .post(XBOX_AUTH_URL)
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
         .json(&body)
         .send()
         .await
-        .map_err(|e| format!("Xbox auth failed: {}", e))?;
+        .map_err(|e| format!("Xbox auth request failed: {}", e))?;
 
-    let xbox: XboxAuthResponse = resp.json().await
-        .map_err(|e| format!("Failed to parse Xbox response: {}", e))?;
+    let status = resp.status();
+    let text = resp.text().await.map_err(|e| format!("Xbox auth read failed: {}", e))?;
+    eprintln!("[McBlox MC Auth] Xbox response status={}, len={}, preview={}", status, text.len(), &text[..300.min(text.len())]);
+
+    if !status.is_success() {
+        return Err(format!("Xbox auth failed ({}): {}", status, &text[..500.min(text.len())]));
+    }
+
+    let xbox: XboxAuthResponse = serde_json::from_str(&text)
+        .map_err(|e| format!("Failed to parse Xbox response: {} — raw: {}", e, &text[..500.min(text.len())]))?;
 
     let uhs = xbox.display_claims.xui.first()
         .map(|x| x.uhs.clone())
@@ -303,17 +331,18 @@ pub async fn full_auth_flow(
     msa_token: &str,
     refresh_token: Option<String>,
 ) -> Result<McAccount, String> {
-    // Xbox Live
+    eprintln!("[McBlox MC Auth] Starting Xbox Live auth...");
     let (xbox_token, _uhs) = authenticate_xbox(client, msa_token).await?;
+    eprintln!("[McBlox MC Auth] Xbox Live OK. Starting XSTS...");
 
-    // XSTS
     let (xsts_token, user_hash) = authenticate_xsts(client, &xbox_token).await?;
+    eprintln!("[McBlox MC Auth] XSTS OK. Starting MC auth...");
 
-    // Minecraft
     let mc_token = authenticate_minecraft(client, &xsts_token, &user_hash).await?;
+    eprintln!("[McBlox MC Auth] MC auth OK. Getting profile...");
 
-    // Profile
     let (username, uuid) = get_minecraft_profile(client, &mc_token).await?;
+    eprintln!("[McBlox MC Auth] Profile OK: {} ({})", username, uuid);
 
     Ok(McAccount {
         username,
@@ -332,7 +361,7 @@ pub async fn refresh_auth(
         ("client_id", MSA_CLIENT_ID),
         ("refresh_token", refresh_token),
         ("grant_type", "refresh_token"),
-        ("scope", "XboxLive.signin offline_access"),
+        ("scope", "service::user.auth.xboxlive.com::MBI_SSL"),
     ];
 
     let resp = client

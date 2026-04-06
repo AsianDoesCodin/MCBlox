@@ -168,7 +168,12 @@ export default function Settings() {
                       {deviceCode.user_code}
                     </p>
                     <p className="text-xs text-[#808080] mt-1">
-                      at <span className="text-[#5b8731]">{deviceCode.verification_uri}</span>
+                      at <a
+                        href={deviceCode.verification_uri}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[#5b8731] underline hover:text-[#7bc040] cursor-pointer"
+                      >{deviceCode.verification_uri}</a>
                     </p>
                   </div>
                   <div className="text-xs text-[#808080] animate-pulse">Waiting...</div>
