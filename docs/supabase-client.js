@@ -197,9 +197,11 @@ function showAuthModal() {
   });
 }
 
-// Auto-init
-document.addEventListener('DOMContentLoaded', () => {
-  initAuth().then(() => {
-    setupNavAuth();
+// Auto-init — run immediately if DOM ready, otherwise wait
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initAuth().then(() => setupNavAuth());
   });
-});
+} else {
+  initAuth().then(() => setupNavAuth());
+}
