@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-// Azure AD public client ID — same one used by Prism Launcher
-// This is a public MSAL client registered for Minecraft auth
-const MSA_CLIENT_ID: &str = "c36a9fb6-4f2a-41ff-9ce8-1571f6852085";
+// Microsoft Live OAuth client ID — official Minecraft for Windows 
+const MSA_CLIENT_ID: &str = "000000004C12AE6F";
 
-const MSA_DEVICE_CODE_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode";
-const MSA_TOKEN_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
+const MSA_DEVICE_CODE_URL: &str = "https://login.live.com/oauth20_connect.srf";
+const MSA_TOKEN_URL: &str = "https://login.live.com/oauth20_token.srf";
 const XBOX_AUTH_URL: &str = "https://user.auth.xboxlive.com/user/authenticate";
 const XSTS_AUTH_URL: &str = "https://xsts.auth.xboxlive.com/xsts/authorize";
 const MC_AUTH_URL: &str = "https://api.minecraftservices.com/authentication/login_with_xbox";
@@ -71,6 +70,7 @@ pub async fn request_device_code(client: &reqwest::Client) -> Result<DeviceCodeR
     let params = [
         ("client_id", MSA_CLIENT_ID),
         ("scope", "XboxLive.signin offline_access"),
+        ("response_type", "device_code"),
     ];
 
     let resp = client
@@ -87,17 +87,35 @@ pub async fn request_device_code(client: &reqwest::Client) -> Result<DeviceCodeR
         return Err(format!("Device code request failed ({}): {}", status, text));
     }
 
-    // Azure AD v2 returns JSON
-    let parsed: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| format!("Failed to parse device code response: {} — raw: {}", e, &text[..200.min(text.len())]))?;
+    // Try JSON first (Azure AD v2), then URL-encoded (Live SDK)
+    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
+        return Ok(DeviceCodeResponse {
+            user_code: parsed["user_code"].as_str().unwrap_or_default().to_string(),
+            device_code: parsed["device_code"].as_str().unwrap_or_default().to_string(),
+            verification_uri: parsed["verification_uri"].as_str()
+                .unwrap_or("https://www.microsoft.com/link").to_string(),
+            interval: parsed["interval"].as_u64().unwrap_or(5),
+            expires_in: parsed["expires_in"].as_u64().unwrap_or(900),
+        });
+    }
+
+    // URL-encoded response (Live SDK)
+    let parsed: std::collections::HashMap<String, String> = 
+        url::form_urlencoded::parse(text.as_bytes())
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+
+    if parsed.get("user_code").map_or(true, |v| v.is_empty()) {
+        return Err(format!("No device code in response. Raw: {}", &text[..500.min(text.len())]));
+    }
 
     Ok(DeviceCodeResponse {
-        user_code: parsed["user_code"].as_str().unwrap_or_default().to_string(),
-        device_code: parsed["device_code"].as_str().unwrap_or_default().to_string(),
-        verification_uri: parsed["verification_uri"].as_str()
-            .unwrap_or("https://www.microsoft.com/link").to_string(),
-        interval: parsed["interval"].as_u64().unwrap_or(5),
-        expires_in: parsed["expires_in"].as_u64().unwrap_or(900),
+        user_code: parsed.get("user_code").cloned().unwrap_or_default(),
+        device_code: parsed.get("device_code").cloned().unwrap_or_default(),
+        verification_uri: parsed.get("verification_uri").cloned()
+            .unwrap_or_else(|| "https://www.microsoft.com/link".to_string()),
+        interval: parsed.get("interval").and_then(|v| v.parse().ok()).unwrap_or(5),
+        expires_in: parsed.get("expires_in").and_then(|v| v.parse().ok()).unwrap_or(900),
     })
 }
 
