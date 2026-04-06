@@ -2,8 +2,7 @@
 
 // Hardcoded admin user IDs (set these to your Supabase auth user IDs)
 const ADMIN_IDS = [
-  // Add your admin user UUIDs here after signing up
-  // e.g. 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+  'ff83d829-9583-4025-af2c-8cf082696d55'
 ];
 
 const adminGate = document.getElementById('admin-gate');
