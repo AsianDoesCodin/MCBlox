@@ -146,6 +146,7 @@ export default function Home() {
 
   useEffect(() => {
     loadGames();
+    return () => stopHeartbeat();
   }, []);
 
   async function loadGames() {
@@ -192,8 +193,9 @@ export default function Home() {
     }, { onConflict: "game_id,user_id" });
 
     // Heartbeat every 60 seconds
+    const sb = supabase;
     heartbeatRef.current = setInterval(async () => {
-      await supabase.from("player_activity").upsert({
+      await sb.from("player_activity").upsert({
         game_id: gameId,
         user_id: session.user.id,
         last_heartbeat: new Date().toISOString(),
