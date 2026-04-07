@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import { supabase } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -106,21 +108,33 @@ export default function Settings() {
     setCheckingUpdate(true);
     setUpdateResult(null);
     try {
-      const resp = await fetch("https://api.github.com/repos/AsianDoesCodin/MCBlox/releases/latest");
-      if (!resp.ok) throw new Error("Could not reach GitHub");
-      const release = await resp.json();
-      const latest = (release.tag_name || "").replace(/^v/, "");
-      const current = "0.2.3";
-      if (latest && latest !== current) {
-        const asset = release.assets?.find((a: any) => a.name?.includes("x64-setup.exe"));
-        const url = asset?.browser_download_url || release.html_url;
-        setUpdateResult(`v${latest} available!`);
-        window.open(url, "_blank");
+      const update = await check();
+      if (update) {
+        setUpdateResult(`v${update.version} available! Installing...`);
+        let downloaded = 0;
+        let contentLength = 0;
+        await update.downloadAndInstall((event) => {
+          switch (event.event) {
+            case "Started":
+              contentLength = event.data.contentLength || 0;
+              break;
+            case "Progress":
+              downloaded += event.data.chunkLength;
+              const pct = contentLength > 0 ? Math.round((downloaded / contentLength) * 100) : 0;
+              setUpdateResult(`Downloading... ${pct}%`);
+              break;
+            case "Finished":
+              setUpdateResult("Installing...");
+              break;
+          }
+        });
+        setUpdateResult("Restarting...");
+        await relaunch();
       } else {
         setUpdateResult("You're on the latest version!");
       }
-    } catch {
-      setUpdateResult("Could not check for updates");
+    } catch (e) {
+      setUpdateResult(`Update check failed: ${e}`);
     }
     setCheckingUpdate(false);
   }

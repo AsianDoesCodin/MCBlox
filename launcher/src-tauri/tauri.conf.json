@@ -32,6 +32,15 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": "v1Compatible"
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE3RDM5RkJBNUM2QzM2NzcKUldSM05teGN1cC9UcDlnUWRBTVVBWTFXUU02TTdSdlI5ZnFuMktRNWRTNWx0NDNwZVFSQ2E5eUgK",
+      "endpoints": [
+        "https://github.com/AsianDoesCodin/MCBlox/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

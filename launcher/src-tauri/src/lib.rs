@@ -623,6 +623,8 @@ async fn mc_auth_logout(state: tauri::State<'_, McAuthState>) -> Result<(), Stri
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(McAuthState(Mutex::new(McAuthStatus { state: "idle".to_string(), error: None, account: None })))
         .invoke_handler(tauri::generate_handler![
             launch_game,

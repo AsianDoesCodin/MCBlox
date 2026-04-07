@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
 import Settings from "./pages/Settings";
-
-const CURRENT_VERSION = "0.2.3";
-const GITHUB_RELEASES_URL = "https://api.github.com/repos/AsianDoesCodin/MCBlox/releases/latest";
 
 type Page = "home" | "settings";
 
 function App() {
   const [page, setPage] = useState<Page>("home");
-  const [updateAvailable, setUpdateAvailable] = useState<{version: string; url: string} | null>(null);
+  const [updateAvailable, setUpdateAvailable] = useState<{version: string} | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState("");
 
   useEffect(() => {
     checkForUpdates();
@@ -18,50 +19,70 @@ function App() {
 
   async function checkForUpdates() {
     try {
-      const resp = await fetch(GITHUB_RELEASES_URL);
-      if (!resp.ok) return;
-      const release = await resp.json();
-      const latest = (release.tag_name || "").replace(/^v/, "");
-      if (latest && latest !== CURRENT_VERSION && compareVersions(latest, CURRENT_VERSION) > 0) {
-        const asset = release.assets?.find((a: any) => a.name?.includes("x64-setup.exe"));
-        setUpdateAvailable({
-          version: latest,
-          url: asset?.browser_download_url || release.html_url,
-        });
+      const update = await check();
+      if (update) {
+        setUpdateAvailable({ version: update.version });
       }
     } catch {
-      // Silently fail — don't block the app
+      // Silently fail
     }
   }
 
-  function compareVersions(a: string, b: string): number {
-    const pa = a.split(".").map(Number);
-    const pb = b.split(".").map(Number);
-    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-      const na = pa[i] || 0, nb = pb[i] || 0;
-      if (na > nb) return 1;
-      if (na < nb) return -1;
+  async function installUpdate() {
+    try {
+      setUpdating(true);
+      setUpdateProgress("Downloading update...");
+      const update = await check();
+      if (!update) return;
+      
+      let downloaded = 0;
+      let contentLength = 0;
+      await update.downloadAndInstall((event) => {
+        switch (event.event) {
+          case "Started":
+            contentLength = event.data.contentLength || 0;
+            setUpdateProgress(`Downloading... 0%`);
+            break;
+          case "Progress":
+            downloaded += event.data.chunkLength;
+            const pct = contentLength > 0 ? Math.round((downloaded / contentLength) * 100) : 0;
+            setUpdateProgress(`Downloading... ${pct}%`);
+            break;
+          case "Finished":
+            setUpdateProgress("Installing...");
+            break;
+        }
+      });
+      
+      setUpdateProgress("Restarting...");
+      await relaunch();
+    } catch (e) {
+      setUpdateProgress(`Update failed: ${e}`);
+      setUpdating(false);
     }
-    return 0;
   }
 
   return (
     <div className="flex h-screen flex-col">
       {updateAvailable && (
         <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#5b8731] text-white text-sm shrink-0">
-          <span>McBlox v{updateAvailable.version} is available!</span>
-          <a
-            href={updateAvailable.url}
-            target="_blank"
-            rel="noreferrer"
-            className="px-3 py-1 bg-white/20 rounded hover:bg-white/30 font-semibold cursor-pointer"
-          >
-            Download Update
-          </a>
-          <button
-            onClick={() => setUpdateAvailable(null)}
-            className="ml-2 opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-none text-white"
-          >✕</button>
+          {updating ? (
+            <span>{updateProgress}</span>
+          ) : (
+            <>
+              <span>McBlox v{updateAvailable.version} is available!</span>
+              <button
+                onClick={installUpdate}
+                className="px-3 py-1 bg-white/20 rounded hover:bg-white/30 font-semibold cursor-pointer border-none text-white"
+              >
+                Install Update
+              </button>
+              <button
+                onClick={() => setUpdateAvailable(null)}
+                className="ml-2 opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-none text-white"
+              >✕</button>
+            </>
+          )}
         </div>
       )}
       <div className="flex flex-1 min-h-0">
