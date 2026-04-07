@@ -110,7 +110,7 @@ export default function Settings() {
       if (!resp.ok) throw new Error("Could not reach GitHub");
       const release = await resp.json();
       const latest = (release.tag_name || "").replace(/^v/, "");
-      const current = "0.2.2";
+      const current = "0.2.3";
       if (latest && latest !== current) {
         const asset = release.assets?.find((a: any) => a.name?.includes("x64-setup.exe"));
         const url = asset?.browser_download_url || release.html_url;
@@ -424,7 +424,7 @@ export default function Settings() {
             </h2>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium" style={{fontFamily: "'Silkscreen', monospace"}}>McBlox v0.2.2</p>
+                <p className="text-sm font-medium" style={{fontFamily: "'Silkscreen', monospace"}}>McBlox v0.2.3</p>
                 <p className="text-xs text-[#808080] mt-0.5">Minecraft game launcher</p>
               </div>
               <div className="flex items-center gap-3">

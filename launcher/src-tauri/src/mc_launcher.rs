@@ -58,6 +58,8 @@ pub struct Library {
     pub downloads: Option<LibDownloads>,
     pub rules: Option<Vec<Rule>>,
     pub url: Option<String>,
+    pub natives: Option<std::collections::HashMap<String, String>>,
+    pub extract: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -124,16 +126,18 @@ pub async fn get_version_json(
         .find(|v| v.id == mc_version)
         .ok_or(format!("MC version {} not found in Mojang manifest", mc_version))?;
 
-    let version_json: VersionJson = client
+    // Download raw JSON and save it before parsing
+    let raw_json = client
         .get(&entry.url)
         .send().await.map_err(|e| e.to_string())?
-        .json().await.map_err(|e| e.to_string())?;
+        .text().await.map_err(|e| e.to_string())?;
 
-    // Cache it
+    // Cache the raw JSON (preserves all fields including classifiers, natives, etc.)
     std::fs::create_dir_all(cached.parent().unwrap()).ok();
-    if let Ok(data) = serde_json::to_string_pretty(&serde_json::to_value(&version_json).unwrap_or_default()) {
-        std::fs::write(&cached, data).ok();
-    }
+    std::fs::write(&cached, &raw_json).ok();
+
+    let version_json: VersionJson = serde_json::from_str(&raw_json)
+        .map_err(|e| format!("Bad version JSON from Mojang: {}", e))?;
 
     Ok(version_json)
 }
