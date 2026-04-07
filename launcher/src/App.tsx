@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import Sidebar from "./components/Sidebar";
@@ -13,9 +14,13 @@ function App() {
   const [updateAvailable, setUpdateAvailable] = useState<{version: string} | null>(null);
   const [updating, setUpdating] = useState(false);
   const [updateProgress, setUpdateProgress] = useState("");
+  const [mcUsername, setMcUsername] = useState<string | null>(null);
 
   useEffect(() => {
     checkForUpdates();
+    invoke("mc_auth_get_account").then((acc: any) => {
+      if (acc?.username) setMcUsername(acc.username);
+    }).catch(() => {});
   }, []);
 
   async function checkForUpdates() {
@@ -88,7 +93,7 @@ function App() {
         </div>
       )}
       <div className="flex flex-1 min-h-0">
-        <Sidebar current={page} onNavigate={setPage} />
+        <Sidebar current={page} onNavigate={setPage} mcUsername={mcUsername} />
         <main className="flex-1 overflow-y-auto">
           {page === "home" && <Home />}
           {page === "settings" && <Settings />}

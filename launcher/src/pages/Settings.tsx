@@ -219,8 +219,8 @@ export default function Settings() {
         <h1 className="text-base font-bold" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>Settings</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 max-w-2xl">
-        <div className="space-y-5">
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-2xl mx-auto space-y-5">
           {/* Minecraft Account */}
           <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
             <div className="flex items-center gap-4">
@@ -440,7 +440,7 @@ export default function Settings() {
             </h2>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium" style={{fontFamily: "'Silkscreen', monospace"}}>McBlox v0.2.7</p>
+                <p className="text-sm font-medium" style={{fontFamily: "'Silkscreen', monospace"}}>McBlox v{__APP_VERSION__}</p>
                 <p className="text-xs text-[#808080] mt-0.5">Minecraft game launcher</p>
               </div>
               <div className="flex items-center gap-3">

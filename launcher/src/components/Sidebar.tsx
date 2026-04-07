@@ -3,6 +3,7 @@ type Page = "home" | "settings";
 interface Props {
   current: Page;
   onNavigate: (page: Page) => void;
+  mcUsername?: string | null;
 }
 
 const nav: { page: Page; label: string; icon: string }[] = [
@@ -10,7 +11,7 @@ const nav: { page: Page; label: string; icon: string }[] = [
   { page: "settings", label: "Settings", icon: "⚙" },
 ];
 
-export default function Sidebar({ current, onNavigate }: Props) {
+export default function Sidebar({ current, onNavigate, mcUsername }: Props) {
   return (
     <div className="w-[200px] min-w-[200px] bg-[#1a1a1a] flex flex-col border-r-[3px] border-[#5b8731]">
       {/* Logo */}
@@ -38,15 +39,18 @@ export default function Sidebar({ current, onNavigate }: Props) {
 
       {/* User area */}
       <div className="px-3 pb-4">
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded bg-[#2b2b2b] cursor-pointer hover:bg-[#3a3a3a] border-2 border-[#555]">
-          <div className="w-8 h-8 rounded bg-[#484848] flex items-center justify-center text-xs text-[#808080]">
-            ?
+        <button
+          onClick={() => onNavigate("settings")}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded bg-[#2b2b2b] cursor-pointer hover:bg-[#3a3a3a] border-2 border-[#555] text-left"
+        >
+          <div className="w-8 h-8 rounded bg-[#484848] flex items-center justify-center text-xs text-[#808080] shrink-0">
+            {mcUsername ? "⛏" : "?"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium truncate">Not signed in</p>
-            <p className="text-[10px] text-[#808080]">Click to sign in</p>
+            <p className="text-xs font-medium truncate">{mcUsername || "Not signed in"}</p>
+            <p className="text-[10px] text-[#808080]">{mcUsername ? "Minecraft" : "Click to sign in"}</p>
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );

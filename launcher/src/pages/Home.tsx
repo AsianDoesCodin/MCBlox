@@ -155,7 +155,7 @@ export default function Home() {
     <div className="h-full flex flex-col">
       {/* Top bar */}
       <div className="flex items-center gap-3 px-6 py-3 bg-[#1a1a1a] border-b-[3px] border-[#5b8731] shrink-0 flex-nowrap">
-        <div className="relative flex-1 min-w-0">
+        <div className="relative max-w-[400px] flex-1 min-w-[180px]">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080] text-sm">🔍</span>
           <input
             type="text"
@@ -166,6 +166,7 @@ export default function Home() {
             style={{fontFamily: "'Silkscreen', monospace"}}
           />
         </div>
+        <div className="flex-1" />
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as typeof sort)}

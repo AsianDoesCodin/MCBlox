@@ -2143,7 +2143,7 @@ dependencies = [
 
 [[package]]
 name = "launcher"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "dirs",
  "reqwest 0.12.28",
