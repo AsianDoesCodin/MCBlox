@@ -113,7 +113,14 @@ pub async fn get_version_json(
     let cached = versions_dir.join(mc_version).join(format!("{}.json", mc_version));
     if cached.exists() {
         let data = std::fs::read_to_string(&cached).map_err(|e| e.to_string())?;
-        return serde_json::from_str(&data).map_err(|e| format!("Bad cached version JSON: {}", e));
+        // Check if the cached JSON has classifiers/natives — if not, it was saved by the
+        // old serializer that stripped unknown fields. Delete and re-fetch from Mojang.
+        if data.contains("\"classifiers\"") || data.contains("\"natives\"") || !data.contains("lwjgl-platform") {
+            return serde_json::from_str(&data).map_err(|e| format!("Bad cached version JSON: {}", e));
+        } else {
+            println!("[McBlox] Cached version JSON missing classifiers/natives, re-downloading...");
+            std::fs::remove_file(&cached).ok();
+        }
     }
 
     // Fetch manifest
