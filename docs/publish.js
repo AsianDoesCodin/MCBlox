@@ -83,6 +83,19 @@ fetchMcVersions();
 const loaderVersionSelect = document.getElementById('loader-version');
 let loaderVersionCache = {};
 
+// Fetch with CORS proxy fallback (Forge/NeoForge don't set CORS headers)
+async function fetchWithCorsProxy(url) {
+  try {
+    const resp = await fetch(url);
+    return await resp.json();
+  } catch {
+    // CORS blocked — use proxy
+    const proxied = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const resp = await fetch(proxied);
+    return await resp.json();
+  }
+}
+
 async function fetchLoaderVersions() {
   const mc = mcVersionSelect.value;
   const loader = modLoaderSelect.value;
@@ -102,21 +115,16 @@ async function fetchLoaderVersions() {
   try {
     let versions = [];
     if (loader === 'forge') {
-      // Fetch all Forge versions for this MC version from maven-metadata.json
       try {
-        const mavenResp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json');
-        const mavenData = await mavenResp.json();
-        // Keys are MC versions (e.g. "1.12.2"), values are arrays of "1.12.2-14.23.5.2860"
+        const mavenData = await fetchWithCorsProxy('https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json');
         const fullVersions = mavenData[mc] || [];
         versions = fullVersions.map(v => v.replace(mc + '-', '')).reverse();
       } catch (e) {
-        console.warn('Maven metadata failed, trying promotions:', e);
+        console.warn('Forge maven fetch failed:', e);
       }
-      // Fallback to promotions if maven didn't work
       if (versions.length === 0) {
         try {
-          const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
-          const data = await resp.json();
+          const data = await fetchWithCorsProxy('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
           const promos = data.promos || {};
           const rec = promos[`${mc}-recommended`];
           const lat = promos[`${mc}-latest`];
@@ -129,8 +137,7 @@ async function fetchLoaderVersions() {
       const data = await resp.json();
       versions = data.map(v => v.loader?.version).filter(Boolean);
     } else if (loader === 'neoforge') {
-      const resp = await fetch('https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge');
-      const data = await resp.json();
+      const data = await fetchWithCorsProxy('https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge');
       const all = data.versions || [];
       // Filter to MC version: 1.21.1 → prefix "21.1"
       const parts = mc.split('.');

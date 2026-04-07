@@ -227,6 +227,18 @@ async function fetchEditMcVersions(preselect) {
   }
 }
 
+// Fetch with CORS proxy fallback (Forge/NeoForge don't set CORS headers)
+async function fetchWithCorsProxy(url) {
+  try {
+    const resp = await fetch(url);
+    return await resp.json();
+  } catch {
+    const proxied = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const resp = await fetch(proxied);
+    return await resp.json();
+  }
+}
+
 async function fetchEditLoaderVersions(preselectVersion) {
   const mc = editMcVersionSelect.value;
   const loader = editModLoaderSelect.value;
@@ -244,17 +256,15 @@ async function fetchEditLoaderVersions(preselectVersion) {
     let versions = [];
     if (loader === 'forge') {
       try {
-        const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json');
-        const data = await resp.json();
+        const data = await fetchWithCorsProxy('https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json');
         const fullVersions = data[mc] || [];
         versions = fullVersions.map(v => v.replace(mc + '-', '')).reverse();
       } catch (e) {
-        console.warn('Maven metadata failed, trying promotions:', e);
+        console.warn('Forge maven fetch failed:', e);
       }
       if (versions.length === 0) {
         try {
-          const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
-          const data = await resp.json();
+          const data = await fetchWithCorsProxy('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
           const promos = data.promos || {};
           const rec = promos[`${mc}-recommended`];
           const lat = promos[`${mc}-latest`];
@@ -267,8 +277,7 @@ async function fetchEditLoaderVersions(preselectVersion) {
       const data = await resp.json();
       versions = data.map(v => v.loader?.version).filter(Boolean);
     } else if (loader === 'neoforge') {
-      const resp = await fetch('https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge');
-      const data = await resp.json();
+      const data = await fetchWithCorsProxy('https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge');
       const all = data.versions || [];
       const parts = mc.split('.');
       const prefix = parts.length >= 2 ? `${parts[1]}.${parts[2] || '0'}` : mc;
