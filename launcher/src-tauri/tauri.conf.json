@@ -37,7 +37,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE3RDM5RkJBNUM2QzM2NzcKUldSM05teGN1cC9UcDlnUWRBTVVBWTFXUU02TTdSdlI5ZnFuMktRNWRTNWx0NDNwZVFSQ2E5eUgK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc3RUIyRTYyOEEzMzhEOTYKUldTV2pUT0tZaTdyZDhERjgzbEMzVTJya0FkQzZvUmlqZW0ySE9ZQU9vYkdaRG9vWlN4cWFlb0oK",
       "endpoints": [
         "https://github.com/AsianDoesCodin/MCBlox/releases/latest/download/latest.json"
       ]
