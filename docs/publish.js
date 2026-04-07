@@ -252,6 +252,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     modpack_url: document.getElementById('modpack-url').value.trim(),
     mc_version: document.getElementById('mc-version').value.trim(),
     mod_loader: document.getElementById('mod-loader').value,
+    loader_version: document.getElementById('loader-version').value.trim() || null,
     game_type: gameTypeSelect.value,
     server_address: gameTypeSelect.value === 'server'
       ? document.getElementById('server-address').value.trim() || null

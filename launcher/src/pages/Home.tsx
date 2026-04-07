@@ -93,6 +93,7 @@ export default function Home() {
         modpack_url: game.modpack_url || "",
         mc_version: game.mc_version || "1.21.1",
         mod_loader: game.mod_loader || "fabric",
+        loader_version: game.loader_version || null,
         game_type: game.game_type || "server",
         server_address: game.server_address || null,
       }

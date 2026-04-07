@@ -228,6 +228,7 @@ function openEditModal(game) {
   document.getElementById('edit-modpack-url').value = game.modpack_url;
   document.getElementById('edit-mc-version').value = game.mc_version;
   document.getElementById('edit-mod-loader').value = game.mod_loader;
+  document.getElementById('edit-loader-version').value = game.loader_version || '';
   document.getElementById('edit-game-type').value = game.game_type;
   document.getElementById('edit-server-address').value = game.server_address || '';
   document.getElementById('edit-world-name').value = game.world_name || '';
@@ -282,6 +283,7 @@ editForm.addEventListener('submit', async (e) => {
     modpack_url: document.getElementById('edit-modpack-url').value.trim(),
     mc_version: document.getElementById('edit-mc-version').value.trim(),
     mod_loader: document.getElementById('edit-mod-loader').value,
+    loader_version: document.getElementById('edit-loader-version').value.trim() || null,
     game_type: document.getElementById('edit-game-type').value,
     server_address: document.getElementById('edit-server-address').value.trim() || null,
     world_name: document.getElementById('edit-world-name').value.trim() || null,

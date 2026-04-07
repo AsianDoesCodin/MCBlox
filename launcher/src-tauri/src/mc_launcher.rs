@@ -245,24 +245,30 @@ pub async fn download_assets(
 pub async fn install_fabric(
     client: &reqwest::Client,
     mc_version: &str,
+    loader_version_override: Option<&str>,
     game_dir: &Path,
     libraries_dir: &Path,
 ) -> Result<(String, Vec<PathBuf>, Vec<String>, Vec<String>), String> {
-    // Get latest Fabric loader version
-    let loaders_url = format!(
-        "https://meta.fabricmc.net/v2/versions/loader/{}",
-        mc_version
-    );
-    let loaders: Vec<serde_json::Value> = client
-        .get(&loaders_url)
-        .send().await.map_err(|e| e.to_string())?
-        .json().await.map_err(|e| e.to_string())?;
+    // Use exact version if provided, otherwise fetch latest
+    let loader_version = if let Some(v) = loader_version_override {
+        v.to_string()
+    } else {
+        let loaders_url = format!(
+            "https://meta.fabricmc.net/v2/versions/loader/{}",
+            mc_version
+        );
+        let loaders: Vec<serde_json::Value> = client
+            .get(&loaders_url)
+            .send().await.map_err(|e| e.to_string())?
+            .json().await.map_err(|e| e.to_string())?;
 
-    let loader = loaders.first()
-        .ok_or("No Fabric loader versions available")?;
+        let loader = loaders.first()
+            .ok_or("No Fabric loader versions available")?;
 
-    let loader_version = loader["loader"]["version"].as_str()
-        .ok_or("No loader version")?;
+        loader["loader"]["version"].as_str()
+            .ok_or("No loader version")?.to_string()
+    };
+    println!("[McBlox] Using Fabric loader version: {}", loader_version);
 
     // Get the profile/version JSON for this Fabric version
     let profile_url = format!(
@@ -312,24 +318,29 @@ pub async fn install_fabric(
 pub async fn install_forge(
     client: &reqwest::Client,
     mc_version: &str,
+    loader_version_override: Option<&str>,
     game_dir: &Path,
     libraries_dir: &Path,
 ) -> Result<(String, Vec<PathBuf>, Vec<String>, Vec<String>), String> {
-    // Get Forge versions for this MC version
-    let promos_url = "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json";
-    let promos: serde_json::Value = client
-        .get(promos_url)
-        .send().await.map_err(|e| e.to_string())?
-        .json().await.map_err(|e| e.to_string())?;
+    // Use exact version if provided, otherwise look up from Forge promotions
+    let forge_version = if let Some(v) = loader_version_override {
+        v.to_string()
+    } else {
+        let promos_url = "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json";
+        let promos: serde_json::Value = client
+            .get(promos_url)
+            .send().await.map_err(|e| e.to_string())?
+            .json().await.map_err(|e| e.to_string())?;
 
-    // Find latest or recommended Forge version for this MC version
-    let promos_map = promos["promos"].as_object()
-        .ok_or("Invalid Forge promotions response")?;
+        let promos_map = promos["promos"].as_object()
+            .ok_or("Invalid Forge promotions response")?;
 
-    let forge_version = promos_map.get(&format!("{}-recommended", mc_version))
-        .or_else(|| promos_map.get(&format!("{}-latest", mc_version)))
-        .and_then(|v| v.as_str())
-        .ok_or(format!("No Forge version found for MC {}", mc_version))?;
+        promos_map.get(&format!("{}-recommended", mc_version))
+            .or_else(|| promos_map.get(&format!("{}-latest", mc_version)))
+            .and_then(|v| v.as_str())
+            .ok_or(format!("No Forge version found for MC {}", mc_version))?
+            .to_string()
+    };
 
     let full_version = format!("{}-{}", mc_version, forge_version);
     println!("[McBlox] Installing Forge {}", full_version);
@@ -506,37 +517,38 @@ pub async fn install_forge(
 pub async fn install_neoforge(
     client: &reqwest::Client,
     mc_version: &str,
+    loader_version_override: Option<&str>,
     game_dir: &Path,
     libraries_dir: &Path,
 ) -> Result<(String, Vec<PathBuf>, Vec<String>, Vec<String>), String> {
-    // NeoForge versions API
-    let versions_url = "https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge";
-    let versions_resp: serde_json::Value = client
-        .get(versions_url)
-        .send().await.map_err(|e| e.to_string())?
-        .json().await.map_err(|e| e.to_string())?;
-
-    let all_versions = versions_resp["versions"].as_array()
-        .ok_or("Invalid NeoForge versions response")?;
-
-    // NeoForge version scheme: MC 1.20.x → NeoForge 20.x.y, MC 1.21.x → NeoForge 21.x.y
-    // Find the MC minor version prefix
-    let mc_parts: Vec<&str> = mc_version.split('.').collect();
-    let nf_prefix = if mc_parts.len() >= 2 {
-        // 1.21.1 → "21.1"
-        let minor = mc_parts[1];
-        let patch = mc_parts.get(2).unwrap_or(&"0");
-        format!("{}.{}", minor, patch)
+    // Use exact version if provided, otherwise look up latest
+    let nf_version = if let Some(v) = loader_version_override {
+        v.to_string()
     } else {
-        mc_version.to_string()
-    };
+        let versions_url = "https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge";
+        let versions_resp: serde_json::Value = client
+            .get(versions_url)
+            .send().await.map_err(|e| e.to_string())?
+            .json().await.map_err(|e| e.to_string())?;
 
-    // Find the latest NeoForge version matching our MC version
-    let nf_version = all_versions.iter().rev()
-        .filter_map(|v| v.as_str())
-        .find(|v| v.starts_with(&nf_prefix))
-        .ok_or(format!("No NeoForge version found for MC {} (prefix {})", mc_version, nf_prefix))?
-        .to_string();
+        let all_versions = versions_resp["versions"].as_array()
+            .ok_or("Invalid NeoForge versions response")?;
+
+        let mc_parts: Vec<&str> = mc_version.split('.').collect();
+        let nf_prefix = if mc_parts.len() >= 2 {
+            let minor = mc_parts[1];
+            let patch = mc_parts.get(2).unwrap_or(&"0");
+            format!("{}.{}", minor, patch)
+        } else {
+            mc_version.to_string()
+        };
+
+        all_versions.iter().rev()
+            .filter_map(|v| v.as_str())
+            .find(|v| v.starts_with(&nf_prefix))
+            .ok_or(format!("No NeoForge version found for MC {} (prefix {})", mc_version, nf_prefix))?
+            .to_string()
+    };
 
     println!("[McBlox] Installing NeoForge {}", nf_version);
 

@@ -28,6 +28,7 @@ pub struct LaunchRequest {
     pub modpack_url: String,
     pub mc_version: String,
     pub mod_loader: String,
+    pub loader_version: Option<String>,
     pub game_type: String,
     pub server_address: Option<String>,
 }
@@ -301,10 +302,11 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     // Install mod loader
     emit("modloader", &format!("Installing {}...", request.mod_loader), 0.65);
     println!("[McBlox] Installing mod loader: {}", request.mod_loader);
+    let loader_version = request.loader_version.as_deref();
     let (main_class, loader_libs, loader_jvm_args, loader_game_args) = match request.mod_loader.as_str() {
-        "fabric" => mc_launcher::install_fabric(&client, &request.mc_version, &base_dir, &libraries_dir).await?,
-        "forge" => mc_launcher::install_forge(&client, &request.mc_version, &base_dir, &libraries_dir).await?,
-        "neoforge" => mc_launcher::install_neoforge(&client, &request.mc_version, &base_dir, &libraries_dir).await?,
+        "fabric" => mc_launcher::install_fabric(&client, &request.mc_version, loader_version, &base_dir, &libraries_dir).await?,
+        "forge" => mc_launcher::install_forge(&client, &request.mc_version, loader_version, &base_dir, &libraries_dir).await?,
+        "neoforge" => mc_launcher::install_neoforge(&client, &request.mc_version, loader_version, &base_dir, &libraries_dir).await?,
         _ => (version_json.main_class.clone(), vec![], vec![], vec![]),
     };
     println!("[McBlox] Main class: {}, {} loader libs, {} JVM args, {} game args", main_class, loader_libs.len(), loader_jvm_args.len(), loader_game_args.len());
@@ -385,14 +387,18 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     let pid = child.id();
     println!("[McBlox] Minecraft process spawned with PID: {}", pid);
     
-    // Wait a few seconds — if process exits quickly, it crashed
-    std::thread::sleep(std::time::Duration::from_secs(5));
+    // Wait a few seconds — if process exits very quickly, it likely crashed during init
+    std::thread::sleep(std::time::Duration::from_secs(8));
     
     match child.try_wait() {
         Ok(Some(status)) => {
-            if !status.success() {
-                emit("error", &format!("Minecraft crashed (exit code: {})", status), 1.0);
-                return Err(format!("Minecraft crashed on startup (exit code: {})", status));
+            // Process exited within 8 seconds — likely a startup crash
+            // But some old MC versions exit with code 1 normally, so just warn
+            let code = status.code().unwrap_or(-1);
+            if code != 0 {
+                println!("[McBlox] MC exited quickly with code {}", code);
+                emit("error", &format!("Minecraft exited (code: {}). Check logs if it didn't start.", code), 1.0);
+                // Don't return Err — it might have actually worked (old MC returns 1)
             }
         }
         Ok(None) => {

@@ -7,6 +7,7 @@ export interface Game {
   modpack_url: string;
   mc_version: string;
   mod_loader: string;
+  loader_version: string | null;
   game_type: 'server' | 'world';
   server_address: string | null;
   world_name: string | null;
