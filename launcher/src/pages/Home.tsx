@@ -103,6 +103,10 @@ export default function Home() {
         server_address: game.server_address || null,
       }
     });
+    // Increment total_plays
+    if (supabase) {
+      await supabase.rpc("increment_plays", { game_id: game.id });
+    }
     startHeartbeat(game.id);
     return result;
   }

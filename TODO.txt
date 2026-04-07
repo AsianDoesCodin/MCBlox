@@ -1,48 +1,53 @@
 McBlox Project Status — April 7, 2026
 ======================================
 
+CURRENT VERSION: v0.3.2
+
 WHAT'S DONE:
 - Website (GitHub Pages): Landing, Games catalog, Publish form, Dashboard, Admin panel
 - Supabase backend: Auth, games table, ratings, player_activity, profiles, RLS policies, storage
-- Launcher (Tauri + React): Game grid, search/sort/filter by tags, game detail page, settings
+- Launcher (Tauri v2 + React + TS): Game grid, search/sort/filter by tags, game detail, settings
+- Space theme: Neon green (#00e676) accents, dark galaxy background, cyan highlights
 - McBlox Account: Sign up/in via Supabase (both website and launcher)
-- Minecraft Auth: Full Microsoft → Xbox → XSTS → MC device code flow (working!)
+- Minecraft Auth: Full Microsoft → Xbox → XSTS → MC device code flow
 - MC Launch Engine (Rust): Fabric, Forge, NeoForge installers, Mojang version manifest,
   client JAR + libraries + assets download, classpath builder, launch args, auto-join server
-- Java auto-download: Java 17 (1.20.x) AND Java 21 (1.21+), version-matched via Adoptium
+- Java auto-download: Java 17 (1.20.x) AND Java 21 (1.21+) via Adoptium
 - Modpack URL resolver: Modrinth API, CurseForge CDN scraping, Google Drive, MediaFire
 - Image upload: Thumbnail + screenshots to Supabase Storage from Publish form
 - Rating system: Thumbs up/down in launcher game detail
 - Player heartbeat: 60s ping while playing, live player counts
-- Auto-updater: Checks GitHub releases on startup, shows banner
-- Logo: Everywhere (website nav/hero, launcher sidebar, Tauri icons, favicon)
-- GitHub Release v0.1.0: .exe + .msi installers uploaded
-- END-TO-END MC LAUNCH: Tested with Payter (1.20.1 Forge 47.4.10). Full pipeline:
-  MediaFire download → zip extract/flatten → MC client + libs + assets → Forge installer
-  processors (client-srg, client-extra, patched) → Java 17 auto-download → natives extraction
-  → correct JVM/game args → Minecraft launches with mods!
-- Progress bar + logs: Real-time launch progress bar with stage percentages + collapsible log panel
-- Storage management: Settings shows storage breakdown (instances/libs/assets/java/total),
-  "Clear Game Cache" button deletes all instances to free space
-- Launcher now loads games from Supabase only (no hardcoded placeholders)
+- Play count: Increments total_plays via RPC on each Play click
+- Auto-updater: Checks GitHub releases, auto-update prompt with install + relaunch
+- Custom McBlox icon: Installer, taskbar, exe, favicon
+- SVG search button (replaced emoji)
+- Storage management: Settings shows breakdown, "Clear Game Cache" button
+- END-TO-END MC LAUNCH: Tested with real modpacks (Forge 1.20.1, Fabric 1.21.x)
 
-STILL MISSING (Required):
-- (none — all required features are implemented!)
+STILL NEEDS:
+- Run `increment_plays` RPC in Supabase SQL Editor (see supabase/schema.sql)
 
 NICE TO HAVES:
 - Game search on website games page via Supabase full-text search
 - Sorting by rating on game cards (website + launcher)
 - Remember last played games section in launcher
-- Mod loader version selector on publish form (e.g., specific Fabric/Forge version)
+- Mod loader version selector on publish form
 - Multi-screenshot gallery viewer on game detail page
 - Terms of Service / content guidelines on publish page
-- Discord webhook for new game submissions (notify you when someone publishes)
+- Discord webhook for new game submissions
 - Analytics dashboard for creators (play counts over time)
 - Launcher minimize to system tray while MC is running
 - Quilt mod loader support
+- Featured game spotlight/banner on home page
+
+BUILD & RELEASE:
+- Dev:   cd launcher && npm run tauri dev
+- Build: $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content ~/.tauri/mcblox2.key -Raw)
+         $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
+         cd launcher && npx tauri build (press Enter at password prompt)
+- Release: Create latest.json from .nsis.zip.sig, gh release create with .exe, .nsis.zip, latest.json
 
 REPO INFO:
 - GitHub: https://github.com/AsianDoesCodin/MCBlox
 - Supabase: https://ldipundnojizgnykqvdd.supabase.co
-- Website: https://asiandoescodin.github.io/MCBlox/ (GitHub Pages from /docs)
-- Build: cd launcher && npm run tauri dev (dev) or npm run tauri build (release)
+- Website: https://asiandoescodin.github.io/MCBlox/

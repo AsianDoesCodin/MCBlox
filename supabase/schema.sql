@@ -115,3 +115,11 @@ CREATE INDEX IF NOT EXISTS idx_games_status ON games(status);
 CREATE INDEX IF NOT EXISTS idx_games_creator ON games(creator_id);
 CREATE INDEX IF NOT EXISTS idx_games_promoted ON games(is_promoted) WHERE is_promoted = true;
 CREATE INDEX IF NOT EXISTS idx_ratings_game ON ratings(game_id);
+
+-- Increment play count RPC
+CREATE OR REPLACE FUNCTION increment_plays(game_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE games SET total_plays = total_plays + 1 WHERE id = game_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
