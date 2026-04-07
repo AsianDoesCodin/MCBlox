@@ -155,16 +155,25 @@ export default function Home() {
     <div className="h-full flex flex-col">
       {/* Top bar */}
       <div className="flex items-center gap-3 px-6 py-3 bg-[#060a14] border-b-[3px] border-[#00e676] shrink-0 flex-nowrap" style={{boxShadow: '0 3px 15px rgba(0, 230, 118, 0.1)'}}>
-        <div className="relative max-w-[400px] flex-1 min-w-[180px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b] text-sm">🔍</span>
+        <div className="relative max-w-[400px] flex-1 min-w-[180px] flex">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search games..."
-            className="w-full pl-9 pr-4 py-2 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-sm text-white outline-none focus:border-[#00e676] placeholder:text-[#64748b]"
+            className="w-full pl-4 pr-10 py-2 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded-l text-sm text-white outline-none focus:border-[#00e676] placeholder:text-[#64748b]"
             style={{fontFamily: "'Silkscreen', monospace"}}
           />
+          <button
+            className="px-3 bg-[#00e676] hover:bg-[#33ff99] border-2 border-[#00e676] rounded-r flex items-center justify-center cursor-pointer transition-colors"
+            onClick={() => {/* search is live, button is visual */}}
+            tabIndex={-1}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+          </button>
         </div>
         <div className="flex-1" />
         <select
