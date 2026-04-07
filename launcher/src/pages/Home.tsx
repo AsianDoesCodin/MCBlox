@@ -269,7 +269,7 @@ export default function Home() {
             <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
               ★ Sponsored
             </h2>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
               {featured.slice(1).map((g) => (
                 <GameCard key={g.id} game={g} onClick={setSelected} />
               ))}
@@ -285,7 +285,7 @@ export default function Home() {
           {loading ? (
             <SkeletonGrid count={6} />
           ) : rest.length > 0 ? (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
               {rest.map((g) => (
                 <GameCard key={g.id} game={g} onClick={setSelected} />
               ))}
