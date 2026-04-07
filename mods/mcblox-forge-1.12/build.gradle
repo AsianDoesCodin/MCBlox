@@ -1,0 +1,30 @@
+plugins {
+    id 'com.gtnewhorizons.retrofuturagradle' version '1.4.3'
+}
+
+version = '1.0.0'
+group = 'com.mcblox'
+archivesBaseName = 'mcblox-mod'
+
+minecraft {
+    mcVersion = '1.12.2'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+dependencies {
+}
+
+jar {
+    manifest {
+        attributes([
+            "Specification-Title"     : "McBlox Mod",
+            "Specification-Version"   : "1",
+            "Implementation-Title"    : "McBlox Mod",
+            "Implementation-Version"  : project.version,
+        ])
+    }
+}

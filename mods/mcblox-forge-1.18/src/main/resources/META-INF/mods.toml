@@ -1,0 +1,9 @@
+modLoader="javafml"
+loaderVersion="[40,)"
+license="MIT"
+
+[[mods]]
+modId="mcblox"
+version="1.0.0"
+displayName="McBlox"
+description="McBlox auto-join and exit mod"

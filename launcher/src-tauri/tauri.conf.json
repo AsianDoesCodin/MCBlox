@@ -28,6 +28,9 @@
     "targets": "all",
     "resources": {
       "resources/mods/mcblox-mod-forge.jar": "mods/mcblox-mod-forge.jar",
+      "resources/mods/mcblox-mod-forge-1.12.jar": "mods/mcblox-mod-forge-1.12.jar",
+      "resources/mods/mcblox-mod-forge-1.16.jar": "mods/mcblox-mod-forge-1.16.jar",
+      "resources/mods/mcblox-mod-forge-1.18.jar": "mods/mcblox-mod-forge-1.18.jar",
       "resources/mods/mcblox-mod-fabric.jar": "mods/mcblox-mod-fabric.jar"
     },
     "icon": [

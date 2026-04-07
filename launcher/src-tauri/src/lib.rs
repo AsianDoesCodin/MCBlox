@@ -295,8 +295,24 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
         println!("[McBlox] Wrote mcblox_config.json");
 
         // Copy the appropriate mod JAR from bundled resources
+        // Select based on mod loader AND MC version
         let mod_jar_name = match request.mod_loader.as_str() {
-            "forge" | "neoforge" => "mcblox-mod-forge.jar",
+            "forge" | "neoforge" => {
+                // Parse major.minor from MC version (e.g. "1.12.2" -> (1, 12))
+                let parts: Vec<u32> = request.mc_version.split('.')
+                    .filter_map(|p| p.parse().ok())
+                    .collect();
+                let minor = parts.get(1).copied().unwrap_or(0);
+                if minor <= 12 {
+                    "mcblox-mod-forge-1.12.jar"
+                } else if minor <= 16 {
+                    "mcblox-mod-forge-1.16.jar"
+                } else if minor <= 19 {
+                    "mcblox-mod-forge-1.18.jar"
+                } else {
+                    "mcblox-mod-forge.jar"
+                }
+            },
             _ => "mcblox-mod-fabric.jar",
         };
         let target_jar = mods_dir.join("mcblox-mod.jar");

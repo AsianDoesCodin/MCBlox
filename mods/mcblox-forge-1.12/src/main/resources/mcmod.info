@@ -1,0 +1,9 @@
+[{
+  "modid": "mcblox",
+  "name": "McBlox",
+  "description": "McBlox auto-join and exit mod",
+  "version": "1.0.0",
+  "mcversion": "1.12.2",
+  "authorList": ["McBlox"],
+  "credits": ""
+}]
