@@ -64,6 +64,28 @@
           <label>Description</label>
           <textarea id="edit-description" required rows="4" maxlength="500"></textarea>
 
+          <label>Thumbnail</label>
+          <div class="edit-thumb-wrap">
+            <div class="edit-thumb-preview" id="edit-thumb-preview">
+              <span class="edit-thumb-placeholder" id="edit-thumb-placeholder">No thumbnail</span>
+              <img id="edit-thumb-img" style="display:none">
+            </div>
+            <div class="edit-thumb-actions">
+              <label class="btn btn-sm btn-secondary" style="cursor:pointer">
+                Upload new
+                <input type="file" id="edit-thumb-input" accept="image/*" style="display:none">
+              </label>
+              <button type="button" class="btn btn-sm btn-danger" id="edit-thumb-remove" style="display:none">Remove</button>
+            </div>
+          </div>
+
+          <label>Screenshots (up to 4)</label>
+          <div class="edit-screenshots-wrap" id="edit-screenshots-wrap"></div>
+          <label class="btn btn-sm btn-secondary" style="cursor:pointer; display:inline-block; margin-bottom:12px">
+            + Add screenshot
+            <input type="file" id="edit-screenshot-input" accept="image/*" multiple style="display:none">
+          </label>
+
           <label>Tags</label>
           <div class="tag-picker" id="edit-tag-picker"></div>
 

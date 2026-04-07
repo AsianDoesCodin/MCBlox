@@ -1,17 +1,36 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import type { Game } from "../types";
 import { supabase } from "../lib/supabase";
 
 interface Props {
   game: Game;
   onBack: () => void;
-  onPlay: (game: Game) => void;
+  onPlay: (game: Game) => Promise<any>;
+}
+
+interface ProgressPayload {
+  stage: string;
+  message: string;
+  percent: number;
+}
+
+interface LogPayload {
+  message: string;
 }
 
 export default function GameDetail({ game, onBack, onPlay }: Props) {
   const [likes, setLikes] = useState(game.thumbs_up || 0);
   const [dislikes, setDislikes] = useState(game.thumbs_down || 0);
-  const [myRating, setMyRating] = useState<boolean | null>(null); // true=like, false=dislike, null=none
+  const [myRating, setMyRating] = useState<boolean | null>(null);
+  
+  // Launch state
+  const [launching, setLaunching] = useState(false);
+  const [progress, setProgress] = useState<ProgressPayload | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   const total = likes + dislikes;
   const pct = total > 0 ? Math.round((likes / total) * 100) : 0;
@@ -19,6 +38,38 @@ export default function GameDetail({ game, onBack, onPlay }: Props) {
   useEffect(() => {
     loadMyRating();
   }, [game.id]);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs]);
+
+  async function handlePlay() {
+    setLaunching(true);
+    setLogs([]);
+    setProgress(null);
+    setShowLogs(true);
+
+    // Listen for progress events
+    const unlistenProgress = await listen<ProgressPayload>("launch-progress", (e) => {
+      setProgress(e.payload);
+    });
+    const unlistenLog = await listen<LogPayload>("launch-log", (e) => {
+      setLogs(prev => [...prev, e.payload.message]);
+    });
+
+    try {
+      await onPlay(game);
+      setLogs(prev => [...prev, "✓ Minecraft launched successfully!"]);
+    } catch (err: any) {
+      setLogs(prev => [...prev, `✗ Error: ${err}`]);
+      setProgress({ stage: "error", message: String(err), percent: 0 });
+    } finally {
+      setLaunching(false);
+      unlistenProgress();
+      unlistenLog();
+    }
+  }
 
   async function loadMyRating() {
     if (!supabase) return;
@@ -110,11 +161,14 @@ export default function GameDetail({ game, onBack, onPlay }: Props) {
               </div>
             </div>
             <button
-              onClick={() => onPlay(game)}
-              className="px-10 py-3.5 bg-[#5b8731] hover:bg-[#6b9b3a] text-white font-bold rounded text-base cursor-pointer shrink-0 border-b-[4px] border-[rgba(0,0,0,0.3)] active:border-b-[2px]"
+              onClick={handlePlay}
+              disabled={launching}
+              className={`px-10 py-3.5 text-white font-bold rounded text-base cursor-pointer shrink-0 border-b-[4px] border-[rgba(0,0,0,0.3)] active:border-b-[2px] ${
+                launching ? "bg-[#4a6a28] opacity-70 cursor-not-allowed" : "bg-[#5b8731] hover:bg-[#6b9b3a]"
+              }`}
               style={{fontFamily: "'Silkscreen', monospace"}}
             >
-              ▶ PLAY
+              {launching ? "⏳ LAUNCHING..." : "▶ PLAY"}
             </button>
           </div>
 
@@ -178,6 +232,62 @@ export default function GameDetail({ game, onBack, onPlay }: Props) {
               {game.description}
             </p>
           </div>
+
+          {/* Progress bar + logs */}
+          {(launching || showLogs) && (
+            <div className="mt-5 space-y-3">
+              {/* Progress bar */}
+              {progress && (
+                <div className="bg-[#3a3a3a] rounded p-4 border-2 border-[#555]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-[#b0b0b0]" style={{fontFamily: "'Silkscreen', monospace"}}>
+                      {progress.message}
+                    </span>
+                    <span className="text-xs text-[#808080]">
+                      {Math.round(progress.percent * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 rounded-full ${
+                        progress.stage === "error" ? "bg-[#cc3333]" :
+                        progress.stage === "running" ? "bg-[#55ff55]" : "bg-[#5b8731]"
+                      }`}
+                      style={{ width: `${Math.round(progress.percent * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Logs area */}
+              <div className="bg-[#1a1a1a] rounded border-2 border-[#555]">
+                <button
+                  onClick={() => setShowLogs(!showLogs)}
+                  className="w-full flex items-center justify-between px-4 py-2 text-xs text-[#808080] hover:text-[#b0b0b0] cursor-pointer"
+                  style={{fontFamily: "'Silkscreen', monospace"}}
+                >
+                  <span>LOGS ({logs.length})</span>
+                  <span>{showLogs ? "▼" : "▶"}</span>
+                </button>
+                {showLogs && (
+                  <div className="px-4 pb-3 max-h-[200px] overflow-y-auto font-mono text-xs leading-5">
+                    {logs.length === 0 && (
+                      <p className="text-[#555]">Waiting for output...</p>
+                    )}
+                    {logs.map((log, i) => (
+                      <p key={i} className={
+                        log.startsWith("✗") ? "text-[#ff5555]" :
+                        log.startsWith("✓") ? "text-[#55ff55]" : "text-[#b0b0b0]"
+                      }>
+                        {log}
+                      </p>
+                    ))}
+                    <div ref={logsEndRef} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

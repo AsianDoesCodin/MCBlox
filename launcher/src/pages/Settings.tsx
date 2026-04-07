@@ -9,6 +9,22 @@ interface McAccount {
   access_token: string;
 }
 
+interface StorageInfo {
+  instances: number;
+  libraries: number;
+  assets: number;
+  java: number;
+  total: number;
+  path: string;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 export default function Settings() {
   const [mcAccount, setMcAccount] = useState<McAccount | null>(null);
   const [authState, setAuthState] = useState<"idle" | "waiting" | "polling">("idle");
@@ -24,6 +40,10 @@ export default function Settings() {
   const [authUsername, setAuthUsername] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
   const [authModalError, setAuthModalError] = useState("");
+  
+  // Storage
+  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     // Check for saved MC account
@@ -53,7 +73,30 @@ export default function Settings() {
         setMcbloxUser(session?.user || null);
       });
     }
+
+    // Load storage info
+    loadStorageInfo();
   }, []);
+
+  async function loadStorageInfo() {
+    try {
+      const info: any = await invoke("get_storage_info");
+      setStorageInfo(info);
+    } catch {}
+  }
+
+  async function clearCache() {
+    if (!confirm("This will delete all downloaded game instances. You'll need to re-download them when you play. Continue?")) return;
+    setClearing(true);
+    try {
+      const result = await invoke("clear_all_instances");
+      alert(result);
+      loadStorageInfo();
+    } catch (e) {
+      alert(`Failed: ${e}`);
+    }
+    setClearing(false);
+  }
 
   async function startMcAuth() {
     try {
@@ -306,13 +349,43 @@ export default function Settings() {
             <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
               📁 Storage
             </h2>
+            {storageInfo && (
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#b0b0b0]">Game instances</span>
+                  <span className="text-white font-medium">{formatBytes(storageInfo.instances)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#b0b0b0]">Libraries</span>
+                  <span className="text-white font-medium">{formatBytes(storageInfo.libraries)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#b0b0b0]">Assets</span>
+                  <span className="text-white font-medium">{formatBytes(storageInfo.assets)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#b0b0b0]">Java runtime</span>
+                  <span className="text-white font-medium">{formatBytes(storageInfo.java)}</span>
+                </div>
+                <div className="flex justify-between text-xs border-t border-[#555] pt-2 mt-2">
+                  <span className="text-[#b0b0b0] font-bold">Total</span>
+                  <span className="text-white font-bold">{formatBytes(storageInfo.total)}</span>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-[#b0b0b0]">~/.mcblox/instances/</p>
+                <p className="text-sm font-medium text-[#b0b0b0]">{storageInfo?.path || "Loading..."}</p>
                 <p className="text-xs text-[#808080] mt-0.5">Game data location</p>
               </div>
-              <button className="px-4 py-1.5 bg-[#484848] hover:bg-[#525252] border-2 border-[#555] rounded text-xs cursor-pointer">
-                Change
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={clearCache}
+                disabled={clearing}
+                className="px-4 py-2 bg-[#5a1e1e] hover:bg-[#6a2222] border-2 border-[#7a2e2e] rounded text-xs font-medium cursor-pointer text-[#ff5555] disabled:opacity-50"
+              >
+                {clearing ? "Clearing..." : "🗑 Clear Game Cache"}
               </button>
             </div>
           </div>

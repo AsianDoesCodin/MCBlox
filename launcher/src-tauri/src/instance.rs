@@ -153,5 +153,70 @@ pub fn extract_modpack(zip_path: &Path, instance_dir: &Path) -> Result<(), Box<d
         }
     }
 
+    // Flatten: if the zip created a single root folder, move its contents up
+    flatten_single_root(instance_dir)?;
+
+    Ok(())
+}
+
+/// If instance_dir contains exactly one subdirectory (and no other files besides
+/// known metadata like modpack.zip/mcblox.json), move the subdirectory's contents
+/// up to instance_dir. This handles zips that wrap everything in a root folder.
+fn flatten_single_root(instance_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let entries: Vec<_> = std::fs::read_dir(instance_dir)?
+        .filter_map(|e| e.ok())
+        .collect();
+
+    // Find directories (excluding known metadata files)
+    let dirs: Vec<_> = entries.iter()
+        .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+        .collect();
+    let files: Vec<_> = entries.iter()
+        .filter(|e| e.file_type().map(|t| t.is_file()).unwrap_or(false))
+        .filter(|e| {
+            let name = e.file_name().to_string_lossy().to_string();
+            name != "modpack.zip" && name != "mcblox.json"
+        })
+        .collect();
+
+    // Only flatten if there's exactly one directory and no non-metadata files
+    if dirs.len() == 1 && files.is_empty() {
+        let single_dir = dirs[0].path();
+        println!("[McBlox] Flattening nested directory: {:?}", single_dir.file_name());
+
+        // Move all contents from the nested dir to instance_dir
+        for child in std::fs::read_dir(&single_dir)? {
+            let child = child?;
+            let dest = instance_dir.join(child.file_name());
+            // Use rename (move) for efficiency
+            if let Err(_) = std::fs::rename(child.path(), &dest) {
+                // If rename fails (cross-device), fall back to copy
+                if child.file_type()?.is_dir() {
+                    copy_dir_all(&child.path(), &dest)?;
+                } else {
+                    std::fs::copy(child.path(), &dest)?;
+                }
+            }
+        }
+
+        // Remove the now-empty directory
+        std::fs::remove_dir_all(&single_dir).ok();
+        println!("[McBlox] Flattened successfully");
+    }
+
+    Ok(())
+}
+
+fn copy_dir_all(src: &Path, dst: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let dest = dst.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir_all(&entry.path(), &dest)?;
+        } else {
+            std::fs::copy(entry.path(), &dest)?;
+        }
+    }
     Ok(())
 }

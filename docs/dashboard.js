@@ -119,6 +119,80 @@ const editTagPicker = document.getElementById('edit-tag-picker');
 
 let editingGame = null;
 let editSelectedTags = new Set();
+let editNewThumb = null; // File object if user picks new thumbnail
+let editRemoveThumb = false;
+let editNewScreenshots = []; // {file, url} for newly added
+let editRemoveScreenshots = []; // URLs to remove
+
+// Image upload elements
+const editThumbInput = document.getElementById('edit-thumb-input');
+const editThumbImg = document.getElementById('edit-thumb-img');
+const editThumbPlaceholder = document.getElementById('edit-thumb-placeholder');
+const editThumbRemove = document.getElementById('edit-thumb-remove');
+const editScreenshotsWrap = document.getElementById('edit-screenshots-wrap');
+const editScreenshotInput = document.getElementById('edit-screenshot-input');
+
+editThumbInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  editNewThumb = file;
+  editRemoveThumb = false;
+  editThumbImg.src = URL.createObjectURL(file);
+  editThumbImg.style.display = '';
+  editThumbPlaceholder.style.display = 'none';
+  editThumbRemove.style.display = '';
+});
+
+editThumbRemove.addEventListener('click', () => {
+  editNewThumb = null;
+  editRemoveThumb = true;
+  editThumbImg.style.display = 'none';
+  editThumbPlaceholder.style.display = '';
+  editThumbRemove.style.display = 'none';
+});
+
+editScreenshotInput.addEventListener('change', (e) => {
+  const files = Array.from(e.target.files);
+  const totalScreenshots = editScreenshotsWrap.querySelectorAll('.edit-screenshot-item').length + files.length;
+  if (totalScreenshots > 4) {
+    alert('Maximum 4 screenshots allowed.');
+    return;
+  }
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    editNewScreenshots.push({ file, url });
+    renderEditScreenshots();
+  });
+  e.target.value = '';
+});
+
+function renderEditScreenshots() {
+  editScreenshotsWrap.innerHTML = '';
+  // Existing screenshots (from DB)
+  const existing = (editingGame?.screenshot_urls || []).filter(u => !editRemoveScreenshots.includes(u));
+  existing.forEach(url => {
+    const item = document.createElement('div');
+    item.className = 'edit-screenshot-item';
+    item.innerHTML = `<img src="${encodeURI(url)}"><button type="button" class="edit-screenshot-remove">&times;</button>`;
+    item.querySelector('.edit-screenshot-remove').addEventListener('click', () => {
+      editRemoveScreenshots.push(url);
+      renderEditScreenshots();
+    });
+    editScreenshotsWrap.appendChild(item);
+  });
+  // New screenshots
+  editNewScreenshots.forEach((ss, i) => {
+    const item = document.createElement('div');
+    item.className = 'edit-screenshot-item';
+    item.innerHTML = `<img src="${ss.url}"><button type="button" class="edit-screenshot-remove">&times;</button>`;
+    item.querySelector('.edit-screenshot-remove').addEventListener('click', () => {
+      URL.revokeObjectURL(ss.url);
+      editNewScreenshots.splice(i, 1);
+      renderEditScreenshots();
+    });
+    editScreenshotsWrap.appendChild(item);
+  });
+}
 
 editGameType.addEventListener('change', () => {
   const v = editGameType.value;
@@ -144,6 +218,11 @@ function renderEditTags() {
 
 function openEditModal(game) {
   editingGame = game;
+  editNewThumb = null;
+  editRemoveThumb = false;
+  editNewScreenshots = [];
+  editRemoveScreenshots = [];
+
   document.getElementById('edit-title').value = game.title;
   document.getElementById('edit-description').value = game.description;
   document.getElementById('edit-modpack-url').value = game.modpack_url;
@@ -152,6 +231,21 @@ function openEditModal(game) {
   document.getElementById('edit-game-type').value = game.game_type;
   document.getElementById('edit-server-address').value = game.server_address || '';
   document.getElementById('edit-world-name').value = game.world_name || '';
+
+  // Show current thumbnail
+  if (game.thumbnail_url) {
+    editThumbImg.src = game.thumbnail_url;
+    editThumbImg.style.display = '';
+    editThumbPlaceholder.style.display = 'none';
+    editThumbRemove.style.display = '';
+  } else {
+    editThumbImg.style.display = 'none';
+    editThumbPlaceholder.style.display = '';
+    editThumbRemove.style.display = 'none';
+  }
+
+  // Show current screenshots
+  renderEditScreenshots();
 
   editServerField.style.display = game.game_type === 'server' ? '' : 'none';
   editWorldField.style.display = game.game_type === 'world' ? '' : 'none';
@@ -194,6 +288,39 @@ editForm.addEventListener('submit', async (e) => {
   };
 
   try {
+    // Upload new thumbnail if selected
+    if (editNewThumb) {
+      const thumbPath = `${editingGame.id}/thumbnail.jpg`;
+      const { error: upErr } = await sb.storage.from('game-images').upload(thumbPath, editNewThumb, {
+        contentType: editNewThumb.type || 'image/jpeg',
+        upsert: true
+      });
+      if (upErr) throw upErr;
+      const { data: urlData } = sb.storage.from('game-images').getPublicUrl(thumbPath);
+      updated.thumbnail_url = urlData.publicUrl;
+    } else if (editRemoveThumb) {
+      updated.thumbnail_url = null;
+      // Remove from storage
+      await sb.storage.from('game-images').remove([`${editingGame.id}/thumbnail.jpg`]);
+    }
+
+    // Upload new screenshots
+    let screenshotUrls = (editingGame.screenshot_urls || []).filter(u => !editRemoveScreenshots.includes(u));
+    for (let i = 0; i < editNewScreenshots.length; i++) {
+      const ss = editNewScreenshots[i];
+      const ssPath = `${editingGame.id}/screenshot_${Date.now()}_${i}.jpg`;
+      const { error: upErr } = await sb.storage.from('game-images').upload(ssPath, ss.file, {
+        contentType: ss.file.type || 'image/jpeg',
+        upsert: true
+      });
+      if (upErr) throw upErr;
+      const { data: urlData } = sb.storage.from('game-images').getPublicUrl(ssPath);
+      screenshotUrls.push(urlData.publicUrl);
+    }
+    if (editNewScreenshots.length > 0 || editRemoveScreenshots.length > 0) {
+      updated.screenshot_urls = screenshotUrls;
+    }
+
     const { error } = await sb
       .from('games')
       .update(updated)

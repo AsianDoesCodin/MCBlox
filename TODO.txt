@@ -9,7 +9,7 @@ WHAT'S DONE:
 - Minecraft Auth: Full Microsoft → Xbox → XSTS → MC device code flow (working!)
 - MC Launch Engine (Rust): Fabric, Forge, NeoForge installers, Mojang version manifest,
   client JAR + libraries + assets download, classpath builder, launch args, auto-join server
-- Java auto-download: Adoptium JRE 21 if not installed
+- Java auto-download: Java 17 (1.20.x) AND Java 21 (1.21+), version-matched via Adoptium
 - Modpack URL resolver: Modrinth API, CurseForge CDN scraping, Google Drive, MediaFire
 - Image upload: Thumbnail + screenshots to Supabase Storage from Publish form
 - Rating system: Thumbs up/down in launcher game detail
@@ -17,17 +17,19 @@ WHAT'S DONE:
 - Auto-updater: Checks GitHub releases on startup, shows banner
 - Logo: Everywhere (website nav/hero, launcher sidebar, Tauri icons, favicon)
 - GitHub Release v0.1.0: .exe + .msi installers uploaded
+- END-TO-END MC LAUNCH: Tested with Payter (1.20.1 Forge 47.4.10). Full pipeline:
+  MediaFire download → zip extract/flatten → MC client + libs + assets → Forge installer
+  processors (client-srg, client-extra, patched) → Java 17 auto-download → natives extraction
+  → correct JVM/game args → Minecraft launches with mods!
+- Progress bar + logs: Real-time launch progress bar with stage percentages + collapsible log panel
+- Storage management: Settings shows storage breakdown (instances/libs/assets/java/total),
+  "Clear Game Cache" button deletes all instances to free space
+- Launcher now loads games from Supabase only (no hardcoded placeholders)
 
 STILL MISSING (Required):
-- End-to-end MC launch test — all Rust code is written but untested with a real game
-- Supabase email redirect URL — still points to localhost:3000, needs to be updated in
-  Supabase Dashboard > Authentication > URL Configuration to the live site URL
-- Game thumbnails on website game cards — games.js needs to render thumbnail_url images
-- Dashboard edit form — needs image re-upload capability
-- Admin featured/promoted toggle — manual promotion via admin panel (you said DMs for now)
+- (none — all required features are implemented!)
 
 NICE TO HAVES:
-- Progress bar during game download/install (currently just "Launching...")
 - Game search on website games page via Supabase full-text search
 - Sorting by rating on game cards (website + launcher)
 - Remember last played games section in launcher

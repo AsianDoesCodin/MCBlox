@@ -247,7 +247,7 @@ pub async fn install_fabric(
     mc_version: &str,
     game_dir: &Path,
     libraries_dir: &Path,
-) -> Result<(String, Vec<PathBuf>), String> {
+) -> Result<(String, Vec<PathBuf>, Vec<String>, Vec<String>), String> {
     // Get latest Fabric loader version
     let loaders_url = format!(
         "https://meta.fabricmc.net/v2/versions/loader/{}",
@@ -305,7 +305,7 @@ pub async fn install_fabric(
         serde_json::to_string_pretty(&profile).unwrap_or_default(),
     ).ok();
 
-    Ok((main_class, fabric_libs))
+    Ok((main_class, fabric_libs, vec![], vec![]))
 }
 
 /// Install Forge for the given MC version
@@ -314,7 +314,7 @@ pub async fn install_forge(
     mc_version: &str,
     game_dir: &Path,
     libraries_dir: &Path,
-) -> Result<(String, Vec<PathBuf>), String> {
+) -> Result<(String, Vec<PathBuf>, Vec<String>, Vec<String>), String> {
     // Get Forge versions for this MC version
     let promos_url = "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json";
     let promos: serde_json::Value = client
@@ -362,6 +362,87 @@ pub async fn install_forge(
     let main_class = version_json["mainClass"].as_str()
         .unwrap_or("cpw.mods.modlauncher.Launcher")
         .to_string();
+
+    // Extract Forge-specific JVM arguments (--add-opens, --add-exports, etc.)
+    let mut forge_jvm_args: Vec<String> = Vec::new();
+    if let Some(args) = version_json["arguments"]["jvm"].as_array() {
+        for arg in args {
+            if let Some(s) = arg.as_str() {
+                forge_jvm_args.push(s.to_string());
+            }
+        }
+    }
+    
+    // Extract Forge-specific game arguments (--launchTarget, --fml.forgeVersion, etc.)
+    let mut forge_game_args: Vec<String> = Vec::new();
+    if let Some(args) = version_json["arguments"]["game"].as_array() {
+        for arg in args {
+            if let Some(s) = arg.as_str() {
+                forge_game_args.push(s.to_string());
+            }
+        }
+    }
+    println!("[McBlox] Forge JVM args: {}, game args: {}", forge_jvm_args.len(), forge_game_args.len());
+
+    // Run the Forge installer to process client artifacts (srg, extra, patched)
+    // Check if the client-srg JAR exists (indicates installer has been run)
+    let srg_path = libraries_dir.join(maven_to_path(
+        &format!("net.minecraft:client:{}:srg", 
+            version_json["data"]["MCP_VERSION"]["client"].as_str()
+                .map(|s| format!("{}-{}", mc_version, s.trim_matches('\'')))
+                .unwrap_or_else(|| format!("{}-20230612.114412", mc_version))
+        )
+    ));
+    if !srg_path.exists() {
+        println!("[McBlox] Running Forge installer processors (generating client-srg, client-extra, patched)...");
+        println!("[McBlox] Expected SRG at: {:?}", srg_path);
+        
+        // Create dummy launcher_profiles.json that Forge installer expects
+        let profiles_path = game_dir.join("launcher_profiles.json");
+        if !profiles_path.exists() {
+            std::fs::write(&profiles_path, r#"{"profiles":{}}"#).ok();
+        }
+        // Find Java to run the installer
+        let java_exe = if crate::which_java("java.exe") {
+            "java.exe".to_string()
+        } else {
+            // Use bundled Java
+            let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
+            let java_dir = base.join("McBlox").join("java");
+            let mut found = None;
+            if let Ok(entries) = std::fs::read_dir(&java_dir) {
+                for entry in entries.flatten() {
+                    let java = entry.path().join("bin").join("java.exe");
+                    if java.exists() {
+                        found = Some(java.display().to_string());
+                        break;
+                    }
+                }
+            }
+            found.ok_or("No Java found to run Forge installer")?
+        };
+        
+        // Run the installer in headless/installClient mode
+        let output = std::process::Command::new(&java_exe)
+            .arg("-jar")
+            .arg(&installer_path)
+            .arg("--installClient")
+            .arg(game_dir.display().to_string())
+            .output()
+            .map_err(|e| format!("Failed to run Forge installer: {}", e))?;
+        
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        println!("[McBlox] Forge installer stdout: {}", &stdout[..stdout.len().min(1000)]);
+        println!("[McBlox] Forge installer stderr: {}", &stderr[..stderr.len().min(1000)]);
+        
+        if !output.status.success() {
+            println!("[McBlox] Forge installer exited with: {}", output.status);
+            // Don't fail — the installer might partially succeed
+        }
+    } else {
+        println!("[McBlox] Forge client already patched");
+    }
 
     // Download Forge libraries
     let mut forge_libs = Vec::new();
@@ -417,8 +498,8 @@ pub async fn install_forge(
     }
     forge_libs.push(forge_jar);
 
-    println!("[McBlox] Forge {} installed ({} libraries)", full_version, forge_libs.len());
-    Ok((main_class, forge_libs))
+    println!("[McBlox] Forge {} installed ({} libraries), {} JVM args", full_version, forge_libs.len(), forge_jvm_args.len());
+    Ok((main_class, forge_libs, forge_jvm_args, forge_game_args))
 }
 
 /// Install NeoForge for the given MC version
@@ -427,7 +508,7 @@ pub async fn install_neoforge(
     mc_version: &str,
     game_dir: &Path,
     libraries_dir: &Path,
-) -> Result<(String, Vec<PathBuf>), String> {
+) -> Result<(String, Vec<PathBuf>, Vec<String>, Vec<String>), String> {
     // NeoForge versions API
     let versions_url = "https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge";
     let versions_resp: serde_json::Value = client
@@ -524,8 +605,28 @@ pub async fn install_neoforge(
         }
     }
 
+    // Extract NeoForge JVM args
+    let mut nf_jvm_args: Vec<String> = Vec::new();
+    if let Some(args) = version_json["arguments"]["jvm"].as_array() {
+        for arg in args {
+            if let Some(s) = arg.as_str() {
+                nf_jvm_args.push(s.to_string());
+            }
+        }
+    }
+
+    // Extract NeoForge game args
+    let mut nf_game_args: Vec<String> = Vec::new();
+    if let Some(args) = version_json["arguments"]["game"].as_array() {
+        for arg in args {
+            if let Some(s) = arg.as_str() {
+                nf_game_args.push(s.to_string());
+            }
+        }
+    }
+
     println!("[McBlox] NeoForge {} installed ({} libraries)", nf_version, nf_libs.len());
-    Ok((main_class, nf_libs))
+    Ok((main_class, nf_libs, nf_jvm_args, nf_game_args))
 }
 
 /// Build the classpath string
@@ -548,6 +649,91 @@ pub fn build_classpath(
     parts.join(sep)
 }
 
+/// Extract native libraries (.dll, .so, .dylib) from library JARs into natives dir
+pub fn extract_natives(
+    version_json: &VersionJson,
+    libraries_dir: &Path,
+    natives_dir: &Path,
+) -> Result<(), String> {
+    std::fs::create_dir_all(natives_dir).map_err(|e| e.to_string())?;
+    
+    for lib in &version_json.libraries {
+        if !should_use_library(lib) {
+            continue;
+        }
+        
+        // Check if this library has native classifiers
+        let name = &lib.name;
+        let has_natives = name.contains("natives") || name.contains("lwjgl");
+        
+        if let Some(ref downloads) = lib.downloads {
+            if let Some(ref artifact) = downloads.artifact {
+                let lib_path = libraries_dir.join(&artifact.path);
+                if lib_path.exists() && has_natives {
+                    extract_dlls_from_jar(&lib_path, natives_dir).ok();
+                }
+            }
+        }
+    }
+    
+    // Also look for natives JARs with platform-specific names
+    let native_suffix = if cfg!(windows) { "natives-windows" }
+        else if cfg!(target_os = "macos") { "natives-macos" }
+        else { "natives-linux" };
+    
+    // Walk the libraries dir and find any JAR with natives in the name
+    find_and_extract_natives(libraries_dir, natives_dir, native_suffix);
+    
+    println!("[McBlox] Natives extracted to {:?}", natives_dir);
+    Ok(())
+}
+
+fn find_and_extract_natives(dir: &Path, natives_dir: &Path, suffix: &str) {
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                find_and_extract_natives(&path, natives_dir, suffix);
+            } else if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                if name.ends_with(".jar") && name.contains(suffix) {
+                    extract_dlls_from_jar(&path, natives_dir).ok();
+                }
+            }
+        }
+    }
+}
+
+fn extract_dlls_from_jar(jar_path: &Path, natives_dir: &Path) -> Result<(), String> {
+    let file = std::fs::File::open(jar_path).map_err(|e| e.to_string())?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+    
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
+        let name = entry.name().to_string();
+        
+        // Extract .dll, .so, .dylib, .jnilib files
+        let is_native = name.ends_with(".dll") || name.ends_with(".so") 
+            || name.ends_with(".dylib") || name.ends_with(".jnilib");
+        
+        if is_native && !entry.is_dir() {
+            let file_name = std::path::Path::new(&name)
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            
+            let out_path = natives_dir.join(&file_name);
+            if !out_path.exists() {
+                if let Ok(mut outfile) = std::fs::File::create(&out_path) {
+                    std::io::copy(&mut entry, &mut outfile).ok();
+                }
+            }
+        }
+    }
+    
+    Ok(())
+}
+
 /// Build MC launch arguments
 pub fn build_launch_args(
     version_json: &VersionJson,
@@ -555,22 +741,62 @@ pub fn build_launch_args(
     classpath: &str,
     game_dir: &Path,
     assets_dir: &Path,
+    libraries_dir: &Path,
     mc_version: &str,
     username: &str,
     uuid: &str,
     access_token: &str,
     server_address: Option<&str>,
+    loader_jvm_args: &[String],
+    loader_game_args: &[String],
     min_memory: &str,
     max_memory: &str,
 ) -> Vec<String> {
     let mut args = Vec::new();
+    let libs_str = libraries_dir.display().to_string();
+    let natives_str = game_dir.join("natives").display().to_string();
 
     // JVM args
     args.push(format!("-Xms{}", min_memory));
     args.push(format!("-Xmx{}", max_memory));
-    args.push(format!("-Djava.library.path={}", game_dir.join("natives").display()));
+    args.push(format!("-Djava.library.path={}", natives_str));
     args.push("-Dminecraft.launcher.brand=McBlox".to_string());
     args.push("-Dminecraft.launcher.version=0.1.0".to_string());
+
+    // Add JVM args from vanilla version JSON
+    if let Some(ref arguments) = version_json.arguments {
+        if let Some(ref jvm_args) = arguments.jvm {
+            for arg in jvm_args {
+                if let Some(s) = arg.as_str() {
+                    let resolved = s
+                        .replace("${library_directory}", &libs_str)
+                        .replace("${classpath_separator}", if cfg!(windows) { ";" } else { ":" })
+                        .replace("${version_name}", mc_version)
+                        .replace("${natives_directory}", &natives_str)
+                        .replace("${launcher_name}", "McBlox")
+                        .replace("${launcher_version}", "0.1.0");
+                    if resolved == "-cp" || resolved.contains("${classpath}") {
+                        continue;
+                    }
+                    args.push(resolved);
+                }
+            }
+        }
+    }
+
+    // Add mod loader JVM args (Forge --add-opens, --add-exports, etc.)
+    for arg in loader_jvm_args {
+        let resolved = arg
+            .replace("${library_directory}", &libs_str)
+            .replace("${classpath_separator}", if cfg!(windows) { ";" } else { ":" })
+            .replace("${version_name}", mc_version)
+            .replace("${natives_directory}", &natives_str);
+        if resolved == "-cp" || resolved.contains("${classpath}") {
+            continue;
+        }
+        args.push(resolved);
+    }
+
     args.push("-cp".to_string());
     args.push(classpath.to_string());
     args.push(main_class.to_string());
@@ -610,6 +836,11 @@ pub fn build_launch_args(
             args.push("--port".to_string());
             args.push(parts[1].to_string());
         }
+    }
+
+    // Append mod loader game args (Forge: --launchTarget, --fml.forgeVersion, etc.)
+    for arg in loader_game_args {
+        args.push(arg.clone());
     }
 
     args

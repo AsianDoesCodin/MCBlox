@@ -130,7 +130,7 @@ function renderQueue() {
     card.innerHTML = `
       <div class="thumb">⛏</div>
       <div class="info">
-        <h3>${escapeHtml(game.title)}</h3>
+        <h3>${escapeHtml(game.title)}${game.is_promoted ? ' <span style="color:#ffaa00;font-size:12px;">★ Featured</span>' : ''}</h3>
         <div class="desc">${escapeHtml(game.description || '')}</div>
         <div class="meta">
           ${tags}
@@ -186,7 +186,31 @@ function openReview(game) {
       <label>Creator ID</label>
       <div class="value" style="font-size:11px;color:#808080;">${game.creator_id || 'Unknown'}</div>
     </div>
+    <div class="review-detail-field">
+      <label>Featured / Promoted</label>
+      <div class="value">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="review-promote-check" ${game.is_promoted ? 'checked' : ''} style="width:16px;height:16px;accent-color:#5b8731;">
+          <span style="font-size:13px;">${game.is_promoted ? 'Promoted — appears in Featured section' : 'Not promoted'}</span>
+        </label>
+      </div>
+    </div>
   `;
+
+  document.getElementById('review-promote-check').addEventListener('change', async (ev) => {
+    const promoted = ev.target.checked;
+    const sb = getSupabase();
+    if (!sb || !reviewingGame) return;
+    try {
+      const { error } = await sb.from('games').update({ is_promoted: promoted }).eq('id', reviewingGame.id);
+      if (error) throw error;
+      reviewingGame.is_promoted = promoted;
+      ev.target.nextElementSibling.textContent = promoted ? 'Promoted — appears in Featured section' : 'Not promoted';
+    } catch (err) {
+      ev.target.checked = !promoted;
+      alert('Error: ' + (err.message || 'Unknown'));
+    }
+  });
 
   reviewModal.style.display = '';
 }

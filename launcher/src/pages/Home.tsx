@@ -5,130 +5,6 @@ import GameDetail from "../components/GameDetail";
 import type { Game } from "../types";
 import { supabase } from "../lib/supabase";
 
-// Placeholder games for development (removed once Supabase is connected)
-const PLACEHOLDER_GAMES: Game[] = [
-  {
-    id: "1",
-    title: "Epic Adventure RPG",
-    description: "Explore a massive open world with custom quests, dungeons, and boss fights. Over 200 custom mobs and 50 unique weapons await.",
-    tags: ["Adventure", "RPG", "Quests"],
-    thumbnail_url: null,
-    modpack_url: "https://modrinth.com/modpack/example",
-    mc_version: "1.21.1",
-    mod_loader: "fabric",
-    game_type: "server",
-    server_address: "play.epicrpg.com",
-    world_name: null,
-    thumbs_up: 842,
-    thumbs_down: 31,
-    total_plays: 15420,
-    player_count: 127,
-    is_promoted: true,
-    status: "approved",
-    created_at: "2026-04-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    title: "SkyBlock Evolved",
-    description: "Classic skyblock with a twist — tech mods, magic, and automation. Start from nothing and build an empire in the sky.",
-    tags: ["Skyblock", "Survival", "Tech"],
-    thumbnail_url: null,
-    modpack_url: "https://modrinth.com/modpack/example2",
-    mc_version: "1.20.1",
-    mod_loader: "forge",
-    game_type: "server",
-    server_address: "sky.evolved.gg",
-    world_name: null,
-    thumbs_up: 531,
-    thumbs_down: 22,
-    total_plays: 8930,
-    player_count: 64,
-    is_promoted: false,
-    status: "approved",
-    created_at: "2026-03-20T00:00:00Z",
-  },
-  {
-    id: "3",
-    title: "Horror Mansion",
-    description: "A singleplayer horror adventure map. Solve puzzles, survive the dark, and uncover the mansion's secrets.",
-    tags: ["Horror", "Adventure", "Puzzle"],
-    thumbnail_url: null,
-    modpack_url: "https://mediafire.com/example",
-    mc_version: "1.21.1",
-    mod_loader: "fabric",
-    game_type: "world",
-    server_address: null,
-    world_name: "Horror Mansion",
-    thumbs_up: 203,
-    thumbs_down: 8,
-    total_plays: 3100,
-    player_count: 12,
-    is_promoted: false,
-    status: "approved",
-    created_at: "2026-04-05T00:00:00Z",
-  },
-  {
-    id: "4",
-    title: "PvP Arena Champions",
-    description: "Fast-paced PvP with custom kits, arenas, and ranked matchmaking. Compete to reach the top of the leaderboard.",
-    tags: ["PvP", "Competitive", "Parkour"],
-    thumbnail_url: null,
-    modpack_url: "https://curseforge.com/example",
-    mc_version: "1.21.1",
-    mod_loader: "neoforge",
-    game_type: "server",
-    server_address: "pvp.champions.net",
-    world_name: null,
-    thumbs_up: 670,
-    thumbs_down: 89,
-    total_plays: 12500,
-    player_count: 201,
-    is_promoted: true,
-    status: "approved",
-    created_at: "2026-03-15T00:00:00Z",
-  },
-  {
-    id: "5",
-    title: "Create & Chill",
-    description: "A relaxing creative server with the Create mod. Build incredible machines and share them with the community.",
-    tags: ["Creative", "Tech", "Building"],
-    thumbnail_url: null,
-    modpack_url: "https://modrinth.com/modpack/example3",
-    mc_version: "1.20.1",
-    mod_loader: "forge",
-    game_type: "server",
-    server_address: "create.chill.gg",
-    world_name: null,
-    thumbs_up: 412,
-    thumbs_down: 15,
-    total_plays: 6200,
-    player_count: 38,
-    is_promoted: false,
-    status: "approved",
-    created_at: "2026-04-02T00:00:00Z",
-  },
-  {
-    id: "6",
-    title: "Dragon Quest Map",
-    description: "An epic singleplayer quest to defeat 5 elemental dragons. Custom terrain, NPCs, and storyline.",
-    tags: ["Adventure", "Quests", "Exploration"],
-    thumbnail_url: null,
-    modpack_url: "https://drive.google.com/example",
-    mc_version: "1.21.1",
-    mod_loader: "fabric",
-    game_type: "world",
-    server_address: null,
-    world_name: "Dragon Quest",
-    thumbs_up: 156,
-    thumbs_down: 5,
-    total_plays: 2100,
-    player_count: 8,
-    is_promoted: false,
-    status: "approved",
-    created_at: "2026-04-06T00:00:00Z",
-  },
-];
-
 const TAGS = [
   'Adventure', 'RPG', 'PvP', 'Creative', 'Survival',
   'Skyblock', 'Horror', 'Puzzle', 'Minigame', 'Parkour',
@@ -174,7 +50,6 @@ export default function Home() {
         return;
       }
     }
-    setGames(PLACEHOLDER_GAMES);
   }
 
   // Heartbeat ref to track playing state
@@ -211,23 +86,19 @@ export default function Home() {
   }
 
   async function handlePlay(game: Game) {
-    try {
-      const result = await invoke("launch_game", {
-        request: {
-          game_id: game.id,
-          title: game.title,
-          modpack_url: game.modpack_url || "",
-          mc_version: game.mc_version || "1.21.1",
-          mod_loader: game.mod_loader || "fabric",
-          game_type: game.game_type || "server",
-          server_address: game.server_address || null,
-        }
-      });
-      startHeartbeat(game.id);
-      alert(result);
-    } catch (e) {
-      alert(`Launch error: ${e}`);
-    }
+    const result = await invoke("launch_game", {
+      request: {
+        game_id: game.id,
+        title: game.title,
+        modpack_url: game.modpack_url || "",
+        mc_version: game.mc_version || "1.21.1",
+        mod_loader: game.mod_loader || "fabric",
+        game_type: game.game_type || "server",
+        server_address: game.server_address || null,
+      }
+    });
+    startHeartbeat(game.id);
+    return result;
   }
 
   function toggleTag(tag: string) {
@@ -366,7 +237,7 @@ export default function Home() {
                   <p className="text-sm text-[#b0b0b0] line-clamp-2 max-w-lg">{featured[0].description}</p>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handlePlay(featured[0]); }}
+                  onClick={(e) => { e.stopPropagation(); setSelected(featured[0]); }}
                   className="px-8 py-3 bg-[#5b8731] hover:bg-[#6b9b3a] text-white font-bold rounded text-sm cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]"
                   style={{fontFamily: "'Silkscreen', monospace"}}
                 >

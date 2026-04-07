@@ -1,12 +1,25 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::Command;
+use tauri::Emitter;
 
 mod instance;
 mod mc_auth;
 mod mc_launcher;
 
 use mc_auth::{McAccount, DeviceCodeResponse};
+
+#[derive(Debug, Clone, Serialize)]
+struct LaunchProgress {
+    stage: String,
+    message: String,
+    percent: f32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct LaunchLog {
+    message: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LaunchRequest {
@@ -31,52 +44,103 @@ fn get_instances_dir() -> PathBuf {
     base.join("McBlox").join("instances")
 }
 
-fn get_java_path() -> Option<String> {
-    // 1. Check our bundled Java first
+fn get_java_path(java_version: u8) -> Option<String> {
+    // 1. Check our bundled Java first (version-matched)
     let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
     let bundled = base.join("McBlox").join("java");
     if bundled.exists() {
-        // Find javaw.exe inside the extracted JRE
+        // Find javaw.exe matching the requested major version
         if let Ok(entries) = std::fs::read_dir(&bundled) {
             for entry in entries.flatten() {
+                let dir_name = entry.file_name().to_string_lossy().to_string();
                 let javaw = entry.path().join("bin").join("javaw.exe");
-                if javaw.exists() {
+                if javaw.exists() && dir_name.contains(&format!("jdk-{}", java_version)) {
                     return Some(javaw.display().to_string());
                 }
             }
         }
     }
 
-    // 2. JAVA_HOME env var
+    // 2. Check system Java version
+    if let Some(system_java) = find_system_java() {
+        if check_java_major_version(&system_java, java_version) {
+            return Some(system_java);
+        }
+    }
+
+    None
+}
+
+fn find_system_java() -> Option<String> {
+    // Check JAVA_HOME
     if let Ok(home) = std::env::var("JAVA_HOME") {
         let javaw = PathBuf::from(&home).join("bin").join("javaw.exe");
         if javaw.exists() {
             return Some(javaw.display().to_string());
         }
     }
-
-    // 3. On PATH
+    // Check PATH
     if which_java("javaw.exe") {
         return Some("javaw.exe".to_string());
     }
-
     None
 }
 
-async fn ensure_java() -> Result<String, String> {
-    if let Some(java) = get_java_path() {
+fn check_java_major_version(java_path: &str, expected: u8) -> bool {
+    let java_exe = java_path.replace("javaw", "java");
+    if let Ok(output) = Command::new(&java_exe).arg("-version").output() {
+        let version_str = String::from_utf8_lossy(&output.stderr);
+        // Parse "openjdk version \"17.0.8\"" or "java version \"21.0.1\""
+        if let Some(start) = version_str.find('"') {
+            let rest = &version_str[start + 1..];
+            if let Some(end) = rest.find('"') {
+                let ver = &rest[..end];
+                // "17.0.8" → 17, "1.8.0_372" → 8, "21.0.1" → 21
+                let major: u8 = if ver.starts_with("1.") {
+                    ver.split('.').nth(1).and_then(|s| s.parse().ok()).unwrap_or(0)
+                } else {
+                    ver.split('.').next().and_then(|s| s.parse().ok()).unwrap_or(0)
+                };
+                return major == expected;
+            }
+        }
+    }
+    false
+}
+
+fn java_version_for_mc(mc_version: &str) -> u8 {
+    let parts: Vec<&str> = mc_version.split('.').collect();
+    let minor: u32 = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
+    let patch: u32 = parts.get(2).and_then(|s| s.parse().ok()).unwrap_or(0);
+    
+    if minor >= 21 {
+        21 // 1.21+ needs Java 21
+    } else if minor >= 17 || (minor == 16 && patch >= 5) {
+        17 // 1.17 to 1.20.x needs Java 17
+    } else {
+        8  // 1.16.4 and below needs Java 8
+    }
+}
+
+async fn ensure_java(mc_version: &str) -> Result<String, String> {
+    let java_ver = java_version_for_mc(mc_version);
+    
+    if let Some(java) = get_java_path(java_ver) {
+        println!("[McBlox] Found Java for MC {} (need Java {})", mc_version, java_ver);
         return Ok(java);
     }
 
-    // Auto-download Adoptium JRE 21
-    println!("[McBlox] Java not found, downloading Adoptium JRE 21...");
+    println!("[McBlox] Java {} not found, downloading Adoptium JRE {}...", java_ver, java_ver);
     let base = dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("McBlox")
         .join("java");
     std::fs::create_dir_all(&base).map_err(|e| format!("Failed to create java dir: {}", e))?;
 
-    let url = "https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse?project=jdk";
+    let url = format!(
+        "https://api.adoptium.net/v3/binary/latest/{}/ga/windows/x64/jre/hotspot/normal/eclipse?project=jdk",
+        java_ver
+    );
 
     let client = reqwest::Client::builder()
         .user_agent("McBlox/0.1.0")
@@ -115,9 +179,9 @@ async fn ensure_java() -> Result<String, String> {
     // Clean up zip
     std::fs::remove_file(&zip_path).ok();
 
-    println!("[McBlox] Java installed successfully");
+    println!("[McBlox] Java {} installed successfully", java_ver);
 
-    get_java_path().ok_or_else(|| "Java was downloaded but javaw.exe not found in extracted files".to_string())
+    get_java_path(java_ver).ok_or_else(|| "Java was downloaded but javaw.exe not found in extracted files".to_string())
 }
 
 fn which_java(cmd: &str) -> bool {
@@ -129,7 +193,23 @@ fn which_java(cmd: &str) -> bool {
 }
 
 #[tauri::command]
-async fn launch_game(request: LaunchRequest) -> Result<String, String> {
+async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Result<String, String> {
+    let emit = |stage: &str, msg: &str, pct: f32| {
+        app_handle.emit("launch-progress", LaunchProgress {
+            stage: stage.to_string(),
+            message: msg.to_string(),
+            percent: pct,
+        }).ok();
+        app_handle.emit("launch-log", LaunchLog { message: msg.to_string() }).ok();
+        println!("[McBlox] [{}%] {}", (pct * 100.0) as u32, msg);
+    };
+    
+    emit("auth", "Checking Minecraft authentication...", 0.0);
+    println!("[McBlox] ===== LAUNCH GAME START =====");
+    println!("[McBlox] Game: {} ({})", request.title, request.game_id);
+    println!("[McBlox] Modpack URL: {}", request.modpack_url);
+    println!("[McBlox] MC: {} / Loader: {}", request.mc_version, request.mod_loader);
+
     let base_dir = dirs::data_local_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("McBlox");
@@ -146,8 +226,11 @@ async fn launch_game(request: LaunchRequest) -> Result<String, String> {
     std::fs::create_dir_all(&versions_dir).ok();
 
     // Check MC auth
+    println!("[McBlox] Checking MC auth...");
     let account = mc_auth::load_account()
         .ok_or("Please sign in with your Microsoft account in Settings first.")?;
+    println!("[McBlox] Signed in as: {}", account.username);
+    emit("auth", &format!("Signed in as {}", account.username), 0.05);
 
     let client = reqwest::Client::builder()
         .user_agent("McBlox/0.1.0")
@@ -157,43 +240,78 @@ async fn launch_game(request: LaunchRequest) -> Result<String, String> {
     // Download modpack if not cached
     let modpack_path = instance_dir.join("modpack.zip");
     if !modpack_path.exists() && !request.modpack_url.is_empty() {
+        emit("download", "Downloading modpack...", 0.1);
+        println!("[McBlox] Downloading modpack from: {}", request.modpack_url);
         instance::download_modpack(&request.modpack_url, &modpack_path)
             .await
             .map_err(|e| format!("Failed to download modpack: {}", e))?;
+        println!("[McBlox] Modpack downloaded successfully");
+    } else {
+        println!("[McBlox] Modpack already cached or no URL");
     }
 
     // Extract modpack
     let mods_dir = instance_dir.join("mods");
     if !mods_dir.exists() && modpack_path.exists() {
+        emit("extract", "Extracting modpack...", 0.2);
+        println!("[McBlox] Extracting modpack...");
         instance::extract_modpack(&modpack_path, &instance_dir)
             .map_err(|e| format!("Failed to extract modpack: {}", e))?;
+        println!("[McBlox] Modpack extracted successfully");
+    } else {
+        println!("[McBlox] Modpack already extracted");
     }
 
     // Get MC version JSON from Mojang
+    emit("minecraft", "Fetching Minecraft version info...", 0.3);
+    println!("[McBlox] Fetching MC {} version manifest...", request.mc_version);
     let version_json = mc_launcher::get_version_json(&client, &request.mc_version, &versions_dir).await?;
+    println!("[McBlox] Version manifest loaded: {}", version_json.id);
 
     // Download client JAR
+    emit("minecraft", "Downloading Minecraft client...", 0.35);
+    println!("[McBlox] Downloading client JAR...");
     let client_jar = mc_launcher::download_client_jar(&client, &version_json, &versions_dir).await?;
+    println!("[McBlox] Client JAR: {:?}", client_jar);
 
     // Download libraries
+    emit("libraries", "Downloading libraries...", 0.4);
+    println!("[McBlox] Downloading libraries...");
     let lib_paths = mc_launcher::download_libraries(&client, &version_json, &libraries_dir).await?;
+    println!("[McBlox] {} libraries downloaded", lib_paths.len());
 
     // Download assets
+    emit("assets", "Downloading assets...", 0.5);
+    println!("[McBlox] Downloading assets...");
     mc_launcher::download_assets(&client, &version_json, &assets_dir).await?;
+    println!("[McBlox] Assets downloaded");
 
     // Install mod loader
-    let (main_class, loader_libs) = match request.mod_loader.as_str() {
+    emit("modloader", &format!("Installing {}...", request.mod_loader), 0.65);
+    println!("[McBlox] Installing mod loader: {}", request.mod_loader);
+    let (main_class, loader_libs, loader_jvm_args, loader_game_args) = match request.mod_loader.as_str() {
         "fabric" => mc_launcher::install_fabric(&client, &request.mc_version, &base_dir, &libraries_dir).await?,
         "forge" => mc_launcher::install_forge(&client, &request.mc_version, &base_dir, &libraries_dir).await?,
         "neoforge" => mc_launcher::install_neoforge(&client, &request.mc_version, &base_dir, &libraries_dir).await?,
-        _ => (version_json.main_class.clone(), vec![]),
+        _ => (version_json.main_class.clone(), vec![], vec![], vec![]),
     };
+    println!("[McBlox] Main class: {}, {} loader libs, {} JVM args, {} game args", main_class, loader_libs.len(), loader_jvm_args.len(), loader_game_args.len());
+
+    // Extract native libraries
+    emit("natives", "Extracting native libraries...", 0.75);
+    let natives_dir = instance_dir.join("natives");
+    println!("[McBlox] Extracting natives...");
+    mc_launcher::extract_natives(&version_json, &libraries_dir, &natives_dir)?;
 
     // Build classpath
     let classpath = mc_launcher::build_classpath(&client_jar, &lib_paths, &loader_libs);
+    println!("[McBlox] Classpath entries: {}", classpath.matches(';').count() + 1);
 
     // Find or download Java
-    let java = ensure_java().await?;
+    emit("java", "Checking Java installation...", 0.8);
+    println!("[McBlox] Finding Java for MC {}...", request.mc_version);
+    let java = ensure_java(&request.mc_version).await?;
+    println!("[McBlox] Java: {}", java);
 
     // Build launch args
     let args = mc_launcher::build_launch_args(
@@ -202,11 +320,14 @@ async fn launch_game(request: LaunchRequest) -> Result<String, String> {
         &classpath,
         &instance_dir,
         &assets_dir,
+        &libraries_dir,
         &request.mc_version,
         &account.username,
         &account.uuid,
         &account.access_token,
         request.server_address.as_deref(),
+        &loader_jvm_args,
+        &loader_game_args,
         "2G",
         "4G",
     );
@@ -227,11 +348,50 @@ async fn launch_game(request: LaunchRequest) -> Result<String, String> {
         .map_err(|e| format!("Failed to save metadata: {}", e))?;
 
     // Launch Minecraft!
-    Command::new(&java)
+    emit("launch", "Launching Minecraft...", 0.95);
+    println!("[McBlox] ===== LAUNCHING MINECRAFT =====");
+    println!("[McBlox] Java: {}", java);
+    println!("[McBlox] Args count: {}", args.len());
+    println!("[McBlox] Main class: {}", args.iter().find(|a| !a.starts_with('-') && !a.contains(';') && !a.contains('\\') && !a.contains('/')).unwrap_or(&"???".to_string()));
+    println!("[McBlox] Game dir: {:?}", instance_dir);
+    
+    // Log first few and last few args for debugging
+    for (i, arg) in args.iter().enumerate() {
+        if i < 10 || i > args.len() - 5 {
+            println!("[McBlox]   arg[{}]: {}", i, if arg.len() > 200 { &arg[..200] } else { arg });
+        }
+    }
+
+    // Use java.exe (not javaw.exe) for debug output
+    let java_debug = java.replace("javaw", "java");
+    let mut child = Command::new(&java_debug)
         .args(&args)
         .current_dir(&instance_dir)
         .spawn()
         .map_err(|e| format!("Failed to launch Minecraft: {}", e))?;
+    
+    let pid = child.id();
+    println!("[McBlox] Minecraft process spawned with PID: {}", pid);
+    
+    // Wait a few seconds — if process exits quickly, it crashed
+    std::thread::sleep(std::time::Duration::from_secs(5));
+    
+    match child.try_wait() {
+        Ok(Some(status)) => {
+            if !status.success() {
+                emit("error", &format!("Minecraft crashed (exit code: {})", status), 1.0);
+                return Err(format!("Minecraft crashed on startup (exit code: {})", status));
+            }
+        }
+        Ok(None) => {
+            // Still running — success
+            emit("running", "Minecraft is running!", 1.0);
+            println!("[McBlox] Minecraft is running (PID {})", pid);
+        }
+        Err(e) => {
+            println!("[McBlox] Error checking process: {}", e);
+        }
+    }
 
     Ok(format!("Launching {} as {}...", request.title, account.username))
 }
@@ -277,6 +437,68 @@ async fn delete_instance(game_id: String) -> Result<(), String> {
             .map_err(|e| format!("Failed to delete instance: {}", e))?;
     }
     Ok(())
+}
+
+#[tauri::command]
+async fn clear_all_instances() -> Result<String, String> {
+    let instances_dir = get_instances_dir();
+    let mut count = 0u32;
+    let mut freed: u64 = 0;
+    if instances_dir.exists() {
+        if let Ok(entries) = std::fs::read_dir(&instances_dir) {
+            for entry in entries.flatten() {
+                if entry.path().is_dir() {
+                    freed += dir_size(&entry.path());
+                    std::fs::remove_dir_all(entry.path()).ok();
+                    count += 1;
+                }
+            }
+        }
+    }
+    Ok(format!("Cleared {} instances, freed {}", count, format_bytes(freed)))
+}
+
+#[tauri::command]
+async fn get_storage_info() -> Result<serde_json::Value, String> {
+    let base = dirs::data_local_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("McBlox");
+    let instances = base.join("instances");
+    let libraries = base.join("libraries");
+    let assets = base.join("assets");
+    let java = base.join("java");
+
+    Ok(serde_json::json!({
+        "instances": dir_size(&instances),
+        "libraries": dir_size(&libraries),
+        "assets": dir_size(&assets),
+        "java": dir_size(&java),
+        "total": dir_size(&base),
+        "path": base.display().to_string(),
+    }))
+}
+
+fn dir_size(path: &std::path::Path) -> u64 {
+    if !path.exists() { return 0; }
+    let mut total: u64 = 0;
+    if let Ok(entries) = std::fs::read_dir(path) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.is_file() {
+                total += p.metadata().map(|m| m.len()).unwrap_or(0);
+            } else if p.is_dir() {
+                total += dir_size(&p);
+            }
+        }
+    }
+    total
+}
+
+fn format_bytes(bytes: u64) -> String {
+    if bytes < 1024 { return format!("{} B", bytes); }
+    if bytes < 1024 * 1024 { return format!("{:.1} KB", bytes as f64 / 1024.0); }
+    if bytes < 1024 * 1024 * 1024 { return format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0)); }
+    format!("{:.2} GB", bytes as f64 / (1024.0 * 1024.0 * 1024.0))
 }
 
 // --- Microsoft/Minecraft Auth ---
@@ -388,6 +610,8 @@ pub fn run() {
             launch_game,
             get_instances,
             delete_instance,
+            clear_all_instances,
+            get_storage_info,
             mc_auth_start_device_flow,
             mc_auth_poll,
             mc_auth_status,
