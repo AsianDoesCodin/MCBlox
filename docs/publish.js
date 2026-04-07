@@ -87,12 +87,22 @@ let loaderVersionCache = {};
 async function fetchWithCorsProxy(url) {
   try {
     const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     return await resp.json();
   } catch {
-    // CORS blocked — use proxy
-    const proxied = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-    const resp = await fetch(proxied);
-    return await resp.json();
+    // CORS blocked — try proxies in order
+    const proxies = [
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+      `https://corsproxy.io/?${encodeURIComponent(url)}`
+    ];
+    for (const proxied of proxies) {
+      try {
+        const resp = await fetch(proxied);
+        if (!resp.ok) continue;
+        return await resp.json();
+      } catch { continue; }
+    }
+    throw new Error('All CORS proxies failed');
   }
 }
 
@@ -171,18 +181,37 @@ function populateLoaderVersions(versions) {
   });
 }
 
-mcVersionSelect.addEventListener('change', fetchLoaderVersions);
-modLoaderSelect.addEventListener('change', fetchLoaderVersions);
+mcVersionSelect.addEventListener('change', () => { fetchLoaderVersions(); updateAutoJoinVisibility(); });
+modLoaderSelect.addEventListener('change', () => { fetchLoaderVersions(); updateAutoJoinVisibility(); });
 
 // --- Game type toggle ---
 const gameTypeSelect = document.getElementById('game-type');
 const serverField = document.getElementById('server-field');
 const worldField = document.getElementById('world-field');
+const autoJoinRow = document.getElementById('auto-join-row');
+
+// Check if MC version supports the auto-join mod (1.12+)
+function isMcVersionSupported(mc) {
+  if (!mc) return false;
+  const parts = mc.split('.').map(Number);
+  if (parts.length < 2) return false;
+  // 1.12+ is supported
+  return parts[0] >= 1 && parts[1] >= 12;
+}
+
+function updateAutoJoinVisibility() {
+  const mc = mcVersionSelect.value;
+  const type = gameTypeSelect.value;
+  const supported = isMcVersionSupported(mc) && (type === 'server' || type === 'world');
+  autoJoinRow.style.display = supported ? '' : 'none';
+  if (!supported) document.getElementById('auto-join').checked = false;
+}
 
 gameTypeSelect.addEventListener('change', () => {
   const v = gameTypeSelect.value;
   serverField.style.display = v === 'server' ? '' : 'none';
   worldField.style.display = v === 'world' ? '' : 'none';
+  updateAutoJoinVisibility();
 });
 
 // --- Image crop tool ---
@@ -378,6 +407,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     world_name: gameTypeSelect.value === 'world'
       ? document.getElementById('world-name').value.trim() || null
       : null,
+    auto_join: document.getElementById('auto-join').checked,
     status: 'pending_review',
     thumbs_up: 0,
     thumbs_down: 0,

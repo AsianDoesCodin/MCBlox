@@ -115,7 +115,26 @@ const editUnlist = document.getElementById('edit-unlist');
 const editGameType = document.getElementById('edit-game-type');
 const editServerField = document.getElementById('edit-server-field');
 const editWorldField = document.getElementById('edit-world-field');
+const editAutoJoinRow = document.querySelector('.edit-toggle-row');
 const editTagPicker = document.getElementById('edit-tag-picker');
+
+// Check if MC version supports the auto-join mod (1.12+)
+function isMcVersionSupported(mc) {
+  if (!mc) return false;
+  const parts = mc.split('.').map(Number);
+  if (parts.length < 2) return false;
+  return parts[0] >= 1 && parts[1] >= 12;
+}
+
+function updateEditAutoJoinVisibility() {
+  const mc = editMcVersionSelect ? editMcVersionSelect.value : '';
+  const type = editGameType.value;
+  const supported = isMcVersionSupported(mc) && (type === 'server' || type === 'world');
+  if (editAutoJoinRow) {
+    editAutoJoinRow.style.display = supported ? '' : 'none';
+    if (!supported) document.getElementById('edit-auto-join').checked = false;
+  }
+}
 
 let editingGame = null;
 let editSelectedTags = new Set();
@@ -198,6 +217,7 @@ editGameType.addEventListener('change', () => {
   const v = editGameType.value;
   editServerField.style.display = v === 'server' ? '' : 'none';
   editWorldField.style.display = v === 'world' ? '' : 'none';
+  updateEditAutoJoinVisibility();
 });
 
 // --- Edit MC Version + Loader Version comboboxes ---
@@ -231,11 +251,22 @@ async function fetchEditMcVersions(preselect) {
 async function fetchWithCorsProxy(url) {
   try {
     const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     return await resp.json();
   } catch {
-    const proxied = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-    const resp = await fetch(proxied);
-    return await resp.json();
+    // CORS blocked — try proxies in order
+    const proxies = [
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+      `https://corsproxy.io/?${encodeURIComponent(url)}`
+    ];
+    for (const proxied of proxies) {
+      try {
+        const resp = await fetch(proxied);
+        if (!resp.ok) continue;
+        return await resp.json();
+      } catch { continue; }
+    }
+    throw new Error('All CORS proxies failed');
   }
 }
 
@@ -310,7 +341,7 @@ function populateEditLoaderVersions(versions, preselect) {
   }
 }
 
-editMcVersionSelect.addEventListener('change', () => fetchEditLoaderVersions());
+editMcVersionSelect.addEventListener('change', () => { fetchEditLoaderVersions(); updateEditAutoJoinVisibility(); });
 editModLoaderSelect.addEventListener('change', () => fetchEditLoaderVersions());
 
 function renderEditTags() {
@@ -367,6 +398,9 @@ function openEditModal(game) {
   editWorldField.style.display = game.game_type === 'world' ? '' : 'none';
 
   document.getElementById('edit-auto-join').checked = !!game.auto_join;
+  // Show auto-join toggle only for supported versions
+  const autoJoinSupported = isMcVersionSupported(game.mc_version) && (game.game_type === 'server' || game.game_type === 'world');
+  if (editAutoJoinRow) editAutoJoinRow.style.display = autoJoinSupported ? '' : 'none';
 
   editSelectedTags = new Set(game.tags || []);
   renderEditTags();
