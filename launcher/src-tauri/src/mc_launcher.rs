@@ -63,6 +63,7 @@ pub struct Library {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LibDownloads {
     pub artifact: Option<LibArtifact>,
+    pub classifiers: Option<std::collections::HashMap<String, LibArtifact>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -180,6 +181,19 @@ pub async fn download_libraries(
                     download_file(client, &artifact.url, &lib_path).await?;
                 }
                 paths.push(lib_path);
+            }
+            // Download native classifier JARs (MC 1.12 and earlier)
+            if let Some(ref classifiers) = downloads.classifiers {
+                let native_classifier = if cfg!(windows) { "natives-windows" }
+                    else if cfg!(target_os = "macos") { "natives-macos" }
+                    else { "natives-linux" };
+                if let Some(native_artifact) = classifiers.get(native_classifier) {
+                    let lib_path = libraries_dir.join(&native_artifact.path);
+                    if !lib_path.exists() {
+                        download_file(client, &native_artifact.url, &lib_path).await?;
+                    }
+                    paths.push(lib_path);
+                }
             }
         } else if let Some(ref url_base) = lib.url {
             // Maven-style URL resolution
@@ -667,52 +681,59 @@ pub fn extract_natives(
     libraries_dir: &Path,
     natives_dir: &Path,
 ) -> Result<(), String> {
+    // Clear old natives to avoid cross-version contamination
+    if natives_dir.exists() {
+        std::fs::remove_dir_all(natives_dir).ok();
+    }
     std::fs::create_dir_all(natives_dir).map_err(|e| e.to_string())?;
+    
+    let native_classifier = if cfg!(windows) { "natives-windows" }
+        else if cfg!(target_os = "macos") { "natives-macos" }
+        else { "natives-linux" };
     
     for lib in &version_json.libraries {
         if !should_use_library(lib) {
             continue;
         }
         
-        // Check if this library has native classifiers
-        let name = &lib.name;
-        let has_natives = name.contains("natives") || name.contains("lwjgl");
-        
         if let Some(ref downloads) = lib.downloads {
+            // Check for native classifiers first (MC 1.12 style)
+            if let Some(ref classifiers) = downloads.classifiers {
+                if let Some(ref native_artifact) = classifiers.get(native_classifier) {
+                    let lib_path = libraries_dir.join(&native_artifact.path);
+                    if lib_path.exists() {
+                        println!("[McBlox]   Extracting natives from classifier: {:?}", lib_path.file_name());
+                        extract_dlls_from_jar(&lib_path, natives_dir).ok();
+                    }
+                }
+            }
+            
+            // Check if the main artifact itself is a natives jar (MC 1.13+ style)
             if let Some(ref artifact) = downloads.artifact {
-                let lib_path = libraries_dir.join(&artifact.path);
-                if lib_path.exists() && has_natives {
+                if artifact.path.contains(native_classifier) {
+                    let lib_path = libraries_dir.join(&artifact.path);
+                    if lib_path.exists() {
+                        println!("[McBlox]   Extracting natives from artifact: {:?}", lib_path.file_name());
+                        extract_dlls_from_jar(&lib_path, natives_dir).ok();
+                    }
+                }
+            }
+        } else {
+            // No downloads section — try maven-style path with natives classifier
+            let name = &lib.name;
+            if name.contains("natives") {
+                let artifact_path = maven_to_path(name);
+                let lib_path = libraries_dir.join(&artifact_path);
+                if lib_path.exists() {
+                    println!("[McBlox]   Extracting natives from maven path: {:?}", lib_path.file_name());
                     extract_dlls_from_jar(&lib_path, natives_dir).ok();
                 }
             }
         }
     }
     
-    // Also look for natives JARs with platform-specific names
-    let native_suffix = if cfg!(windows) { "natives-windows" }
-        else if cfg!(target_os = "macos") { "natives-macos" }
-        else { "natives-linux" };
-    
-    // Walk the libraries dir and find any JAR with natives in the name
-    find_and_extract_natives(libraries_dir, natives_dir, native_suffix);
-    
     println!("[McBlox] Natives extracted to {:?}", natives_dir);
     Ok(())
-}
-
-fn find_and_extract_natives(dir: &Path, natives_dir: &Path, suffix: &str) {
-    if let Ok(entries) = std::fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                find_and_extract_natives(&path, natives_dir, suffix);
-            } else if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                if name.ends_with(".jar") && name.contains(suffix) {
-                    extract_dlls_from_jar(&path, natives_dir).ok();
-                }
-            }
-        }
-    }
 }
 
 fn extract_dlls_from_jar(jar_path: &Path, natives_dir: &Path) -> Result<(), String> {

@@ -3,7 +3,7 @@ import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
 import Settings from "./pages/Settings";
 
-const CURRENT_VERSION = "0.2.1";
+const CURRENT_VERSION = "0.2.2";
 const GITHUB_RELEASES_URL = "https://api.github.com/repos/AsianDoesCodin/MCBlox/releases/latest";
 
 type Page = "home" | "settings";
