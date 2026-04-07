@@ -26,6 +26,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": {
+      "resources/mods/mcblox-mod-forge.jar": "mods/mcblox-mod-forge.jar",
+      "resources/mods/mcblox-mod-fabric.jar": "mods/mcblox-mod-fabric.jar"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -101,6 +101,8 @@ export default function Home() {
         loader_version: game.loader_version || null,
         game_type: game.game_type || "server",
         server_address: game.server_address || null,
+        world_name: game.world_name || null,
+        auto_join: game.auto_join || false,
       }
     });
     // Increment total_plays

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "mcblox",
+  "version": "${version}",
+  "name": "McBlox",
+  "description": "McBlox auto-join and exit mod",
+  "authors": ["McBlox"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.mcblox.mod.McBloxModClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1"
+  },
+  "mixins": [
+    "mcblox.mixins.json"
+  ],
+  "accessWidener": "mcblox.accesswidener"
+}

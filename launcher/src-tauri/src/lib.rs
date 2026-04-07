@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::Command;
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 mod instance;
 mod mc_auth;
@@ -31,6 +31,8 @@ pub struct LaunchRequest {
     pub loader_version: Option<String>,
     pub game_type: String,
     pub server_address: Option<String>,
+    pub world_name: Option<String>,
+    pub auto_join: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -275,6 +277,44 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
         println!("[McBlox] Modpack already extracted");
     }
 
+    // Inject McBlox auto-join mod if enabled
+    if request.auto_join.unwrap_or(false) {
+        let mods_dir = instance_dir.join("mods");
+        std::fs::create_dir_all(&mods_dir).ok();
+        
+        // Write mcblox_config.json
+        let config = serde_json::json!({
+            "game_type": request.game_type,
+            "server_address": request.server_address,
+            "world_name": request.world_name,
+        });
+        let config_path = instance_dir.join("mcblox_config.json");
+        std::fs::write(&config_path, serde_json::to_string_pretty(&config).unwrap())
+            .map_err(|e| format!("Failed to write mcblox config: {}", e))?;
+        emit("setup", "Injecting McBlox auto-join mod...", 0.22);
+        println!("[McBlox] Wrote mcblox_config.json");
+
+        // Copy the appropriate mod JAR from bundled resources
+        let mod_jar_name = match request.mod_loader.as_str() {
+            "forge" | "neoforge" => "mcblox-mod-forge.jar",
+            _ => "mcblox-mod-fabric.jar",
+        };
+        let target_jar = mods_dir.join("mcblox-mod.jar");
+        
+        // Try to find bundled mod JAR in resource dir
+        let resource_dir = app_handle.path().resource_dir()
+            .map_err(|e| format!("Failed to get resource dir: {}", e))?;
+        let source_jar = resource_dir.join("mods").join(mod_jar_name);
+        
+        if source_jar.exists() {
+            std::fs::copy(&source_jar, &target_jar)
+                .map_err(|e| format!("Failed to copy mcblox mod: {}", e))?;
+            println!("[McBlox] Injected {} into instance mods", mod_jar_name);
+        } else {
+            println!("[McBlox] WARNING: McBlox mod JAR not found at {:?}", source_jar);
+        }
+    }
+
     // Get MC version JSON from Mojang
     emit("minecraft", "Fetching Minecraft version info...", 0.3);
     println!("[McBlox] Fetching MC {} version manifest...", request.mc_version);
@@ -328,6 +368,12 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     println!("[McBlox] Java: {}", java);
 
     // Build launch args
+    // If auto_join is on, don't pass --server since the mod handles it
+    let server_for_args = if request.auto_join.unwrap_or(false) {
+        None
+    } else {
+        request.server_address.as_deref()
+    };
     let args = mc_launcher::build_launch_args(
         &version_json,
         &main_class,
@@ -339,7 +385,7 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
         &account.username,
         &account.uuid,
         &account.access_token,
-        request.server_address.as_deref(),
+        server_for_args,
         &loader_jvm_args,
         &loader_game_args,
         "2G",

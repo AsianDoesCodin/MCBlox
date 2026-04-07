@@ -366,6 +366,8 @@ function openEditModal(game) {
   editServerField.style.display = game.game_type === 'server' ? '' : 'none';
   editWorldField.style.display = game.game_type === 'world' ? '' : 'none';
 
+  document.getElementById('edit-auto-join').checked = !!game.auto_join;
+
   editSelectedTags = new Set(game.tags || []);
   renderEditTags();
 
@@ -402,6 +404,7 @@ editForm.addEventListener('submit', async (e) => {
     game_type: document.getElementById('edit-game-type').value,
     server_address: document.getElementById('edit-server-address').value.trim() || null,
     world_name: document.getElementById('edit-world-name').value.trim() || null,
+    auto_join: document.getElementById('edit-auto-join').checked,
   };
 
   try {

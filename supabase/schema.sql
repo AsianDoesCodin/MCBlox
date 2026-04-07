@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS games (
   total_plays INT DEFAULT 0,
   player_count INT DEFAULT 0,
   is_promoted BOOLEAN DEFAULT FALSE,
+  auto_join BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

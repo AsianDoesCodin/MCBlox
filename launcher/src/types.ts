@@ -16,6 +16,7 @@ export interface Game {
   total_plays: number;
   player_count?: number;
   is_promoted: boolean;
+  auto_join: boolean;
   status: string;
   created_at: string;
 }
