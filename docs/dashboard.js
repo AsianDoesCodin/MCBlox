@@ -200,6 +200,84 @@ editGameType.addEventListener('change', () => {
   editWorldField.style.display = v === 'world' ? '' : 'none';
 });
 
+// --- Edit Loader Version combobox ---
+const editMcVersionInput = document.getElementById('edit-mc-version');
+const editModLoaderSelect = document.getElementById('edit-mod-loader');
+const editLoaderVersionSelect = document.getElementById('edit-loader-version');
+let editLoaderCache = {};
+
+async function fetchEditLoaderVersions(preselectVersion) {
+  const mc = editMcVersionInput.value.trim();
+  const loader = editModLoaderSelect.value;
+  if (!mc || !loader) {
+    editLoaderVersionSelect.innerHTML = '<option value="">Select MC version & mod loader first</option>';
+    return;
+  }
+  const cacheKey = `${loader}-${mc}`;
+  if (editLoaderCache[cacheKey]) {
+    populateEditLoaderVersions(editLoaderCache[cacheKey], preselectVersion);
+    return;
+  }
+  editLoaderVersionSelect.innerHTML = '<option value="">Loading versions...</option>';
+  try {
+    let versions = [];
+    if (loader === 'forge') {
+      try {
+        const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json');
+        const data = await resp.json();
+        const mcVersions = Object.keys(data).filter(v => v.startsWith(mc + '-'));
+        versions = mcVersions.map(v => v.replace(mc + '-', '')).reverse();
+      } catch {
+        const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
+        const data = await resp.json();
+        const promos = data.promos || {};
+        const rec = promos[`${mc}-recommended`];
+        const lat = promos[`${mc}-latest`];
+        if (rec) versions.push(rec);
+        if (lat && lat !== rec) versions.push(lat);
+      }
+    } else if (loader === 'fabric') {
+      const resp = await fetch(`https://meta.fabricmc.net/v2/versions/loader/${mc}`);
+      const data = await resp.json();
+      versions = data.map(v => v.loader?.version).filter(Boolean);
+    } else if (loader === 'neoforge') {
+      const resp = await fetch('https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge');
+      const data = await resp.json();
+      const all = data.versions || [];
+      const parts = mc.split('.');
+      const prefix = parts.length >= 2 ? `${parts[1]}.${parts[2] || '0'}` : mc;
+      versions = all.filter(v => v.startsWith(prefix)).reverse();
+    }
+    editLoaderCache[cacheKey] = versions;
+    populateEditLoaderVersions(versions, preselectVersion);
+  } catch (e) {
+    console.error('Failed to fetch loader versions:', e);
+    editLoaderVersionSelect.innerHTML = '<option value="">Could not load versions</option>';
+  }
+}
+
+function populateEditLoaderVersions(versions, preselect) {
+  editLoaderVersionSelect.innerHTML = '<option value="">Select version</option>';
+  versions.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = i === 0 ? `${v} (latest)` : v;
+    if (preselect && v === preselect) opt.selected = true;
+    editLoaderVersionSelect.appendChild(opt);
+  });
+  // If preselect not in list, add it as custom option
+  if (preselect && !versions.includes(preselect)) {
+    const opt = document.createElement('option');
+    opt.value = preselect;
+    opt.textContent = `${preselect} (current)`;
+    opt.selected = true;
+    editLoaderVersionSelect.prepend(opt);
+  }
+}
+
+editMcVersionInput.addEventListener('change', () => fetchEditLoaderVersions());
+editModLoaderSelect.addEventListener('change', () => fetchEditLoaderVersions());
+
 function renderEditTags() {
   editTagPicker.innerHTML = '';
   TAGS.forEach(tag => {
@@ -228,7 +306,8 @@ function openEditModal(game) {
   document.getElementById('edit-modpack-url').value = game.modpack_url;
   document.getElementById('edit-mc-version').value = game.mc_version;
   document.getElementById('edit-mod-loader').value = game.mod_loader;
-  document.getElementById('edit-loader-version').value = game.loader_version || '';
+  // Fetch and populate loader versions, preselecting the current one
+  fetchEditLoaderVersions(game.loader_version || undefined);
   document.getElementById('edit-game-type').value = game.game_type;
   document.getElementById('edit-server-address').value = game.server_address || '';
   document.getElementById('edit-world-name').value = game.world_name || '';

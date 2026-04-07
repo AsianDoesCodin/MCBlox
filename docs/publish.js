@@ -56,6 +56,95 @@ function renderTags() {
 }
 renderTags();
 
+// --- Loader version combobox ---
+const mcVersionInput = document.getElementById('mc-version');
+const modLoaderSelect = document.getElementById('mod-loader');
+const loaderVersionSelect = document.getElementById('loader-version');
+let loaderVersionCache = {};
+
+async function fetchLoaderVersions() {
+  const mc = mcVersionInput.value.trim();
+  const loader = modLoaderSelect.value;
+  if (!mc || !loader) {
+    loaderVersionSelect.innerHTML = '<option value="">Select MC version & mod loader first</option>';
+    return;
+  }
+
+  const cacheKey = `${loader}-${mc}`;
+  if (loaderVersionCache[cacheKey]) {
+    populateLoaderVersions(loaderVersionCache[cacheKey]);
+    return;
+  }
+
+  loaderVersionSelect.innerHTML = '<option value="">Loading versions...</option>';
+
+  try {
+    let versions = [];
+    if (loader === 'forge') {
+      const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
+      const data = await resp.json();
+      const promos = data.promos || {};
+      // Get recommended and latest
+      const rec = promos[`${mc}-recommended`];
+      const lat = promos[`${mc}-latest`];
+      // Also try fetching all versions for this MC version from Maven
+      try {
+        const mavenResp = await fetch(`https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json`);
+        const mavenData = await mavenResp.json();
+        const mcVersions = Object.keys(mavenData).filter(v => v.startsWith(mc + '-'));
+        versions = mcVersions.map(v => v.replace(mc + '-', '')).reverse();
+      } catch {
+        if (rec) versions.push(rec);
+        if (lat && lat !== rec) versions.push(lat);
+      }
+      if (versions.length === 0) {
+        if (rec) versions.push(rec);
+        if (lat && lat !== rec) versions.push(lat);
+      }
+    } else if (loader === 'fabric') {
+      const resp = await fetch(`https://meta.fabricmc.net/v2/versions/loader/${mc}`);
+      const data = await resp.json();
+      versions = data.map(v => v.loader?.version).filter(Boolean);
+    } else if (loader === 'neoforge') {
+      const resp = await fetch('https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge');
+      const data = await resp.json();
+      const all = data.versions || [];
+      // Filter to MC version: 1.21.1 → prefix "21.1"
+      const parts = mc.split('.');
+      const prefix = parts.length >= 2 ? `${parts[1]}.${parts[2] || '0'}` : mc;
+      versions = all.filter(v => v.startsWith(prefix)).reverse();
+    }
+
+    loaderVersionCache[cacheKey] = versions;
+    populateLoaderVersions(versions);
+  } catch (e) {
+    console.error('Failed to fetch loader versions:', e);
+    loaderVersionSelect.innerHTML = '<option value="">Could not load versions — type manually below</option>';
+    // Allow manual input fallback
+    loaderVersionSelect.insertAdjacentHTML('afterend',
+      '<input type="text" id="loader-version-manual" placeholder="Type version manually" style="margin-top:4px;display:none">');
+  }
+}
+
+function populateLoaderVersions(versions) {
+  if (versions.length === 0) {
+    loaderVersionSelect.innerHTML = '<option value="">No versions found for this MC version</option>';
+    return;
+  }
+  loaderVersionSelect.innerHTML = '<option value="">Select version</option>';
+  // Mark first as recommended
+  versions.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = i === 0 ? `${v} (latest)` : v;
+    loaderVersionSelect.appendChild(opt);
+  });
+}
+
+mcVersionInput.addEventListener('change', fetchLoaderVersions);
+mcVersionInput.addEventListener('blur', fetchLoaderVersions);
+modLoaderSelect.addEventListener('change', fetchLoaderVersions);
+
 // --- Game type toggle ---
 const gameTypeSelect = document.getElementById('game-type');
 const serverField = document.getElementById('server-field');
