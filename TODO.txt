@@ -50,4 +50,4 @@ BUILD & RELEASE:
 REPO INFO:
 - GitHub: https://github.com/AsianDoesCodin/MCBlox
 - Supabase: https://ldipundnojizgnykqvdd.supabase.co
-- Website: https://asiandoescodin.github.io/MCBlox/
+- Website: https://www.mcblox.online/

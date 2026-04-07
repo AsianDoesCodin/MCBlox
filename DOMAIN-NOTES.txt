@@ -1,0 +1,33 @@
+Domain Migration Notes (www.mcblox.online)
+============================================
+
+DONE:
+- CNAME file in docs/ already has "www.mcblox.online"
+- Supabase auth redirect URLs updated (you mentioned this)
+- No hardcoded old URLs found in website JS/HTML (supabase-client.js uses current origin automatically)
+- No hardcoded URLs in the launcher code
+
+MIGHT NEED CHECKING:
+1. Supabase Dashboard -> Authentication -> URL Configuration
+   - Make sure "Site URL" is set to https://www.mcblox.online
+   - Make sure "Redirect URLs" includes https://www.mcblox.online/**
+   
+2. GitHub repo settings -> Pages
+   - Custom domain should be "www.mcblox.online"
+   - "Enforce HTTPS" should be checked
+   
+3. DNS records (wherever your domain is registered):
+   - CNAME record: www -> asiandoescodin.github.io
+   - If you want bare domain (mcblox.online without www):
+     - A records pointing to GitHub Pages IPs:
+       185.199.108.153
+       185.199.109.153
+       185.199.110.153
+       185.199.111.153
+
+4. TODO.txt still references the old GitHub Pages URL on line 53 - minor
+
+5. toast.js has a null error on page load:
+   "TypeError: Cannot read properties of null (reading 'appendChild')"
+   This happens because toast.js tries to create the toast container before
+   the DOM element it targets exists. It's a minor issue but worth fixing.
