@@ -5,16 +5,16 @@
 }
 
 :root {
-  --bg: #2b2b2b;
-  --surface: #3a3a3a;
-  --card: #484848;
-  --border: #555555;
-  --text: #e8e8e8;
-  --text-dim: #a0a0a0;
-  --accent: #5b8731;
-  --accent-hover: #6b9b3a;
-  --green: #55ff55;
-  --gold: #ffaa00;
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --card: #1a2235;
+  --border: #1e3a5f;
+  --text: #e8eaf0;
+  --text-dim: #64748b;
+  --accent: #00e676;
+  --accent-hover: #33ff99;
+  --green: #00e676;
+  --gold: #ffd740;
   --radius: 4px;
 }
 
@@ -22,9 +22,10 @@
 
 body {
   background: var(--bg);
-  background-image: 
-    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.08) 31px, rgba(0,0,0,0.08) 32px),
-    repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(0,0,0,0.08) 31px, rgba(0,0,0,0.08) 32px);
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(30, 0, 80, 0.3) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(0, 40, 80, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(20, 0, 60, 0.2) 0%, transparent 50%);
   color: var(--text);
   font-family: 'Segoe UI', -apple-system, sans-serif;
   min-height: 100vh;
@@ -37,11 +38,12 @@ nav {
   justify-content: space-between;
   padding: 0 24px;
   height: 56px;
-  background: #1a1a1a;
-  border-bottom: 3px solid #5b8731;
+  background: #060a14;
+  border-bottom: 3px solid #00e676;
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 3px 15px rgba(0, 230, 118, 0.1);
 }
 
 .logo {
@@ -119,7 +121,7 @@ nav {
 .hero {
   text-align: center;
   padding: 100px 24px 80px;
-  background: linear-gradient(180deg, #1a1a1a 0%, var(--bg) 100%);
+  background: linear-gradient(180deg, #060a14 0%, var(--bg) 100%);
 }
 
 .hero h1 {
@@ -189,8 +191,8 @@ footer {
   padding: 24px;
   font-size: 12px;
   color: var(--text-dim);
-  border-top: 3px solid #5b8731;
-  background: #1a1a1a;
+  border-bottom: 3px solid #00e676;
+  background: #060a14;
 }
 
 /* Games page */
@@ -220,7 +222,7 @@ footer {
 .search-input {
   flex: 1;
   padding: 8px 14px;
-  background: #1a1a1a;
+  background: #060a14;
   border: 2px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
@@ -234,7 +236,7 @@ footer {
 
 .filter-select {
   padding: 8px 14px;
-  background: #1a1a1a;
+  background: #060a14;
   border: 2px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
@@ -265,7 +267,7 @@ footer {
   top: calc(100% + 8px);
   width: 360px;
   padding: 12px;
-  background: #1a1a1a;
+  background: #060a14;
   border: 2px solid var(--accent);
   border-radius: var(--radius);
   border-bottom: 4px solid rgba(0,0,0,0.3);
@@ -344,7 +346,7 @@ footer {
 .game-thumb {
   width: 100%;
   aspect-ratio: 16/9;
-  background: linear-gradient(135deg, #3a5f1e 0%, #2d4a17 50%, #1e3310 100%);
+  background: linear-gradient(135deg, #0a1628 0%, #0f1f3a 50%, #061020 100%);
   display: flex;
   align-items: center;
   justify-content: center;

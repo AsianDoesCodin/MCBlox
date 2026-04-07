@@ -72,7 +72,7 @@ function App() {
     <ToastProvider>
     <div className="flex h-screen flex-col">
       {updateAvailable && (
-        <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#5b8731] text-white text-sm shrink-0">
+        <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#00e676] text-black text-sm shrink-0">
           {updating ? (
             <span>{updateProgress}</span>
           ) : (
@@ -80,13 +80,13 @@ function App() {
               <span>McBlox v{updateAvailable.version} is available!</span>
               <button
                 onClick={installUpdate}
-                className="px-3 py-1 bg-white/20 rounded hover:bg-white/30 font-semibold cursor-pointer border-none text-white"
+                className="px-3 py-1 bg-black/20 rounded hover:bg-black/30 font-semibold cursor-pointer border-none text-black"
               >
                 Install Update
               </button>
               <button
                 onClick={() => setUpdateAvailable(null)}
-                className="ml-2 opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-none text-white"
+                className="ml-2 opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-none text-black"
               >✕</button>
             </>
           )}

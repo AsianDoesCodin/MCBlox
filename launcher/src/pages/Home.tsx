@@ -154,15 +154,15 @@ export default function Home() {
   return (
     <div className="h-full flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-[#1a1a1a] border-b-[3px] border-[#5b8731] shrink-0 flex-nowrap">
+      <div className="flex items-center gap-3 px-6 py-3 bg-[#060a14] border-b-[3px] border-[#00e676] shrink-0 flex-nowrap" style={{boxShadow: '0 3px 15px rgba(0, 230, 118, 0.1)'}}>
         <div className="relative max-w-[400px] flex-1 min-w-[180px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080] text-sm">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b] text-sm">🔍</span>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search games..."
-            className="w-full pl-9 pr-4 py-2 bg-[#2b2b2b] border-2 border-[#555] rounded text-sm text-white outline-none focus:border-[#5b8731] placeholder:text-[#808080]"
+            className="w-full pl-9 pr-4 py-2 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-sm text-white outline-none focus:border-[#00e676] placeholder:text-[#64748b]"
             style={{fontFamily: "'Silkscreen', monospace"}}
           />
         </div>
@@ -170,7 +170,7 @@ export default function Home() {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="px-4 py-2 bg-[#2b2b2b] border-2 border-[#555] rounded text-xs text-[#b0b0b0] outline-none cursor-pointer hover:border-[#5b8731] shrink-0"
+          className="px-4 py-2 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-[#94a3b8] outline-none cursor-pointer hover:border-[#00e676] shrink-0"
           style={{fontFamily: "'Silkscreen', monospace"}}
         >
           <option value="popular">Most Popular</option>
@@ -183,8 +183,8 @@ export default function Home() {
             onClick={() => setShowTags(!showTags)}
             className={`px-4 py-2 rounded text-xs font-medium cursor-pointer transition-all border-2 ${
               activeTags.size > 0
-                ? 'bg-[#5b8731] border-[#5b8731] text-white'
-                : 'bg-[#2b2b2b] border-[#555] text-[#b0b0b0] hover:border-[#5b8731]'
+                ? 'bg-[#00e676] border-[#00e676] text-black'
+                : 'bg-[#0a0e1a] border-[#1e3a5f] text-[#94a3b8] hover:border-[#00e676]'
             }`}
             style={{fontFamily: "'Silkscreen', monospace"}}
           >
@@ -193,7 +193,7 @@ export default function Home() {
           {showTags && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowTags(false)} />
-              <div className="absolute right-0 top-full mt-2 z-50 w-[320px] p-3 bg-[#2b2b2b] border-2 border-[#5b8731] rounded shadow-xl" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+              <div className="absolute right-0 top-full mt-2 z-50 w-[320px] p-3 bg-[#111827] border-2 border-[#00e676] rounded shadow-xl" style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 15px rgba(0, 230, 118, 0.15)'}}>
                 <div className="flex flex-wrap gap-1.5">
                   {TAGS.map(tag => (
                     <button
@@ -201,8 +201,8 @@ export default function Home() {
                       onClick={() => toggleTag(tag)}
                       className={`px-2.5 py-1 rounded text-[11px] cursor-pointer transition-all border-2 ${
                         activeTags.has(tag.toLowerCase())
-                          ? 'bg-[#5b8731] border-[#5b8731] text-white font-bold'
-                          : 'bg-[#3a3a3a] border-[#555] text-[#808080] hover:border-[#5b8731] hover:text-white'
+                          ? 'bg-[#00e676] border-[#00e676] text-black font-bold'
+                          : 'bg-[#1a2235] border-[#1e3a5f] text-[#64748b] hover:border-[#00e676] hover:text-white'
                       }`}
                     >
                       {tag}
@@ -230,8 +230,8 @@ export default function Home() {
           <div className="px-6 pt-5 pb-2">
             <div
               onClick={() => setSelected(featured[0])}
-              className="relative h-[220px] rounded overflow-hidden cursor-pointer group border-2 border-[#555] hover:border-[#5b8731]"
-              style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}
+              className="relative h-[220px] rounded overflow-hidden cursor-pointer group border-2 border-[#1e3a5f] hover:border-[#00e676]"
+              style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: '0 0 20px rgba(0, 188, 212, 0.1)'}}
             >
               {featured[0].thumbnail_url ? (
                 <img src={featured[0].thumbnail_url} alt={featured[0].title} className="absolute inset-0 w-full h-full object-cover" />
@@ -242,18 +242,18 @@ export default function Home() {
               <div className="absolute inset-0 flex items-end p-6">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-[#ffaa00] rounded text-[10px] font-bold text-black uppercase" style={{fontFamily: "'Silkscreen', monospace"}}>★ Featured</span>
-                    <span className="flex items-center gap-1 text-xs text-[#b0b0b0]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#55ff55]" />
+                    <span className="px-2 py-0.5 bg-[#ffd740] rounded text-[10px] font-bold text-black uppercase" style={{fontFamily: "'Silkscreen', monospace"}}>★ Featured</span>
+                    <span className="flex items-center gap-1 text-xs text-[#94a3b8]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#00e676]" />
                       {featured[0].player_count || 0} playing
                     </span>
                   </div>
                   <h2 className="text-2xl font-bold mb-1" style={{fontFamily: "'Silkscreen', monospace", textShadow: '2px 2px 0 #000'}}>{featured[0].title}</h2>
-                  <p className="text-sm text-[#b0b0b0] line-clamp-2 max-w-lg">{featured[0].description}</p>
+                  <p className="text-sm text-[#94a3b8] line-clamp-2 max-w-lg">{featured[0].description}</p>
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); setSelected(featured[0]); }}
-                  className="px-8 py-3 bg-[#5b8731] hover:bg-[#6b9b3a] text-white font-bold rounded text-sm cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]"
+                  className="px-8 py-3 bg-[#00e676] hover:bg-[#33ff99] text-black font-bold rounded text-sm cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]"
                   style={{fontFamily: "'Silkscreen', monospace"}}
                 >
                   ▶ PLAY
@@ -266,7 +266,7 @@ export default function Home() {
         {/* Promoted row */}
         {!search && featured.length > 1 && (
           <div className="px-6 pt-4">
-            <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+            <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
               ★ Sponsored
             </h2>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
@@ -279,7 +279,7 @@ export default function Home() {
 
         {/* All games / search results */}
         <div className="px-6 pt-5 pb-8">
-          <h2 className="text-base font-bold mb-3" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+          <h2 className="text-base font-bold mb-3" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
             {search ? `Results for "${search}"` : "Popular Right Now"}
           </h2>
           {loading ? (
@@ -293,7 +293,7 @@ export default function Home() {
           ) : (
             <div className="text-center py-16">
               <span className="text-4xl mb-3 block">⛏</span>
-              <p className="text-[#808080]" style={{fontFamily: "'Silkscreen', monospace"}}>No games found</p>
+              <p className="text-[#64748b]" style={{fontFamily: "'Silkscreen', monospace"}}>No games found</p>
             </div>
           )}
         </div>

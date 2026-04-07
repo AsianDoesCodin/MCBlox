@@ -215,14 +215,14 @@ export default function Settings() {
   return (
     <div className="h-full flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-[#1a1a1a] border-b-[3px] border-[#5b8731] shrink-0">
-        <h1 className="text-base font-bold" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>Settings</h1>
+      <div className="flex items-center gap-3 px-6 py-3 bg-[#060a14] border-b-[3px] border-[#00e676] shrink-0" style={{boxShadow: '0 3px 15px rgba(0, 230, 118, 0.1)'}}>
+        <h1 className="text-base font-bold" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>Settings</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-2xl mx-auto space-y-5">
           {/* Minecraft Account */}
-          <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
             <div className="flex items-center gap-4">
               {mcAccount ? (
                 <>
@@ -234,49 +234,49 @@ export default function Settings() {
                   />
                   <div className="flex-1">
                     <h2 className="font-bold text-sm text-white">{mcAccount.username}</h2>
-                    <p className="text-xs text-[#55ff55] mt-0.5">Signed in</p>
+                    <p className="text-xs text-[#00e676] mt-0.5">Signed in</p>
                   </div>
                   <button
                     onClick={logoutMc}
-                    className="px-5 py-2 bg-[#5a1e1e] hover:bg-[#6a2222] border-2 border-[#7a2e2e] rounded text-sm font-medium cursor-pointer text-[#ff5555]"
+                    className="px-5 py-2 bg-[#1a0a0a] hover:bg-[#2a1111] border-2 border-[#7a2e2e] rounded text-sm font-medium cursor-pointer text-[#ff5555]"
                   >
                     Sign Out
                   </button>
                 </>
               ) : authState === "polling" && deviceCode ? (
                 <>
-                  <div className="w-11 h-11 rounded bg-[#484848] flex items-center justify-center text-xl shrink-0 animate-pulse">
+                  <div className="w-11 h-11 rounded bg-[#1a2235] flex items-center justify-center text-xl shrink-0 animate-pulse">
                     ⛏
                   </div>
                   <div className="flex-1">
                     <h2 className="font-bold text-sm">Enter this code:</h2>
-                    <p className="text-lg font-mono font-bold text-[#55ff55] mt-1 tracking-widest" style={{fontFamily: "'Silkscreen', monospace"}}>
+                    <p className="text-lg font-mono font-bold text-[#00e676] mt-1 tracking-widest" style={{fontFamily: "'Silkscreen', monospace"}}>
                       {deviceCode.user_code}
                     </p>
-                    <p className="text-xs text-[#808080] mt-1">
+                    <p className="text-xs text-[#64748b] mt-1">
                       at <a
                         href={deviceCode.verification_uri}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[#5b8731] underline hover:text-[#7bc040] cursor-pointer"
+                        className="text-[#00bcd4] underline hover:text-[#33e5ff] cursor-pointer"
                       >{deviceCode.verification_uri}</a>
                     </p>
                   </div>
-                  <div className="text-xs text-[#808080] animate-pulse">Waiting...</div>
+                  <div className="text-xs text-[#64748b] animate-pulse">Waiting...</div>
                 </>
               ) : (
                 <>
-                  <div className="w-11 h-11 rounded bg-[#484848] flex items-center justify-center text-xl shrink-0">
+                  <div className="w-11 h-11 rounded bg-[#1a2235] flex items-center justify-center text-xl shrink-0">
                     ⛏
                   </div>
                   <div className="flex-1">
                     <h2 className="font-bold text-sm">Minecraft Account</h2>
-                    <p className="text-xs text-[#808080] mt-0.5">Sign in with Microsoft to play online</p>
+                    <p className="text-xs text-[#64748b] mt-0.5">Sign in with Microsoft to play online</p>
                   </div>
                   <button
                     onClick={startMcAuth}
                     disabled={authState !== "idle"}
-                    className="px-5 py-2 bg-[#484848] hover:bg-[#525252] border-2 border-[#555] rounded text-sm font-medium cursor-pointer border-b-[3px] border-b-[rgba(0,0,0,0.3)]"
+                    className="px-5 py-2 bg-[#1a2235] hover:bg-[#1f2a40] border-2 border-[#1e3a5f] rounded text-sm font-medium cursor-pointer border-b-[3px] border-b-[rgba(0,0,0,0.3)]"
                   >
                     Sign in with Microsoft
                   </button>
@@ -287,24 +287,24 @@ export default function Settings() {
 
           {/* MC Auth Error */}
           {authError && (
-            <div className="bg-[#5a1e1e] border-2 border-[#7a2e2e] rounded p-3 text-sm text-[#ff5555]">
+            <div className="bg-[#1a0a0a] border-2 border-[#7a2e2e] rounded p-3 text-sm text-[#ff5555]">
               MC Auth Error: {authError}
             </div>
           )}
 
           {/* McBlox Account */}
-          <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
             <div className="flex items-center gap-4">
               <img src="/mcbloxlogo.png" alt="McBlox" className="w-11 h-11 rounded shrink-0" />
               {mcbloxUser ? (
                 <>
                   <div className="flex-1">
                     <h2 className="font-bold text-sm">{mcbloxUser.user_metadata?.username || mcbloxUser.email?.split("@")[0]}</h2>
-                    <p className="text-xs text-[#55ff55] mt-0.5">Signed in</p>
+                    <p className="text-xs text-[#00e676] mt-0.5">Signed in</p>
                   </div>
                   <button
                     onClick={mcbloxSignOut}
-                    className="px-5 py-2 bg-[#5a1e1e] hover:bg-[#6a2222] border-2 border-[#7a2e2e] rounded text-sm font-medium cursor-pointer text-[#ff5555]"
+                    className="px-5 py-2 bg-[#1a0a0a] hover:bg-[#2a1111] border-2 border-[#7a2e2e] rounded text-sm font-medium cursor-pointer text-[#ff5555]"
                   >
                     Sign Out
                   </button>
@@ -313,11 +313,11 @@ export default function Settings() {
                 <>
                   <div className="flex-1">
                     <h2 className="font-bold text-sm">McBlox Account</h2>
-                    <p className="text-xs text-[#808080] mt-0.5">Rate games and publish</p>
+                    <p className="text-xs text-[#64748b] mt-0.5">Rate games and publish</p>
                   </div>
                   <button
                     onClick={() => setShowAuthModal(true)}
-                    className="px-5 py-2 bg-[#5b8731] hover:bg-[#6b9b3a] rounded text-white text-sm font-semibold cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]"
+                    className="px-5 py-2 bg-[#00e676] hover:bg-[#33ff99] rounded text-black text-sm font-semibold cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]"
                     style={{fontFamily: "'Silkscreen', monospace"}}
                   >
                     Sign In
@@ -328,23 +328,23 @@ export default function Settings() {
           </div>
 
           {/* Performance */}
-          <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h2 className="font-bold text-sm mb-4 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+            <h2 className="font-bold text-sm mb-4 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
               ⚡ Performance
             </h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">Java Memory</p>
-                  <p className="text-xs text-[#808080]">Allocate RAM for Minecraft</p>
+                  <p className="text-xs text-[#64748b]">Allocate RAM for Minecraft</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select className="px-3 py-1.5 bg-[#2b2b2b] border-2 border-[#555] rounded text-xs text-white outline-none cursor-pointer">
+                  <select className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer">
                     <option>2 GB</option>
                     <option>4 GB</option>
                   </select>
-                  <span className="text-[#808080] text-xs">to</span>
-                  <select className="px-3 py-1.5 bg-[#2b2b2b] border-2 border-[#555] rounded text-xs text-white outline-none cursor-pointer">
+                  <span className="text-[#64748b] text-xs">to</span>
+                  <select className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer">
                     <option>4 GB</option>
                     <option>6 GB</option>
                     <option>8 GB</option>
@@ -357,30 +357,30 @@ export default function Settings() {
           </div>
 
           {/* Behavior */}
-          <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h2 className="font-bold text-sm mb-4 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+            <h2 className="font-bold text-sm mb-4 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
               🔧 Behavior
             </h2>
             <div className="space-y-3">
               <label className="flex items-center justify-between cursor-pointer">
                 <div>
                   <p className="text-sm font-medium">Auto-update games</p>
-                  <p className="text-xs text-[#808080]">Download updates when you click Play</p>
+                  <p className="text-xs text-[#64748b]">Download updates when you click Play</p>
                 </div>
                 <div className="relative">
                   <input type="checkbox" defaultChecked className="sr-only peer" />
-                  <div className="w-10 h-5 bg-[#484848] rounded peer-checked:bg-[#5b8731] transition-colors" />
+                  <div className="w-10 h-5 bg-[#1a2235] rounded peer-checked:bg-[#00e676] transition-colors" />
                   <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded peer-checked:translate-x-5 transition-transform" />
                 </div>
               </label>
               <label className="flex items-center justify-between cursor-pointer">
                 <div>
                   <p className="text-sm font-medium">Close launcher on play</p>
-                  <p className="text-xs text-[#808080]">Minimize McBlox when Minecraft opens</p>
+                  <p className="text-xs text-[#64748b]">Minimize McBlox when Minecraft opens</p>
                 </div>
                 <div className="relative">
                   <input type="checkbox" className="sr-only peer" />
-                  <div className="w-10 h-5 bg-[#484848] rounded peer-checked:bg-[#5b8731] transition-colors" />
+                  <div className="w-10 h-5 bg-[#1a2235] rounded peer-checked:bg-[#00e676] transition-colors" />
                   <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded peer-checked:translate-x-5 transition-transform" />
                 </div>
               </label>
@@ -388,45 +388,45 @@ export default function Settings() {
           </div>
 
           {/* Storage */}
-          <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+            <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
               📁 Storage
             </h2>
             {storageInfo && (
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#b0b0b0]">Game instances</span>
+                  <span className="text-[#94a3b8]">Game instances</span>
                   <span className="text-white font-medium">{formatBytes(storageInfo.instances)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#b0b0b0]">Libraries</span>
+                  <span className="text-[#94a3b8]">Libraries</span>
                   <span className="text-white font-medium">{formatBytes(storageInfo.libraries)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#b0b0b0]">Assets</span>
+                  <span className="text-[#94a3b8]">Assets</span>
                   <span className="text-white font-medium">{formatBytes(storageInfo.assets)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#b0b0b0]">Java runtime</span>
+                  <span className="text-[#94a3b8]">Java runtime</span>
                   <span className="text-white font-medium">{formatBytes(storageInfo.java)}</span>
                 </div>
-                <div className="flex justify-between text-xs border-t border-[#555] pt-2 mt-2">
-                  <span className="text-[#b0b0b0] font-bold">Total</span>
+                <div className="flex justify-between text-xs border-t border-[#1e3a5f] pt-2 mt-2">
+                  <span className="text-[#94a3b8] font-bold">Total</span>
                   <span className="text-white font-bold">{formatBytes(storageInfo.total)}</span>
                 </div>
               </div>
             )}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-[#b0b0b0]">{storageInfo?.path || "Loading..."}</p>
-                <p className="text-xs text-[#808080] mt-0.5">Game data location</p>
+                <p className="text-sm font-medium text-[#94a3b8]">{storageInfo?.path || "Loading..."}</p>
+                <p className="text-xs text-[#64748b] mt-0.5">Game data location</p>
               </div>
             </div>
             <div className="flex gap-2 mt-4">
               <button
                 onClick={clearCache}
                 disabled={clearing}
-                className="px-4 py-2 bg-[#5a1e1e] hover:bg-[#6a2222] border-2 border-[#7a2e2e] rounded text-xs font-medium cursor-pointer text-[#ff5555] disabled:opacity-50"
+                className="px-4 py-2 bg-[#1a0a0a] hover:bg-[#2a1111] border-2 border-[#7a2e2e] rounded text-xs font-medium cursor-pointer text-[#ff5555] disabled:opacity-50"
               >
                 {clearing ? "Clearing..." : "🗑 Clear Game Cache"}
               </button>
@@ -434,23 +434,23 @@ export default function Settings() {
           </div>
 
           {/* About */}
-          <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+            <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
               ℹ️ About
             </h2>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium" style={{fontFamily: "'Silkscreen', monospace"}}>McBlox v{__APP_VERSION__}</p>
-                <p className="text-xs text-[#808080] mt-0.5">Minecraft game launcher</p>
+                <p className="text-xs text-[#64748b] mt-0.5">Minecraft game launcher</p>
               </div>
               <div className="flex items-center gap-3">
                 {updateResult && (
-                  <span className="text-xs text-[#b0b0b0]">{updateResult}</span>
+                  <span className="text-xs text-[#94a3b8]">{updateResult}</span>
                 )}
                 <button
                   onClick={checkForUpdates}
                   disabled={checkingUpdate}
-                  className="px-4 py-2 bg-[#5b8731] hover:bg-[#6b9b3a] border-2 border-[#4a7028] rounded text-xs font-medium cursor-pointer text-white disabled:opacity-50"
+                  className="px-4 py-2 bg-[#00e676] hover:bg-[#33ff99] border-2 border-[rgba(0,0,0,0.2)] rounded text-xs font-medium cursor-pointer text-black disabled:opacity-50"
                   style={{fontFamily: "'Silkscreen', monospace"}}
                 >
                   {checkingUpdate ? "Checking..." : "🔄 Check for Updates"}
@@ -467,8 +467,8 @@ export default function Settings() {
           className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
           onClick={(e) => { if (e.target === e.currentTarget) setShowAuthModal(false); }}
         >
-          <div className="bg-[#2b2b2b] border-2 border-[#5b8731] rounded w-[380px] p-7" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h2 className="text-center text-lg font-bold mb-4" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+          <div className="bg-[#0a0e1a] border-2 border-[#00e676] rounded w-[380px] p-7" style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: '0 0 30px rgba(0, 230, 118, 0.15)'}}>
+            <h2 className="text-center text-lg font-bold mb-4" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
               {isSignUp ? "Sign Up" : "Sign In"}
             </h2>
             <form onSubmit={handleMcbloxAuth} className="space-y-3">
@@ -478,7 +478,7 @@ export default function Settings() {
                   value={authUsername}
                   onChange={(e) => setAuthUsername(e.target.value)}
                   placeholder="Username"
-                  className="w-full px-3 py-2 bg-[#3a3a3a] border-2 border-[#555] rounded text-sm text-white outline-none focus:border-[#5b8731]"
+                  className="w-full px-3 py-2 bg-[#111827] border-2 border-[#1e3a5f] rounded text-sm text-white outline-none focus:border-[#00e676]"
                 />
               )}
               <input
@@ -487,7 +487,7 @@ export default function Settings() {
                 onChange={(e) => setAuthEmail(e.target.value)}
                 placeholder="Email"
                 required
-                className="w-full px-3 py-2 bg-[#3a3a3a] border-2 border-[#555] rounded text-sm text-white outline-none focus:border-[#5b8731]"
+                className="w-full px-3 py-2 bg-[#111827] border-2 border-[#1e3a5f] rounded text-sm text-white outline-none focus:border-[#00e676]"
               />
               <input
                 type="password"
@@ -496,7 +496,7 @@ export default function Settings() {
                 placeholder="Password"
                 required
                 minLength={6}
-                className="w-full px-3 py-2 bg-[#3a3a3a] border-2 border-[#555] rounded text-sm text-white outline-none focus:border-[#5b8731]"
+                className="w-full px-3 py-2 bg-[#111827] border-2 border-[#1e3a5f] rounded text-sm text-white outline-none focus:border-[#00e676]"
               />
               {authModalError && (
                 <p className="text-[#ff5555] text-xs">{authModalError}</p>
@@ -504,17 +504,17 @@ export default function Settings() {
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full py-2.5 bg-[#5b8731] hover:bg-[#6b9b3a] border-2 border-[rgba(255,255,255,0.1)] rounded text-white font-bold text-sm cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 bg-[#00e676] hover:bg-[#33ff99] border-2 border-[rgba(0,0,0,0.1)] rounded text-black font-bold text-sm cursor-pointer disabled:opacity-50"
                 style={{fontFamily: "'Silkscreen', monospace", borderBottom: '4px solid rgba(0,0,0,0.3)'}}
               >
                 {authLoading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In"}
               </button>
             </form>
-            <p className="text-center text-xs text-[#808080] mt-3">
+            <p className="text-center text-xs text-[#64748b] mt-3">
               {isSignUp ? "Already have an account?" : "Don't have an account?"}
               <button
                 onClick={() => { setIsSignUp(!isSignUp); setAuthModalError(""); }}
-                className="text-[#5b8731] font-semibold ml-1 cursor-pointer bg-transparent border-none"
+                className="text-[#00bcd4] font-semibold ml-1 cursor-pointer bg-transparent border-none"
               >
                 {isSignUp ? "Sign In" : "Sign Up"}
               </button>

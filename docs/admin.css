@@ -29,9 +29,9 @@
   font-family: 'Silkscreen', monospace;
 }
 
-.stat-badge.pending { background: #5a4a1e; color: #ffaa00; }
-.stat-badge.approved { background: #2d5a1e; color: #55ff55; }
-.stat-badge.rejected { background: #5a1e1e; color: #ff5555; }
+.stat-badge.pending { background: #1a1500; color: #ffd740; }
+.stat-badge.approved { background: #0a2618; color: #00e676; }
+.stat-badge.rejected { background: #1a0a0a; color: #ff5555; }
 
 /* Tabs */
 .admin-tabs {
@@ -98,7 +98,7 @@
   aspect-ratio: 16/9;
   border-radius: var(--radius);
   overflow: hidden;
-  background: linear-gradient(135deg, #3a5f1e 0%, #2d4a17 50%, #1e3310 100%);
+  background: linear-gradient(135deg, #0a1628 0%, #0f1f3a 50%, #061020 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -139,8 +139,8 @@
 
 .review-card .info .meta .tag {
   padding: 1px 6px;
-  background: rgba(91,135,49,0.2);
-  border: 1px solid rgba(91,135,49,0.3);
+  background: rgba(0,230,118,0.15);
+  border: 1px solid rgba(0,230,118,0.25);
   border-radius: var(--radius);
   color: var(--accent);
 }
@@ -156,10 +156,10 @@
   flex-shrink: 0;
 }
 
-.review-card .status-badge.pending_review { background: #5a4a1e; color: #ffaa00; }
-.review-card .status-badge.approved { background: #2d5a1e; color: #55ff55; }
-.review-card .status-badge.rejected { background: #5a1e1e; color: #ff5555; }
-.review-card .status-badge.unlisted { background: #3a3a3a; color: #808080; }
+.review-card .status-badge.pending_review { background: #1a1500; color: #ffd740; }
+.review-card .status-badge.approved { background: #0a2618; color: #00e676; }
+.review-card .status-badge.rejected { background: #1a0a0a; color: #ff5555; }
+.review-card .status-badge.unlisted { background: #111827; color: #64748b; }
 
 /* Review modal */
 .review-modal {
@@ -203,9 +203,9 @@
 }
 
 .btn-approve {
-  background: #2d5a1e;
-  border: 2px solid #3a7a26;
-  color: #55ff55;
+  background: #0a2618;
+  border: 2px solid #00e676;
+  color: #00e676;
   padding: 8px 24px;
   font-size: 14px;
   border-radius: var(--radius);
@@ -215,10 +215,10 @@
   border-bottom: 3px solid rgba(0,0,0,0.3);
 }
 
-.btn-approve:hover { background: #357a22; }
+.btn-approve:hover { background: #0f3a24; }
 
 .btn-reject {
-  background: #5a1e1e;
+  background: #1a0a0a;
   border: 2px solid #7a2e2e;
   color: #ff5555;
   padding: 8px 24px;
@@ -230,7 +230,7 @@
   border-bottom: 3px solid rgba(0,0,0,0.3);
 }
 
-.btn-reject:hover { background: #6a2222; }
+.btn-reject:hover { background: #2a1111; }
 
 .btn-secondary {
   background: var(--surface);

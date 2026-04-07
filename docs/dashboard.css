@@ -45,7 +45,7 @@
   aspect-ratio: 16/9;
   border-radius: var(--radius);
   overflow: hidden;
-  background: linear-gradient(135deg, #3a5f1e 0%, #2d4a17 50%, #1e3310 100%);
+  background: linear-gradient(135deg, #0a1628 0%, #0f1f3a 50%, #061020 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,23 +94,23 @@
 }
 
 .dash-status.approved {
-  background: #2d5a1e;
-  color: #55ff55;
+  background: #0a2618;
+  color: #00e676;
 }
 
 .dash-status.pending_review {
-  background: #5a4a1e;
-  color: #ffaa00;
+  background: #1a1500;
+  color: #ffd740;
 }
 
 .dash-status.rejected {
-  background: #5a1e1e;
+  background: #1a0a0a;
   color: #ff5555;
 }
 
 .dash-status.unlisted {
-  background: #3a3a3a;
-  color: #808080;
+  background: #111827;
+  color: #64748b;
 }
 
 .dash-actions {
