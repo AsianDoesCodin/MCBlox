@@ -412,10 +412,19 @@ pub async fn install_forge(
     // Extract Forge-specific game arguments (--launchTarget, --fml.forgeVersion, etc.)
     let mut forge_game_args: Vec<String> = Vec::new();
     if let Some(args) = version_json["arguments"]["game"].as_array() {
+        // Modern Forge (1.13+): arguments.game array
         for arg in args {
             if let Some(s) = arg.as_str() {
                 forge_game_args.push(s.to_string());
             }
+        }
+    } else if let Some(mc_args) = version_json["minecraftArguments"].as_str() {
+        // Legacy Forge (1.12 and earlier): minecraftArguments string
+        // This REPLACES the vanilla minecraftArguments entirely, so we store it
+        // as a special marker that build_launch_args will use
+        forge_game_args.push("__LEGACY_MC_ARGS__".to_string());
+        for part in mc_args.split_whitespace() {
+            forge_game_args.push(part.to_string());
         }
     }
     println!("[McBlox] Forge JVM args: {}, game args: {}", forge_jvm_args.len(), forge_game_args.len());
@@ -848,26 +857,45 @@ pub fn build_launch_args(
     // Game args
     let asset_index = version_json.assets.as_deref().unwrap_or(mc_version);
 
-    // Modern arguments format (1.13+)
-    if let Some(ref arguments) = version_json.arguments {
-        if let Some(ref game_args) = arguments.game {
-            for arg in game_args {
-                if let Some(s) = arg.as_str() {
-                    args.push(replace_mc_vars(
-                        s, username, uuid, access_token,
-                        game_dir, assets_dir, asset_index, mc_version,
-                    ));
+    // Check if mod loader provides complete legacy minecraftArguments (replaces vanilla args)
+    let loader_has_legacy_args = loader_game_args.first().map(|s| s == "__LEGACY_MC_ARGS__").unwrap_or(false);
+
+    if loader_has_legacy_args {
+        // Legacy Forge (1.12 and earlier): loader_game_args contains the full minecraftArguments
+        // Skip the first entry (__LEGACY_MC_ARGS__ marker)
+        for arg in &loader_game_args[1..] {
+            args.push(replace_mc_vars(
+                arg, username, uuid, access_token,
+                game_dir, assets_dir, asset_index, mc_version,
+            ));
+        }
+    } else {
+        // Modern arguments format (1.13+)
+        if let Some(ref arguments) = version_json.arguments {
+            if let Some(ref game_args) = arguments.game {
+                for arg in game_args {
+                    if let Some(s) = arg.as_str() {
+                        args.push(replace_mc_vars(
+                            s, username, uuid, access_token,
+                            game_dir, assets_dir, asset_index, mc_version,
+                        ));
+                    }
                 }
             }
         }
-    }
-    // Legacy format (pre-1.13)
-    else if let Some(ref mc_args) = version_json.minecraft_arguments {
-        for part in mc_args.split_whitespace() {
-            args.push(replace_mc_vars(
-                part, username, uuid, access_token,
-                game_dir, assets_dir, asset_index, mc_version,
-            ));
+        // Legacy format (pre-1.13)
+        else if let Some(ref mc_args) = version_json.minecraft_arguments {
+            for part in mc_args.split_whitespace() {
+                args.push(replace_mc_vars(
+                    part, username, uuid, access_token,
+                    game_dir, assets_dir, asset_index, mc_version,
+                ));
+            }
+        }
+
+        // Append mod loader game args (Forge: --launchTarget, --fml.forgeVersion, etc.)
+        for arg in loader_game_args {
+            args.push(arg.clone());
         }
     }
 
@@ -880,11 +908,6 @@ pub fn build_launch_args(
             args.push("--port".to_string());
             args.push(parts[1].to_string());
         }
-    }
-
-    // Append mod loader game args (Forge: --launchTarget, --fml.forgeVersion, etc.)
-    for arg in loader_game_args {
-        args.push(arg.clone());
     }
 
     args

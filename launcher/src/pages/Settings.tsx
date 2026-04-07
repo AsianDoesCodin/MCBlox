@@ -438,7 +438,7 @@ export default function Settings() {
             </h2>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium" style={{fontFamily: "'Silkscreen', monospace"}}>McBlox v0.2.5</p>
+                <p className="text-sm font-medium" style={{fontFamily: "'Silkscreen', monospace"}}>McBlox v0.2.6</p>
                 <p className="text-xs text-[#808080] mt-0.5">Minecraft game launcher</p>
               </div>
               <div className="flex items-center gap-3">
