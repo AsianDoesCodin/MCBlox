@@ -56,14 +56,35 @@ function renderTags() {
 }
 renderTags();
 
-// --- Loader version combobox ---
-const mcVersionInput = document.getElementById('mc-version');
+// --- Minecraft Version combobox ---
+const mcVersionSelect = document.getElementById('mc-version');
 const modLoaderSelect = document.getElementById('mod-loader');
+
+async function fetchMcVersions() {
+  try {
+    const resp = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json');
+    const data = await resp.json();
+    const releases = data.versions.filter(v => v.type === 'release').map(v => v.id);
+    mcVersionSelect.innerHTML = '<option value="">Select MC version</option>';
+    releases.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      mcVersionSelect.appendChild(opt);
+    });
+  } catch (e) {
+    console.error('Failed to fetch MC versions:', e);
+    mcVersionSelect.innerHTML = '<option value="">Failed to load — refresh page</option>';
+  }
+}
+fetchMcVersions();
+
+// --- Loader version combobox ---
 const loaderVersionSelect = document.getElementById('loader-version');
 let loaderVersionCache = {};
 
 async function fetchLoaderVersions() {
-  const mc = mcVersionInput.value.trim();
+  const mc = mcVersionSelect.value;
   const loader = modLoaderSelect.value;
   if (!mc || !loader) {
     loaderVersionSelect.innerHTML = '<option value="">Select MC version & mod loader first</option>';
@@ -141,8 +162,7 @@ function populateLoaderVersions(versions) {
   });
 }
 
-mcVersionInput.addEventListener('change', fetchLoaderVersions);
-mcVersionInput.addEventListener('blur', fetchLoaderVersions);
+mcVersionSelect.addEventListener('change', fetchLoaderVersions);
 modLoaderSelect.addEventListener('change', fetchLoaderVersions);
 
 // --- Game type toggle ---

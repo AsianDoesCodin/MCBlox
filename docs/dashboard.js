@@ -200,14 +200,35 @@ editGameType.addEventListener('change', () => {
   editWorldField.style.display = v === 'world' ? '' : 'none';
 });
 
-// --- Edit Loader Version combobox ---
-const editMcVersionInput = document.getElementById('edit-mc-version');
+// --- Edit MC Version + Loader Version comboboxes ---
+const editMcVersionSelect = document.getElementById('edit-mc-version');
 const editModLoaderSelect = document.getElementById('edit-mod-loader');
 const editLoaderVersionSelect = document.getElementById('edit-loader-version');
 let editLoaderCache = {};
+let editMcVersionsLoaded = false;
+
+async function fetchEditMcVersions(preselect) {
+  if (editMcVersionsLoaded && !preselect) return;
+  try {
+    const resp = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json');
+    const data = await resp.json();
+    const releases = data.versions.filter(v => v.type === 'release').map(v => v.id);
+    editMcVersionSelect.innerHTML = '<option value="">Select MC version</option>';
+    releases.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      if (preselect && v === preselect) opt.selected = true;
+      editMcVersionSelect.appendChild(opt);
+    });
+    editMcVersionsLoaded = true;
+  } catch (e) {
+    console.error('Failed to fetch MC versions:', e);
+  }
+}
 
 async function fetchEditLoaderVersions(preselectVersion) {
-  const mc = editMcVersionInput.value.trim();
+  const mc = editMcVersionSelect.value;
   const loader = editModLoaderSelect.value;
   if (!mc || !loader) {
     editLoaderVersionSelect.innerHTML = '<option value="">Select MC version & mod loader first</option>';
@@ -275,7 +296,7 @@ function populateEditLoaderVersions(versions, preselect) {
   }
 }
 
-editMcVersionInput.addEventListener('change', () => fetchEditLoaderVersions());
+editMcVersionSelect.addEventListener('change', () => fetchEditLoaderVersions());
 editModLoaderSelect.addEventListener('change', () => fetchEditLoaderVersions());
 
 function renderEditTags() {
@@ -304,10 +325,11 @@ function openEditModal(game) {
   document.getElementById('edit-title').value = game.title;
   document.getElementById('edit-description').value = game.description;
   document.getElementById('edit-modpack-url').value = game.modpack_url;
-  document.getElementById('edit-mc-version').value = game.mc_version;
-  document.getElementById('edit-mod-loader').value = game.mod_loader;
-  // Fetch and populate loader versions, preselecting the current one
-  fetchEditLoaderVersions(game.loader_version || undefined);
+  // Load MC versions and preselect, then load loader versions
+  fetchEditMcVersions(game.mc_version).then(() => {
+    document.getElementById('edit-mod-loader').value = game.mod_loader;
+    fetchEditLoaderVersions(game.loader_version || undefined);
+  });
   document.getElementById('edit-game-type').value = game.game_type;
   document.getElementById('edit-server-address').value = game.server_address || '';
   document.getElementById('edit-world-name').value = game.world_name || '';
