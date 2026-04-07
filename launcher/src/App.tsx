@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import Sidebar from "./components/Sidebar";
+import { ToastProvider } from "./components/Toast";
 import Home from "./pages/Home";
 import Settings from "./pages/Settings";
 
@@ -63,6 +64,7 @@ function App() {
   }
 
   return (
+    <ToastProvider>
     <div className="flex h-screen flex-col">
       {updateAvailable && (
         <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#5b8731] text-white text-sm shrink-0">
@@ -93,6 +95,7 @@ function App() {
         </main>
       </div>
     </div>
+    </ToastProvider>
   );
 }
 

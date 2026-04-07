@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { useToast } from "./Toast";
 import type { Game } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -32,6 +33,7 @@ interface McExitedPayload {
 }
 
 export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Props) {
+  const { toast } = useToast();
   const [likes, setLikes] = useState(game.thumbs_up || 0);
   const [dislikes, setDislikes] = useState(game.thumbs_down || 0);
   const [myRating, setMyRating] = useState<boolean | null>(null);
@@ -158,7 +160,7 @@ export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Prop
   async function rate(positive: boolean) {
     if (!supabase) return;
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { alert("Sign in to rate games"); return; }
+    if (!session) { toast("Sign in to rate games", "warning"); return; }
 
     // Optimistic UI update
     const oldRating = myRating;

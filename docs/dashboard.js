@@ -155,7 +155,7 @@ editScreenshotInput.addEventListener('change', (e) => {
   const files = Array.from(e.target.files);
   const totalScreenshots = editScreenshotsWrap.querySelectorAll('.edit-screenshot-item').length + files.length;
   if (totalScreenshots > 4) {
-    alert('Maximum 4 screenshots allowed.');
+    showToast('Maximum 4 screenshots allowed.', 'warning');
     return;
   }
   files.forEach(file => {
@@ -447,9 +447,9 @@ editForm.addEventListener('submit', async (e) => {
     Object.assign(editingGame, updated);
     renderDashboard();
     closeEditModal();
-    alert('Game updated!');
+    showToast('Game updated!', 'success');
   } catch (err) {
-    alert('Error updating: ' + (err.message || 'Unknown error'));
+    showToast('Error updating: ' + (err.message || 'Unknown error'), 'error');
   }
 });
 
@@ -470,9 +470,9 @@ editUnlist.addEventListener('click', async () => {
     editingGame.status = 'unlisted';
     renderDashboard();
     closeEditModal();
-    alert('Game unlisted.');
+    showToast('Game unlisted.', 'success');
   } catch (err) {
-    alert('Error unlisting: ' + (err.message || 'Unknown error'));
+    showToast('Error unlisting: ' + (err.message || 'Unknown error'), 'error');
   }
 });
 

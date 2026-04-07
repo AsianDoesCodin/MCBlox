@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import GameCard from "../components/GameCard";
 import GameDetail from "../components/GameDetail";
+import { SkeletonGrid } from "../components/Skeleton";
 import type { Game } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -14,6 +15,7 @@ const TAGS = [
 
 export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"popular" | "newest" | "top-rated">("popular");
   const [selected, setSelected] = useState<Game | null>(null);
@@ -26,29 +28,32 @@ export default function Home() {
   }, []);
 
   async function loadGames() {
-    if (supabase) {
-      const { data } = await supabase
-        .from("games")
-        .select("*")
-        .eq("status", "approved");
-      if (data) {
-        // Load player counts from recent heartbeats (last 2 minutes)
-        const twoMinAgo = new Date(Date.now() - 120000).toISOString();
-        const { data: activity } = await supabase
-          .from("player_activity")
-          .select("game_id")
-          .gte("last_heartbeat", twoMinAgo);
+    setLoading(true);
+    try {
+      if (supabase) {
+        const { data } = await supabase
+          .from("games")
+          .select("*")
+          .eq("status", "approved");
+        if (data) {
+          const twoMinAgo = new Date(Date.now() - 120000).toISOString();
+          const { data: activity } = await supabase
+            .from("player_activity")
+            .select("game_id")
+            .gte("last_heartbeat", twoMinAgo);
 
-        const counts: Record<string, number> = {};
-        if (activity) {
-          for (const row of activity) {
-            counts[row.game_id] = (counts[row.game_id] || 0) + 1;
+          const counts: Record<string, number> = {};
+          if (activity) {
+            for (const row of activity) {
+              counts[row.game_id] = (counts[row.game_id] || 0) + 1;
+            }
           }
-        }
 
-        setGames(data.map(g => ({ ...g, player_count: counts[g.id] || 0 })));
-        return;
+          setGames(data.map(g => ({ ...g, player_count: counts[g.id] || 0 })));
+        }
       }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -276,7 +281,9 @@ export default function Home() {
           <h2 className="text-base font-bold mb-3" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
             {search ? `Results for "${search}"` : "Popular Right Now"}
           </h2>
-          {rest.length > 0 ? (
+          {loading ? (
+            <SkeletonGrid count={6} />
+          ) : rest.length > 0 ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
               {rest.map((g) => (
                 <GameCard key={g.id} game={g} onClick={setSelected} />

@@ -208,7 +208,7 @@ function openReview(game) {
       ev.target.nextElementSibling.textContent = promoted ? 'Promoted — appears in Featured section' : 'Not promoted';
     } catch (err) {
       ev.target.checked = !promoted;
-      alert('Error: ' + (err.message || 'Unknown'));
+      showToast('Error: ' + (err.message || 'Unknown'), 'error');
     }
   });
 
@@ -247,6 +247,6 @@ async function setGameStatus(status) {
     renderQueue();
     closeReview();
   } catch (err) {
-    alert('Error updating status: ' + (err.message || 'Unknown error'));
+    showToast('Error updating status: ' + (err.message || 'Unknown error'), 'error');
   }
 }

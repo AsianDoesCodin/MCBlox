@@ -69,6 +69,37 @@ function renderTagFilters() {
 }
 renderTagFilters();
 
+// Skeleton loading cards
+function showSkeletons(count) {
+  grid.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'game-card skeleton-card';
+    el.innerHTML = `
+      <div style="height:140px;background:#484848;border-radius:4px 4px 0 0"></div>
+      <div style="padding:12px">
+        <div style="height:14px;background:#484848;border-radius:3px;width:75%;margin-bottom:8px"></div>
+        <div style="height:12px;background:#484848;border-radius:3px;width:50%;margin-bottom:10px"></div>
+        <div style="display:flex;gap:6px">
+          <div style="height:18px;background:#484848;border-radius:3px;width:40px"></div>
+          <div style="height:18px;background:#484848;border-radius:3px;width:56px"></div>
+        </div>
+      </div>
+    `;
+    // Pulse animation
+    el.style.animation = 'skeleton-pulse 1.5s ease-in-out infinite';
+    grid.appendChild(el);
+  }
+}
+
+// Add skeleton pulse animation
+const skeletonStyle = document.createElement('style');
+skeletonStyle.textContent = `@keyframes skeleton-pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }`;
+document.head.appendChild(skeletonStyle);
+
+// Show skeletons immediately
+showSkeletons(6);
+
 function renderCard(game) {
   const card = document.createElement('div');
   card.className = 'game-card';

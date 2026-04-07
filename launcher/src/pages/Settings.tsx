@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { useToast } from "../components/Toast";
 import { supabase } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -28,6 +29,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function Settings() {
+  const { toast } = useToast();
   const [mcAccount, setMcAccount] = useState<McAccount | null>(null);
   const [authState, setAuthState] = useState<"idle" | "waiting" | "polling">("idle");
   const [authError, setAuthError] = useState<string | null>(null);
@@ -96,10 +98,10 @@ export default function Settings() {
     setClearing(true);
     try {
       const result = await invoke("clear_all_instances");
-      alert(result);
+      toast(String(result), "success");
       loadStorageInfo();
     } catch (e) {
-      alert(`Failed: ${e}`);
+      toast(`Failed: ${e}`, "error");
     }
     setClearing(false);
   }

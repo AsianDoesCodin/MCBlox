@@ -183,7 +183,7 @@ function showAuthModal() {
         const username = document.getElementById('auth-username').value.trim();
         if (!username) throw new Error('Username is required');
         await signUpWithEmail(email, password, username);
-        alert('Check your email for a confirmation link!');
+        showToast('Check your email for a confirmation link!', 'info');
       } else {
         await signInWithEmail(email, password);
       }

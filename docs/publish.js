@@ -308,12 +308,12 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
   const sb = getSupabase();
   const user = getUser();
   if (!sb || !user) {
-    alert('Please sign in first.');
+    showToast('Please sign in first.', 'warning');
     return;
   }
 
   if (!thumbCrop.hasImage()) {
-    alert('Please upload a thumbnail.');
+    showToast('Please upload a thumbnail.', 'warning');
     return;
   }
 
@@ -335,7 +335,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
       thumbnailUrl = urlData.publicUrl;
     }
   } catch (err) {
-    alert('Failed to upload thumbnail: ' + (err.message || 'Unknown error'));
+    showToast('Failed to upload thumbnail: ' + (err.message || 'Unknown error'), 'error');
     return;
   }
 
@@ -388,9 +388,9 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
   try {
     const { error } = await sb.from('games').insert(gameData);
     if (error) throw error;
-    alert('Game submitted for review! You can track it in your Dashboard.');
+    showToast('Game submitted for review! You can track it in your Dashboard.', 'success');
     window.location.href = 'dashboard.html';
   } catch (e) {
-    alert('Error submitting: ' + (e.message || 'Unknown error'));
+    showToast('Error submitting: ' + (e.message || 'Unknown error'), 'error');
   }
 });
