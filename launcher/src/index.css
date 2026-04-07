@@ -70,3 +70,8 @@ body {
 button, a, input, select {
   transition: all 0.15s ease;
 }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
