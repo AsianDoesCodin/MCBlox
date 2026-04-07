@@ -375,7 +375,7 @@ pub async fn install_forge(
         "https://maven.minecraftforge.net/net/minecraftforge/forge/{}/forge-{}-installer.jar",
         full_version, full_version
     );
-    let installer_path = game_dir.join("forge-installer.jar");
+    let installer_path = game_dir.join(format!("forge-{}-installer.jar", full_version));
     if !installer_path.exists() {
         download_file(client, &installer_url, &installer_path).await?;
     }
