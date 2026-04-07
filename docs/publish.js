@@ -102,25 +102,27 @@ async function fetchLoaderVersions() {
   try {
     let versions = [];
     if (loader === 'forge') {
-      const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
-      const data = await resp.json();
-      const promos = data.promos || {};
-      // Get recommended and latest
-      const rec = promos[`${mc}-recommended`];
-      const lat = promos[`${mc}-latest`];
-      // Also try fetching all versions for this MC version from Maven
+      // Fetch all Forge versions for this MC version from maven-metadata.json
       try {
-        const mavenResp = await fetch(`https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json`);
+        const mavenResp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json');
         const mavenData = await mavenResp.json();
-        const mcVersions = Object.keys(mavenData).filter(v => v.startsWith(mc + '-'));
-        versions = mcVersions.map(v => v.replace(mc + '-', '')).reverse();
-      } catch {
-        if (rec) versions.push(rec);
-        if (lat && lat !== rec) versions.push(lat);
+        // Keys are MC versions (e.g. "1.12.2"), values are arrays of "1.12.2-14.23.5.2860"
+        const fullVersions = mavenData[mc] || [];
+        versions = fullVersions.map(v => v.replace(mc + '-', '')).reverse();
+      } catch (e) {
+        console.warn('Maven metadata failed, trying promotions:', e);
       }
+      // Fallback to promotions if maven didn't work
       if (versions.length === 0) {
-        if (rec) versions.push(rec);
-        if (lat && lat !== rec) versions.push(lat);
+        try {
+          const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
+          const data = await resp.json();
+          const promos = data.promos || {};
+          const rec = promos[`${mc}-recommended`];
+          const lat = promos[`${mc}-latest`];
+          if (rec) versions.push(rec);
+          if (lat && lat !== rec) versions.push(lat);
+        } catch {}
       }
     } else if (loader === 'fabric') {
       const resp = await fetch(`https://meta.fabricmc.net/v2/versions/loader/${mc}`);

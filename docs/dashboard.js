@@ -246,16 +246,21 @@ async function fetchEditLoaderVersions(preselectVersion) {
       try {
         const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json');
         const data = await resp.json();
-        const mcVersions = Object.keys(data).filter(v => v.startsWith(mc + '-'));
-        versions = mcVersions.map(v => v.replace(mc + '-', '')).reverse();
-      } catch {
-        const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
-        const data = await resp.json();
-        const promos = data.promos || {};
-        const rec = promos[`${mc}-recommended`];
-        const lat = promos[`${mc}-latest`];
-        if (rec) versions.push(rec);
-        if (lat && lat !== rec) versions.push(lat);
+        const fullVersions = data[mc] || [];
+        versions = fullVersions.map(v => v.replace(mc + '-', '')).reverse();
+      } catch (e) {
+        console.warn('Maven metadata failed, trying promotions:', e);
+      }
+      if (versions.length === 0) {
+        try {
+          const resp = await fetch('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
+          const data = await resp.json();
+          const promos = data.promos || {};
+          const rec = promos[`${mc}-recommended`];
+          const lat = promos[`${mc}-latest`];
+          if (rec) versions.push(rec);
+          if (lat && lat !== rec) versions.push(lat);
+        } catch {}
       }
     } else if (loader === 'fabric') {
       const resp = await fetch(`https://meta.fabricmc.net/v2/versions/loader/${mc}`);
