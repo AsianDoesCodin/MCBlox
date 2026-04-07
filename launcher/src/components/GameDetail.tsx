@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Game } from "../types";
 import { supabase } from "../lib/supabase";
@@ -7,6 +8,7 @@ interface Props {
   game: Game;
   onBack: () => void;
   onPlay: (game: Game) => Promise<any>;
+  onGameRunning?: (gameId: string | null) => void;
 }
 
 interface ProgressPayload {
@@ -19,23 +21,45 @@ interface LogPayload {
   message: string;
 }
 
-export default function GameDetail({ game, onBack, onPlay }: Props) {
+interface McOutputPayload {
+  line: string;
+  stream: string;
+}
+
+interface McExitedPayload {
+  code: number;
+  game_id: string;
+}
+
+export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Props) {
   const [likes, setLikes] = useState(game.thumbs_up || 0);
   const [dislikes, setDislikes] = useState(game.thumbs_down || 0);
   const [myRating, setMyRating] = useState<boolean | null>(null);
   
   // Launch state
   const [launching, setLaunching] = useState(false);
+  const [gameRunning, setGameRunning] = useState(false);
   const [progress, setProgress] = useState<ProgressPayload | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [mcLogs, setMcLogs] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(false);
+  const [activeTab, setActiveTab] = useState<"launcher" | "minecraft">("launcher");
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const mcLogsEndRef = useRef<HTMLDivElement>(null);
 
   const total = likes + dislikes;
   const pct = total > 0 ? Math.round((likes / total) * 100) : 0;
 
   useEffect(() => {
     loadMyRating();
+    // Check if this game is already running
+    invoke<string | null>("is_game_running").then(id => {
+      if (id === game.id) {
+        setGameRunning(true);
+        setShowLogs(true);
+        setActiveTab("minecraft");
+      }
+    });
   }, [game.id]);
 
   // Auto-scroll logs
@@ -43,15 +67,52 @@ export default function GameDetail({ game, onBack, onPlay }: Props) {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
+  useEffect(() => {
+    mcLogsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [mcLogs]);
+
+  // Listen for MC output and exit events
+  useEffect(() => {
+    const unsubs: (() => void)[] = [];
+    
+    listen<McOutputPayload>("mc-output", (e) => {
+      setMcLogs(prev => {
+        const next = [...prev, e.payload.line];
+        // Keep last 500 lines to prevent memory issues
+        return next.length > 500 ? next.slice(-500) : next;
+      });
+    }).then(u => unsubs.push(u));
+    
+    listen<McExitedPayload>("mc-exited", (e) => {
+      if (e.payload.game_id === game.id) {
+        setGameRunning(false);
+        onGameRunning?.(null);
+        const code = e.payload.code;
+        setLogs(prev => [...prev, code === 0
+          ? "✓ Minecraft closed normally."
+          : `⚠ Minecraft exited with code ${code}`
+        ]);
+      }
+    }).then(u => unsubs.push(u));
+    
+    return () => { unsubs.forEach(u => u()); };
+  }, [game.id]);
+
   async function handlePlay() {
     setLaunching(true);
     setLogs([]);
+    setMcLogs([]);
     setProgress(null);
     setShowLogs(true);
+    setActiveTab("launcher");
 
-    // Listen for progress events
     const unlistenProgress = await listen<ProgressPayload>("launch-progress", (e) => {
       setProgress(e.payload);
+      if (e.payload.stage === "running") {
+        setGameRunning(true);
+        setActiveTab("minecraft");
+        onGameRunning?.(game.id);
+      }
     });
     const unlistenLog = await listen<LogPayload>("launch-log", (e) => {
       setLogs(prev => [...prev, e.payload.message]);
@@ -67,6 +128,17 @@ export default function GameDetail({ game, onBack, onPlay }: Props) {
       setLaunching(false);
       unlistenProgress();
       unlistenLog();
+    }
+  }
+
+  async function handleStop() {
+    try {
+      await invoke("stop_game");
+      setGameRunning(false);
+      onGameRunning?.(null);
+      setLogs(prev => [...prev, "⏹ Game stopped by user."]);
+    } catch (err: any) {
+      setLogs(prev => [...prev, `✗ Failed to stop: ${err}`]);
     }
   }
 
@@ -160,14 +232,16 @@ export default function GameDetail({ game, onBack, onPlay }: Props) {
               </div>
             </div>
             <button
-              onClick={handlePlay}
+              onClick={gameRunning ? handleStop : handlePlay}
               disabled={launching}
               className={`px-10 py-3.5 text-white font-bold rounded text-base cursor-pointer shrink-0 border-b-[4px] border-[rgba(0,0,0,0.3)] active:border-b-[2px] ${
-                launching ? "bg-[#4a6a28] opacity-70 cursor-not-allowed" : "bg-[#5b8731] hover:bg-[#6b9b3a]"
+                launching ? "bg-[#4a6a28] opacity-70 cursor-not-allowed" :
+                gameRunning ? "bg-[#cc3333] hover:bg-[#dd4444]" :
+                "bg-[#5b8731] hover:bg-[#6b9b3a]"
               }`}
               style={{fontFamily: "'Silkscreen', monospace"}}
             >
-              {launching ? "⏳ LAUNCHING..." : "▶ PLAY"}
+              {launching ? "⏳ LAUNCHING..." : gameRunning ? "⏹ STOP" : "▶ PLAY"}
             </button>
           </div>
 
@@ -260,28 +334,68 @@ export default function GameDetail({ game, onBack, onPlay }: Props) {
 
               {/* Logs area */}
               <div className="bg-[#1a1a1a] rounded border-2 border-[#555]">
-                <button
-                  onClick={() => setShowLogs(!showLogs)}
-                  className="w-full flex items-center justify-between px-4 py-2 text-xs text-[#808080] hover:text-[#b0b0b0] cursor-pointer"
-                  style={{fontFamily: "'Silkscreen', monospace"}}
-                >
-                  <span>LOGS ({logs.length})</span>
-                  <span>{showLogs ? "▼" : "▶"}</span>
-                </button>
-                {showLogs && (
-                  <div className="px-4 pb-3 max-h-[200px] overflow-y-auto font-mono text-xs leading-5">
+                {/* Tab bar */}
+                <div className="flex items-center border-b border-[#333]">
+                  <button
+                    onClick={() => { setActiveTab("launcher"); setShowLogs(true); }}
+                    className={`px-4 py-2 text-xs cursor-pointer transition-colors ${
+                      activeTab === "launcher" ? "text-[#5b8731] border-b-2 border-[#5b8731]" : "text-[#808080] hover:text-[#b0b0b0]"
+                    }`}
+                    style={{fontFamily: "'Silkscreen', monospace"}}
+                  >
+                    LAUNCHER ({logs.length})
+                  </button>
+                  <button
+                    onClick={() => { setActiveTab("minecraft"); setShowLogs(true); }}
+                    className={`px-4 py-2 text-xs cursor-pointer transition-colors ${
+                      activeTab === "minecraft" ? "text-[#5b8731] border-b-2 border-[#5b8731]" : "text-[#808080] hover:text-[#b0b0b0]"
+                    }`}
+                    style={{fontFamily: "'Silkscreen', monospace"}}
+                  >
+                    MINECRAFT {gameRunning && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#55ff55] ml-1.5" />}
+                    {mcLogs.length > 0 && ` (${mcLogs.length})`}
+                  </button>
+                  <div className="flex-1" />
+                  <button
+                    onClick={() => setShowLogs(!showLogs)}
+                    className="px-3 py-2 text-xs text-[#808080] hover:text-[#b0b0b0] cursor-pointer"
+                  >
+                    {showLogs ? "▼" : "▶"}
+                  </button>
+                </div>
+                {showLogs && activeTab === "launcher" && (
+                  <div className="px-4 pb-3 max-h-[300px] overflow-y-auto font-mono text-xs leading-5">
                     {logs.length === 0 && (
-                      <p className="text-[#555]">Waiting for output...</p>
+                      <p className="text-[#555] mt-2">Waiting for output...</p>
                     )}
                     {logs.map((log, i) => (
                       <p key={i} className={
                         log.startsWith("✗") ? "text-[#ff5555]" :
-                        log.startsWith("✓") ? "text-[#55ff55]" : "text-[#b0b0b0]"
+                        log.startsWith("✓") ? "text-[#55ff55]" :
+                        log.startsWith("⚠") ? "text-[#ffaa00]" :
+                        log.startsWith("⏹") ? "text-[#808080]" : "text-[#b0b0b0]"
                       }>
                         {log}
                       </p>
                     ))}
                     <div ref={logsEndRef} />
+                  </div>
+                )}
+                {showLogs && activeTab === "minecraft" && (
+                  <div className="px-4 pb-3 max-h-[300px] overflow-y-auto font-mono text-xs leading-5">
+                    {mcLogs.length === 0 && (
+                      <p className="text-[#555] mt-2">{gameRunning ? "Waiting for Minecraft output..." : "No Minecraft output yet. Press Play to start."}</p>
+                    )}
+                    {mcLogs.map((log, i) => (
+                      <p key={i} className={
+                        log.includes("ERROR") || log.includes("Exception") ? "text-[#ff5555]" :
+                        log.includes("WARN") ? "text-[#ffaa00]" :
+                        log.includes("[INFO]") ? "text-[#b0b0b0]" : "text-[#808080]"
+                      }>
+                        {log}
+                      </p>
+                    ))}
+                    <div ref={mcLogsEndRef} />
                   </div>
                 )}
               </div>

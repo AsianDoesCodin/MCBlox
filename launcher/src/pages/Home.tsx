@@ -135,6 +135,13 @@ export default function Home() {
         game={selected}
         onBack={() => setSelected(null)}
         onPlay={handlePlay}
+        onGameRunning={(gameId) => {
+          if (gameId) {
+            startHeartbeat(gameId);
+          } else {
+            stopHeartbeat();
+          }
+        }}
       />
     );
   }

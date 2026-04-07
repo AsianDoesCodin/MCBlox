@@ -376,39 +376,88 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
         }
     }
 
-    // Use java.exe (not javaw.exe) for debug output
-    let java_debug = java.replace("javaw", "java");
-    let mut child = Command::new(&java_debug)
+    // Use javaw.exe to avoid opening a CMD window, pipe stdout/stderr
+    let mut child = Command::new(&java)
         .args(&args)
         .current_dir(&instance_dir)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
         .spawn()
         .map_err(|e| format!("Failed to launch Minecraft: {}", e))?;
     
     let pid = child.id();
     println!("[McBlox] Minecraft process spawned with PID: {}", pid);
+
+    // Store the PID so we can stop it later
+    {
+        let mut guard = RUNNING_GAME.lock().unwrap();
+        *guard = Some(RunningGame {
+            pid,
+            game_id: request.game_id.clone(),
+        });
+    }
     
-    // Wait a few seconds — if process exits very quickly, it likely crashed during init
-    std::thread::sleep(std::time::Duration::from_secs(8));
-    
-    match child.try_wait() {
-        Ok(Some(status)) => {
-            // Process exited within 8 seconds — likely a startup crash
-            // But some old MC versions exit with code 1 normally, so just warn
-            let code = status.code().unwrap_or(-1);
-            if code != 0 {
-                println!("[McBlox] MC exited quickly with code {}", code);
-                emit("error", &format!("Minecraft exited (code: {}). Check logs if it didn't start.", code), 1.0);
-                // Don't return Err — it might have actually worked (old MC returns 1)
+    // Spawn a background thread to stream stdout/stderr to the frontend
+    let app_handle_bg = app_handle.clone();
+    let game_id_bg = request.game_id.clone();
+    std::thread::spawn(move || {
+        use std::io::BufRead;
+        
+        // Read stdout in a thread
+        if let Some(stdout) = child.stdout.take() {
+            let app = app_handle_bg.clone();
+            let reader = std::io::BufReader::new(stdout);
+            std::thread::spawn(move || {
+                for line in reader.lines() {
+                    if let Ok(line) = line {
+                        app.emit("mc-output", serde_json::json!({ "line": line, "stream": "stdout" })).ok();
+                    }
+                }
+            });
+        }
+        
+        if let Some(stderr) = child.stderr.take() {
+            let app = app_handle_bg.clone();
+            let reader = std::io::BufReader::new(stderr);
+            std::thread::spawn(move || {
+                for line in reader.lines() {
+                    if let Ok(line) = line {
+                        app.emit("mc-output", serde_json::json!({ "line": line, "stream": "stderr" })).ok();
+                    }
+                }
+            });
+        }
+        
+        // Wait for the process to exit
+        let status = child.wait();
+        let code = status.map(|s| s.code().unwrap_or(-1)).unwrap_or(-1);
+        println!("[McBlox] Minecraft exited with code {}", code);
+        
+        // Clear running game state
+        {
+            let mut guard = RUNNING_GAME.lock().unwrap();
+            if guard.as_ref().map(|g| &g.game_id) == Some(&game_id_bg) {
+                *guard = None;
             }
         }
-        Ok(None) => {
-            // Still running — success
-            emit("running", "Minecraft is running!", 1.0);
-            println!("[McBlox] Minecraft is running (PID {})", pid);
-        }
-        Err(e) => {
-            println!("[McBlox] Error checking process: {}", e);
-        }
+        
+        app_handle_bg.emit("mc-exited", serde_json::json!({ "code": code, "game_id": game_id_bg })).ok();
+    });
+
+    // Wait briefly to check for immediate crashes
+    std::thread::sleep(std::time::Duration::from_secs(8));
+    
+    // Check if process is still running
+    let still_running = {
+        let guard = RUNNING_GAME.lock().unwrap();
+        guard.as_ref().map(|g| &g.game_id) == Some(&request.game_id)
+    };
+    
+    if still_running {
+        emit("running", "Minecraft is running!", 1.0);
+        println!("[McBlox] Minecraft is running (PID {})", pid);
+    } else {
+        emit("error", "Minecraft exited (code: 1). Check logs if it didn't start.", 1.0);
     }
 
     Ok(format!("Launching {} as {}...", request.title, account.username))
@@ -519,9 +568,50 @@ fn format_bytes(bytes: u64) -> String {
     format!("{:.2} GB", bytes as f64 / (1024.0 * 1024.0 * 1024.0))
 }
 
-// --- Microsoft/Minecraft Auth ---
+// --- Running game state ---
 
 use std::sync::Mutex;
+
+struct RunningGame {
+    pid: u32,
+    game_id: String,
+}
+
+static RUNNING_GAME: std::sync::LazyLock<Mutex<Option<RunningGame>>> = 
+    std::sync::LazyLock::new(|| Mutex::new(None));
+
+#[tauri::command]
+async fn stop_game() -> Result<String, String> {
+    let game = {
+        let mut guard = RUNNING_GAME.lock().unwrap();
+        guard.take()
+    };
+    if let Some(game) = game {
+        #[cfg(windows)]
+        {
+            // Kill the process tree (MC may have child processes)
+            std::process::Command::new("taskkill")
+                .args(&["/F", "/T", "/PID", &game.pid.to_string()])
+                .output()
+                .ok();
+        }
+        #[cfg(not(windows))]
+        {
+            unsafe { libc::kill(game.pid as i32, libc::SIGTERM); }
+        }
+        Ok(format!("Stopped game {}", game.game_id))
+    } else {
+        Ok("No game running".to_string())
+    }
+}
+
+#[tauri::command]
+async fn is_game_running() -> Result<Option<String>, String> {
+    let guard = RUNNING_GAME.lock().unwrap();
+    Ok(guard.as_ref().map(|g| g.game_id.clone()))
+}
+
+// --- Microsoft/Minecraft Auth ---
 
 #[derive(Debug, Clone, Serialize)]
 pub struct McAuthStatus {
@@ -628,6 +718,8 @@ pub fn run() {
         .manage(McAuthState(Mutex::new(McAuthStatus { state: "idle".to_string(), error: None, account: None })))
         .invoke_handler(tauri::generate_handler![
             launch_game,
+            stop_game,
+            is_game_running,
             get_instances,
             delete_instance,
             clear_all_instances,
