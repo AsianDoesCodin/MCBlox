@@ -4,7 +4,7 @@ use std::path::Path;
 /// Resolve a modpack URL to a direct download link
 pub async fn resolve_download_url(url: &str) -> Result<String, Box<dyn std::error::Error>> {
     let client = reqwest::Client::builder()
-        .user_agent("McBlox/0.1.0")
+        .user_agent("McBlox/0.2.0")
         .redirect(reqwest::redirect::Policy::limited(10))
         .build()?;
 
@@ -109,7 +109,7 @@ pub async fn download_modpack(url: &str, dest: &Path) -> Result<(), Box<dyn std:
     let download_url = resolve_download_url(url).await?;
 
     let client = reqwest::Client::builder()
-        .user_agent("McBlox/0.1.0")
+        .user_agent("McBlox/0.2.0")
         .redirect(reqwest::redirect::Policy::limited(10))
         .build()?;
 

@@ -761,7 +761,7 @@ pub fn build_launch_args(
     args.push(format!("-Xmx{}", max_memory));
     args.push(format!("-Djava.library.path={}", natives_str));
     args.push("-Dminecraft.launcher.brand=McBlox".to_string());
-    args.push("-Dminecraft.launcher.version=0.1.0".to_string());
+    args.push("-Dminecraft.launcher.version=0.2.0".to_string());
 
     // Add JVM args from vanilla version JSON
     if let Some(ref arguments) = version_json.arguments {
@@ -774,7 +774,7 @@ pub fn build_launch_args(
                         .replace("${version_name}", mc_version)
                         .replace("${natives_directory}", &natives_str)
                         .replace("${launcher_name}", "McBlox")
-                        .replace("${launcher_version}", "0.1.0");
+                        .replace("${launcher_version}", "0.2.0");
                     if resolved == "-cp" || resolved.contains("${classpath}") {
                         continue;
                     }

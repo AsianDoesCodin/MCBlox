@@ -44,6 +44,10 @@ export default function Settings() {
   // Storage
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [clearing, setClearing] = useState(false);
+  
+  // Updates
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateResult, setUpdateResult] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for saved MC account
@@ -96,6 +100,29 @@ export default function Settings() {
       alert(`Failed: ${e}`);
     }
     setClearing(false);
+  }
+
+  async function checkForUpdates() {
+    setCheckingUpdate(true);
+    setUpdateResult(null);
+    try {
+      const resp = await fetch("https://api.github.com/repos/AsianDoesCodin/MCBlox/releases/latest");
+      if (!resp.ok) throw new Error("Could not reach GitHub");
+      const release = await resp.json();
+      const latest = (release.tag_name || "").replace(/^v/, "");
+      const current = "0.2.0";
+      if (latest && latest !== current) {
+        const asset = release.assets?.find((a: any) => a.name?.includes("x64-setup.exe"));
+        const url = asset?.browser_download_url || release.html_url;
+        setUpdateResult(`v${latest} available!`);
+        window.open(url, "_blank");
+      } else {
+        setUpdateResult("You're on the latest version!");
+      }
+    } catch {
+      setUpdateResult("Could not check for updates");
+    }
+    setCheckingUpdate(false);
   }
 
   async function startMcAuth() {
@@ -390,10 +417,31 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Version */}
-          <p className="text-center text-xs text-[#808080] pb-4" style={{fontFamily: "'Silkscreen', monospace"}}>
-            McBlox v0.1.0
-          </p>
+          {/* About */}
+          <div className="bg-[#3a3a3a] rounded p-5 border-2 border-[#555]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+            <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffaa00'}}>
+              ℹ️ About
+            </h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium" style={{fontFamily: "'Silkscreen', monospace"}}>McBlox v0.2.0</p>
+                <p className="text-xs text-[#808080] mt-0.5">Minecraft game launcher</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {updateResult && (
+                  <span className="text-xs text-[#b0b0b0]">{updateResult}</span>
+                )}
+                <button
+                  onClick={checkForUpdates}
+                  disabled={checkingUpdate}
+                  className="px-4 py-2 bg-[#5b8731] hover:bg-[#6b9b3a] border-2 border-[#4a7028] rounded text-xs font-medium cursor-pointer text-white disabled:opacity-50"
+                  style={{fontFamily: "'Silkscreen', monospace"}}
+                >
+                  {checkingUpdate ? "Checking..." : "🔄 Check for Updates"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

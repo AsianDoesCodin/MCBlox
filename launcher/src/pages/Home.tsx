@@ -141,8 +141,8 @@ export default function Home() {
   return (
     <div className="h-full flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-[#1a1a1a] border-b-[3px] border-[#5b8731] shrink-0">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex items-center gap-3 px-6 py-3 bg-[#1a1a1a] border-b-[3px] border-[#5b8731] shrink-0 flex-nowrap">
+        <div className="relative flex-1 min-w-0">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080] text-sm">🔍</span>
           <input
             type="text"
@@ -150,20 +150,21 @@ export default function Home() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search games..."
             className="w-full pl-9 pr-4 py-2 bg-[#2b2b2b] border-2 border-[#555] rounded text-sm text-white outline-none focus:border-[#5b8731] placeholder:text-[#808080]"
+            style={{fontFamily: "'Silkscreen', monospace"}}
           />
         </div>
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="px-4 py-2 bg-[#2b2b2b] border-2 border-[#555] rounded text-xs text-[#b0b0b0] outline-none cursor-pointer hover:border-[#5b8731]"
+          className="px-4 py-2 bg-[#2b2b2b] border-2 border-[#555] rounded text-xs text-[#b0b0b0] outline-none cursor-pointer hover:border-[#5b8731] shrink-0"
+          style={{fontFamily: "'Silkscreen', monospace"}}
         >
           <option value="popular">Most Popular</option>
           <option value="newest">Newest</option>
           <option value="top-rated">Top Rated</option>
         </select>
 
-        {/* Tags dropdown button */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             onClick={() => setShowTags(!showTags)}
             className={`px-4 py-2 rounded text-xs font-medium cursor-pointer transition-all border-2 ${
@@ -171,7 +172,7 @@ export default function Home() {
                 ? 'bg-[#5b8731] border-[#5b8731] text-white'
                 : 'bg-[#2b2b2b] border-[#555] text-[#b0b0b0] hover:border-[#5b8731]'
             }`}
-            style={{fontFamily: "'Silkscreen', monospace", borderBottom: '2px solid rgba(0,0,0,0.2)'}}
+            style={{fontFamily: "'Silkscreen', monospace"}}
           >
             Tags {activeTags.size > 0 ? `(${activeTags.size})` : ''}
           </button>

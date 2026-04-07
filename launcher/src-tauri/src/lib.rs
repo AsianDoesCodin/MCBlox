@@ -143,7 +143,7 @@ async fn ensure_java(mc_version: &str) -> Result<String, String> {
     );
 
     let client = reqwest::Client::builder()
-        .user_agent("McBlox/0.1.0")
+        .user_agent("McBlox/0.2.0")
         .redirect(reqwest::redirect::Policy::limited(10))
         .build()
         .map_err(|e| e.to_string())?;
@@ -233,7 +233,7 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     emit("auth", &format!("Signed in as {}", account.username), 0.05);
 
     let client = reqwest::Client::builder()
-        .user_agent("McBlox/0.1.0")
+        .user_agent("McBlox/0.2.0")
         .build()
         .map_err(|e| e.to_string())?;
 
