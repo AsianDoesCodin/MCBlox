@@ -51,11 +51,23 @@ fn get_java_path(java_version: u8) -> Option<String> {
     if bundled.exists() {
         // Find javaw.exe matching the requested major version
         if let Ok(entries) = std::fs::read_dir(&bundled) {
+            let mut fallback_javaw: Option<String> = None;
             for entry in entries.flatten() {
                 let dir_name = entry.file_name().to_string_lossy().to_string();
                 let javaw = entry.path().join("bin").join("javaw.exe");
-                if javaw.exists() && dir_name.contains(&format!("jdk-{}", java_version)) {
+                if !javaw.exists() { continue; }
+                // Match Adoptium naming: "jdk-17.0.18+8-jre" or "jdk8u482-b08-jre" (Java 8 has no hyphen)
+                let matches = dir_name.contains(&format!("jdk-{}", java_version))
+                    || dir_name.contains(&format!("jdk{}u", java_version));
+                if matches {
                     return Some(javaw.display().to_string());
+                }
+                fallback_javaw = Some(javaw.display().to_string());
+            }
+            // Fallback: check actual java version if folder name didn't match
+            if let Some(ref fb) = fallback_javaw {
+                if check_java_major_version(fb, java_version) {
+                    return fallback_javaw;
                 }
             }
         }

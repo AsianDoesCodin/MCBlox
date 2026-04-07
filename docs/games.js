@@ -102,7 +102,6 @@ function escapeHtml(str) {
 
 function render() {
   const query = searchInput.value.toLowerCase().trim();
-  const cat = categorySelect.value;
   const sort = sortSelect.value;
 
   let filtered = allGames.filter(g => g.status === 'approved');
