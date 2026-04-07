@@ -208,12 +208,12 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     const thumbBlob = await thumbCrop.getBlob();
     if (thumbBlob) {
       const thumbPath = `${gameId}/thumbnail.jpg`;
-      const { error: upErr } = await sb.storage.from('game-images').upload(thumbPath, thumbBlob, {
+      const { error: upErr } = await sb.storage.from('MCBlox').upload(thumbPath, thumbBlob, {
         contentType: 'image/jpeg',
         upsert: true
       });
       if (upErr) throw upErr;
-      const { data: urlData } = sb.storage.from('game-images').getPublicUrl(thumbPath);
+      const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(thumbPath);
       thumbnailUrl = urlData.publicUrl;
     }
   } catch (err) {
@@ -229,12 +229,12 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
       const blob = await screenshotCrops[i].getBlob();
       if (!blob) continue;
       const ssPath = `${gameId}/screenshot_${i}.jpg`;
-      const { error: upErr } = await sb.storage.from('game-images').upload(ssPath, blob, {
+      const { error: upErr } = await sb.storage.from('MCBlox').upload(ssPath, blob, {
         contentType: 'image/jpeg',
         upsert: true
       });
       if (upErr) throw upErr;
-      const { data: urlData } = sb.storage.from('game-images').getPublicUrl(ssPath);
+      const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(ssPath);
       screenshotUrls.push(urlData.publicUrl);
     } catch (err) {
       console.warn('Screenshot upload failed:', err);

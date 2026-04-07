@@ -291,17 +291,17 @@ editForm.addEventListener('submit', async (e) => {
     // Upload new thumbnail if selected
     if (editNewThumb) {
       const thumbPath = `${editingGame.id}/thumbnail.jpg`;
-      const { error: upErr } = await sb.storage.from('game-images').upload(thumbPath, editNewThumb, {
+      const { error: upErr } = await sb.storage.from('MCBlox').upload(thumbPath, editNewThumb, {
         contentType: editNewThumb.type || 'image/jpeg',
         upsert: true
       });
       if (upErr) throw upErr;
-      const { data: urlData } = sb.storage.from('game-images').getPublicUrl(thumbPath);
+      const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(thumbPath);
       updated.thumbnail_url = urlData.publicUrl;
     } else if (editRemoveThumb) {
       updated.thumbnail_url = null;
       // Remove from storage
-      await sb.storage.from('game-images').remove([`${editingGame.id}/thumbnail.jpg`]);
+      await sb.storage.from('MCBlox').remove([`${editingGame.id}/thumbnail.jpg`]);
     }
 
     // Upload new screenshots
@@ -309,12 +309,12 @@ editForm.addEventListener('submit', async (e) => {
     for (let i = 0; i < editNewScreenshots.length; i++) {
       const ss = editNewScreenshots[i];
       const ssPath = `${editingGame.id}/screenshot_${Date.now()}_${i}.jpg`;
-      const { error: upErr } = await sb.storage.from('game-images').upload(ssPath, ss.file, {
+      const { error: upErr } = await sb.storage.from('MCBlox').upload(ssPath, ss.file, {
         contentType: ss.file.type || 'image/jpeg',
         upsert: true
       });
       if (upErr) throw upErr;
-      const { data: urlData } = sb.storage.from('game-images').getPublicUrl(ssPath);
+      const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(ssPath);
       screenshotUrls.push(urlData.publicUrl);
     }
     if (editNewScreenshots.length > 0 || editRemoveScreenshots.length > 0) {
