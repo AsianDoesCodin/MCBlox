@@ -218,6 +218,22 @@ export default function Home({ session, onPlay, onStop }: Props) {
               </div>
             )}
           </div>
+        ) : sort !== 'popular' ? (
+          /* Non-default sort — flat sorted list */
+          <div className="px-6 pt-5 pb-8">
+            {filtered.length > 0 ? (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+                {filtered.map((g) => (
+                  <GameCard key={g.id} game={g} onClick={setSelected} session={session} onPlay={onPlay} onStop={onStop} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <span className="text-4xl mb-3 block">⛏</span>
+                <p className="text-[#64748b]" style={{fontFamily: "'Silkscreen', monospace"}}>No games yet</p>
+              </div>
+            )}
+          </div>
         ) : (
           <>
             {/* Featured section */}
