@@ -1,10 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import GameCard from "../components/GameCard";
 import GameDetail from "../components/GameDetail";
 import { SkeletonGrid } from "../components/Skeleton";
 import type { Game } from "../types";
 import { supabase } from "../lib/supabase";
+
+interface ProgressPayload { stage: string; message: string; percent: number; }
+interface LogPayload { message: string; }
+interface McOutputPayload { line: string; stream: string; }
+interface McExitedPayload { code: number; game_id: string; }
 
 const TAGS = [
   'Adventure', 'RPG', 'PvP', 'Creative', 'Survival',
@@ -22,9 +28,57 @@ export default function Home() {
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [showTags, setShowTags] = useState(false);
 
+  // --- Game session state (lifted from GameDetail so it persists) ---
+  const [sessionGameId, setSessionGameId] = useState<string | null>(null);
+  const [launching, setLaunching] = useState(false);
+  const [gameRunning, setGameRunning] = useState(false);
+  const [progress, setProgress] = useState<ProgressPayload | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [mcLogs, setMcLogs] = useState<string[]>([]);
+
+  // Refs for launch-specific unlisteners (active only during launch)
+  const launchUnsubs = useRef<(() => void)[]>([]);
+
   useEffect(() => {
     loadGames();
+    // Check if a game is already running on mount
+    invoke<string | null>("is_game_running").then(id => {
+      if (id) {
+        setSessionGameId(id);
+        setGameRunning(true);
+      }
+    });
     return () => stopHeartbeat();
+  }, []);
+
+  // Persistent listeners for mc-output and mc-exited (active while Home is mounted)
+  useEffect(() => {
+    const unsubs: (() => void)[] = [];
+
+    listen<McOutputPayload>("mc-output", (e) => {
+      setMcLogs(prev => {
+        const next = [...prev, e.payload.line];
+        return next.length > 500 ? next.slice(-500) : next;
+      });
+    }).then(u => unsubs.push(u));
+
+    listen<McExitedPayload>("mc-exited", (e) => {
+      setGameRunning(false);
+      setSessionGameId(prev => {
+        if (prev === e.payload.game_id) {
+          stopHeartbeat();
+          const code = e.payload.code;
+          setLogs(l => [...l, code === 0
+            ? "✓ Minecraft closed normally."
+            : `⚠ Minecraft exited with code ${code}`
+          ]);
+          return prev; // keep sessionGameId so logs are visible
+        }
+        return prev;
+      });
+    }).then(u => unsubs.push(u));
+
+    return () => { unsubs.forEach(u => u()); };
   }, []);
 
   async function loadGames() {
@@ -95,27 +149,75 @@ export default function Home() {
   }
 
   async function handlePlay(game: Game) {
-    const result = await invoke("launch_game", {
-      request: {
-        game_id: game.id,
-        title: game.title,
-        modpack_url: game.modpack_url || "",
-        mc_version: game.mc_version || "1.21.1",
-        mod_loader: game.mod_loader || "fabric",
-        loader_version: game.loader_version || null,
-        game_type: game.game_type || "server",
-        server_address: game.server_address || null,
-        world_name: game.world_name || null,
-        auto_join: game.auto_join || false,
+    // Reset session state for new launch
+    setSessionGameId(game.id);
+    setLaunching(true);
+    setLogs([]);
+    setMcLogs([]);
+    setProgress(null);
+
+    // Clean up any previous launch listeners
+    launchUnsubs.current.forEach(u => u());
+    launchUnsubs.current = [];
+
+    // Listen for launch-specific events
+    const unProgress = await listen<ProgressPayload>("launch-progress", (e) => {
+      setProgress(e.payload);
+      if (e.payload.stage === "running") {
+        setGameRunning(true);
       }
     });
-    // Increment total_plays
-    if (supabase) {
-      await supabase.rpc("increment_plays", { game_id: game.id });
+    launchUnsubs.current.push(unProgress);
+
+    const unLog = await listen<LogPayload>("launch-log", (e) => {
+      setLogs(prev => [...prev, e.payload.message]);
+    });
+    launchUnsubs.current.push(unLog);
+
+    try {
+      const result = await invoke("launch_game", {
+        request: {
+          game_id: game.id,
+          title: game.title,
+          modpack_url: game.modpack_url || "",
+          mc_version: game.mc_version || "1.21.1",
+          mod_loader: game.mod_loader || "fabric",
+          loader_version: game.loader_version || null,
+          game_type: game.game_type || "server",
+          server_address: game.server_address || null,
+          world_name: game.world_name || null,
+          auto_join: game.auto_join || false,
+        }
+      });
+      // Increment total_plays
+      if (supabase) {
+        await supabase.rpc("increment_plays", { game_id: game.id });
+      }
+      startHeartbeat(game.id);
+      setLogs(prev => [...prev, "✓ Minecraft launched successfully!"]);
+      return result;
+    } catch (err: any) {
+      setLogs(prev => [...prev, `✗ Error: ${err}`]);
+      setProgress({ stage: "error", message: String(err), percent: 0 });
+      throw err;
+    } finally {
+      setLaunching(false);
+      // Clean up launch-specific listeners (mc-output/mc-exited persist)
+      launchUnsubs.current.forEach(u => u());
+      launchUnsubs.current = [];
     }
-    startHeartbeat(game.id);
-    return result;
   }
+
+  const handleStop = useCallback(async () => {
+    try {
+      await invoke("stop_game");
+      setGameRunning(false);
+      stopHeartbeat();
+      setLogs(prev => [...prev, "⏹ Game stopped by user."]);
+    } catch (err: any) {
+      setLogs(prev => [...prev, `✗ Failed to stop: ${err}`]);
+    }
+  }, []);
 
   function toggleTag(tag: string) {
     const key = tag.toLowerCase();
@@ -150,12 +252,14 @@ export default function Home() {
         game={selected}
         onBack={() => setSelected(null)}
         onPlay={handlePlay}
-        onGameRunning={(gameId) => {
-          if (gameId) {
-            startHeartbeat(gameId);
-          } else {
-            stopHeartbeat();
-          }
+        onStop={handleStop}
+        session={{
+          launching,
+          gameRunning,
+          progress,
+          logs,
+          mcLogs,
+          sessionGameId,
         }}
       />
     );

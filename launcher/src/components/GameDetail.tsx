@@ -1,16 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { useToast } from "./Toast";
 import type { Game } from "../types";
 import { supabase } from "../lib/supabase";
-
-interface Props {
-  game: Game;
-  onBack: () => void;
-  onPlay: (game: Game) => Promise<any>;
-  onGameRunning?: (gameId: string | null) => void;
-}
 
 interface ProgressPayload {
   stage: string;
@@ -18,32 +9,33 @@ interface ProgressPayload {
   percent: number;
 }
 
-interface LogPayload {
-  message: string;
+interface GameSession {
+  launching: boolean;
+  gameRunning: boolean;
+  progress: ProgressPayload | null;
+  logs: string[];
+  mcLogs: string[];
+  sessionGameId: string | null;
 }
 
-interface McOutputPayload {
-  line: string;
-  stream: string;
+interface Props {
+  game: Game;
+  onBack: () => void;
+  onPlay: (game: Game) => Promise<any>;
+  onStop: () => Promise<void>;
+  session: GameSession;
 }
 
-interface McExitedPayload {
-  code: number;
-  game_id: string;
-}
-
-export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Props) {
+export default function GameDetail({ game, onBack, onPlay, onStop, session }: Props) {
   const { toast } = useToast();
   const [likes, setLikes] = useState(game.thumbs_up || 0);
   const [dislikes, setDislikes] = useState(game.thumbs_down || 0);
   const [myRating, setMyRating] = useState<boolean | null>(null);
-  
-  // Launch state
-  const [launching, setLaunching] = useState(false);
-  const [gameRunning, setGameRunning] = useState(false);
-  const [progress, setProgress] = useState<ProgressPayload | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
-  const [mcLogs, setMcLogs] = useState<string[]>([]);
+
+  const { launching, gameRunning, progress, logs, mcLogs, sessionGameId } = session;
+  const isThisGame = sessionGameId === game.id;
+  const showSession = isThisGame && (launching || gameRunning || logs.length > 0 || mcLogs.length > 0);
+
   const [showLogs, setShowLogs] = useState(false);
   const [activeTab, setActiveTab] = useState<"launcher" | "minecraft">("launcher");
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -54,15 +46,20 @@ export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Prop
 
   useEffect(() => {
     loadMyRating();
-    // Check if this game is already running
-    invoke<string | null>("is_game_running").then(id => {
-      if (id === game.id) {
-        setGameRunning(true);
-        setShowLogs(true);
-        setActiveTab("minecraft");
-      }
-    });
+    // If this game has an active session, auto-show logs
+    if (isThisGame && (gameRunning || logs.length > 0)) {
+      setShowLogs(true);
+      if (gameRunning) setActiveTab("minecraft");
+    }
   }, [game.id]);
+
+  // Auto-switch to minecraft tab when game starts running
+  useEffect(() => {
+    if (isThisGame && gameRunning) {
+      setShowLogs(true);
+      setActiveTab("minecraft");
+    }
+  }, [gameRunning, isThisGame]);
 
   // Auto-scroll logs
   useEffect(() => {
@@ -73,75 +70,18 @@ export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Prop
     mcLogsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mcLogs]);
 
-  // Listen for MC output and exit events
-  useEffect(() => {
-    const unsubs: (() => void)[] = [];
-    
-    listen<McOutputPayload>("mc-output", (e) => {
-      setMcLogs(prev => {
-        const next = [...prev, e.payload.line];
-        // Keep last 500 lines to prevent memory issues
-        return next.length > 500 ? next.slice(-500) : next;
-      });
-    }).then(u => unsubs.push(u));
-    
-    listen<McExitedPayload>("mc-exited", (e) => {
-      if (e.payload.game_id === game.id) {
-        setGameRunning(false);
-        onGameRunning?.(null);
-        const code = e.payload.code;
-        setLogs(prev => [...prev, code === 0
-          ? "✓ Minecraft closed normally."
-          : `⚠ Minecraft exited with code ${code}`
-        ]);
-      }
-    }).then(u => unsubs.push(u));
-    
-    return () => { unsubs.forEach(u => u()); };
-  }, [game.id]);
-
   async function handlePlay() {
-    setLaunching(true);
-    setLogs([]);
-    setMcLogs([]);
-    setProgress(null);
     setShowLogs(true);
     setActiveTab("launcher");
-
-    const unlistenProgress = await listen<ProgressPayload>("launch-progress", (e) => {
-      setProgress(e.payload);
-      if (e.payload.stage === "running") {
-        setGameRunning(true);
-        setActiveTab("minecraft");
-        onGameRunning?.(game.id);
-      }
-    });
-    const unlistenLog = await listen<LogPayload>("launch-log", (e) => {
-      setLogs(prev => [...prev, e.payload.message]);
-    });
-
     try {
       await onPlay(game);
-      setLogs(prev => [...prev, "✓ Minecraft launched successfully!"]);
-    } catch (err: any) {
-      setLogs(prev => [...prev, `✗ Error: ${err}`]);
-      setProgress({ stage: "error", message: String(err), percent: 0 });
-    } finally {
-      setLaunching(false);
-      unlistenProgress();
-      unlistenLog();
+    } catch {
+      // errors handled in Home.tsx
     }
   }
 
   async function handleStop() {
-    try {
-      await invoke("stop_game");
-      setGameRunning(false);
-      onGameRunning?.(null);
-      setLogs(prev => [...prev, "⏹ Game stopped by user."]);
-    } catch (err: any) {
-      setLogs(prev => [...prev, `✗ Failed to stop: ${err}`]);
-    }
+    await onStop();
   }
 
   async function loadMyRating() {
@@ -235,16 +175,16 @@ export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Prop
               </div>
             </div>
             <button
-              onClick={gameRunning ? handleStop : handlePlay}
+              onClick={isThisGame && gameRunning ? handleStop : handlePlay}
               disabled={launching}
               className={`px-10 py-3.5 text-black font-bold rounded text-base cursor-pointer shrink-0 border-b-[4px] border-[rgba(0,0,0,0.3)] active:border-b-[2px] ${
                 launching ? "bg-[#00e676]/70 opacity-70 cursor-not-allowed" :
-                gameRunning ? "bg-[#cc3333] hover:bg-[#dd4444] text-white" :
+                isThisGame && gameRunning ? "bg-[#cc3333] hover:bg-[#dd4444] text-white" :
                 "bg-[#00e676] hover:bg-[#33ff99]"
               }`}
-              style={{fontFamily: "'Silkscreen', monospace", boxShadow: launching ? 'none' : gameRunning ? 'none' : '0 0 15px rgba(0, 230, 118, 0.3)'}}
+              style={{fontFamily: "'Silkscreen', monospace", boxShadow: launching ? 'none' : (isThisGame && gameRunning) ? 'none' : '0 0 15px rgba(0, 230, 118, 0.3)'}}
             >
-              {launching ? "⏳ LAUNCHING..." : gameRunning ? "⏹ STOP" : "▶ PLAY"}
+              {launching ? "⏳ LAUNCHING..." : (isThisGame && gameRunning) ? "⏹ STOP" : "▶ PLAY"}
             </button>
           </div>
 
@@ -310,7 +250,7 @@ export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Prop
           </div>
 
           {/* Progress bar + logs */}
-          {(launching || showLogs) && (
+          {showSession && (
             <div className="mt-5 space-y-3">
               {/* Progress bar */}
               {progress && (
@@ -355,7 +295,7 @@ export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Prop
                     }`}
                     style={{fontFamily: "'Silkscreen', monospace"}}
                   >
-                    MINECRAFT {gameRunning && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00e676] ml-1.5" />}
+                    MINECRAFT {isThisGame && gameRunning && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00e676] ml-1.5" />}
                     {mcLogs.length > 0 && ` (${mcLogs.length})`}
                   </button>
                   <div className="flex-1" />
@@ -387,7 +327,7 @@ export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Prop
                 {showLogs && activeTab === "minecraft" && (
                   <div className="px-4 pb-3 max-h-[300px] overflow-y-auto font-mono text-xs leading-5">
                     {mcLogs.length === 0 && (
-                      <p className="text-[#1e3a5f] mt-2">{gameRunning ? "Waiting for Minecraft output..." : "No Minecraft output yet. Press Play to start."}</p>
+                      <p className="text-[#1e3a5f] mt-2">{isThisGame && gameRunning ? "Waiting for Minecraft output..." : "No Minecraft output yet. Press Play to start."}</p>
                     )}
                     {mcLogs.map((log, i) => (
                       <p key={i} className={
