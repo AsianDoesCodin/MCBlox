@@ -842,6 +842,7 @@ pub struct GlobalMcSettings {
     pub vsync: Option<bool>,
     pub entity_shadows: Option<bool>,
     pub view_bobbing: Option<bool>,
+    pub brightness: Option<f64>,           // gamma: 0.0 (moody) to 1.0 (bright)
     pub keybinds: Option<std::collections::HashMap<String, String>>,
 }
 
@@ -865,7 +866,7 @@ fn get_global_mc_settings() -> GlobalMcSettings {
         entity_distance: None, graphics: None,
         gui_scale: None, sensitivity: None, difficulty: None, fullscreen: None,
         fov_effect: None, vsync: None, entity_shadows: None, view_bobbing: None,
-        keybinds: None,
+        brightness: None, keybinds: None,
     }
 }
 
@@ -927,6 +928,7 @@ pub fn apply_global_settings_to_options(instance_dir: &std::path::Path) {
     if let Some(v) = settings.vsync { set_option(&mut lines, "enableVsync", if v { "true" } else { "false" }); }
     if let Some(v) = settings.entity_shadows { set_option(&mut lines, "entityShadows", if v { "true" } else { "false" }); }
     if let Some(v) = settings.view_bobbing { set_option(&mut lines, "bobView", if v { "true" } else { "false" }); }
+    if let Some(v) = settings.brightness { set_option(&mut lines, "gamma", &format!("{:.2}", v)); }
 
     // Apply keybinds
     if let Some(ref binds) = settings.keybinds {

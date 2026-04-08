@@ -36,6 +36,7 @@ interface GlobalMcSettings {
   vsync: boolean | null;
   entity_shadows: boolean | null;
   view_bobbing: boolean | null;
+  brightness: number | null;
   keybinds: Record<string, string> | null;
 }
 
@@ -77,7 +78,7 @@ export default function Settings() {
     entity_distance: null, graphics: null,
     gui_scale: null, sensitivity: null, difficulty: null, fullscreen: null,
     fov_effect: null, vsync: null, entity_shadows: null, view_bobbing: null,
-    keybinds: null,
+    brightness: null, keybinds: null,
   });
   const [showKeybinds, setShowKeybinds] = useState(false);
   const [listeningKey, setListeningKey] = useState<string | null>(null);
@@ -572,6 +573,22 @@ export default function Settings() {
                       className="w-28 accent-[#00e676]"
                     />
                     <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.fov_effect ?? 1) * 100)}%</span>
+                  </div>
+                </div>
+                {/* Brightness */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Brightness</p>
+                    <p className="text-xs text-[#64748b]">0% = Moody, 100% = Bright</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range" min="0" max="1" step="0.05"
+                      value={mcSettings.brightness ?? 0.5}
+                      onChange={(e) => updateMcSetting("brightness", Number(e.target.value))}
+                      className="w-28 accent-[#00e676]"
+                    />
+                    <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.brightness ?? 0.5) * 100)}%</span>
                   </div>
                 </div>
                 {/* Keybinds button */}
