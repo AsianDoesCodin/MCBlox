@@ -459,6 +459,9 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     std::fs::write(&meta_path, serde_json::to_string_pretty(&meta).unwrap())
         .map_err(|e| format!("Failed to save metadata: {}", e))?;
 
+    // Apply global MC settings to options.txt before launch
+    apply_global_settings_to_options(&instance_dir);
+
     // Launch Minecraft!
     emit("launch", "Launching Minecraft...", 0.95);
     println!("[McBlox] ===== LAUNCHING MINECRAFT =====");
@@ -807,6 +810,103 @@ async fn mc_auth_logout(state: tauri::State<'_, McAuthState>) -> Result<(), Stri
     mc_auth::delete_account()
 }
 
+// ---- Global MC Settings ----
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GlobalMcSettings {
+    pub enabled: bool,
+    pub fov: Option<f64>,
+    pub render_distance: Option<i32>,
+    pub graphics: Option<String>,       // "fast", "fancy", "fabulous"
+    pub gui_scale: Option<i32>,
+    pub sensitivity: Option<f64>,        // 0.0-1.0, MC default is 0.5
+    pub difficulty: Option<i32>,         // 0=peaceful, 1=easy, 2=normal, 3=hard
+    pub fullscreen: Option<bool>,
+    pub fov_effect: Option<f64>,
+    pub vsync: Option<bool>,
+    pub entity_shadows: Option<bool>,
+    pub view_bobbing: Option<bool>,
+}
+
+fn global_settings_path() -> PathBuf {
+    let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
+    base.join("McBlox").join("global_settings.json")
+}
+
+#[tauri::command]
+fn get_global_mc_settings() -> GlobalMcSettings {
+    let path = global_settings_path();
+    if path.exists() {
+        if let Ok(data) = std::fs::read_to_string(&path) {
+            if let Ok(settings) = serde_json::from_str(&data) {
+                return settings;
+            }
+        }
+    }
+    GlobalMcSettings {
+        enabled: false, fov: None, render_distance: None, graphics: None,
+        gui_scale: None, sensitivity: None, difficulty: None, fullscreen: None,
+        fov_effect: None, vsync: None, entity_shadows: None, view_bobbing: None,
+    }
+}
+
+#[tauri::command]
+fn save_global_mc_settings(settings: GlobalMcSettings) -> Result<(), String> {
+    let path = global_settings_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    std::fs::write(&path, json).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Apply global MC settings to an instance's options.txt
+pub fn apply_global_settings_to_options(instance_dir: &std::path::Path) {
+    let settings = get_global_mc_settings();
+    if !settings.enabled { return; }
+
+    let options_path = instance_dir.join("options.txt");
+    let mut lines: Vec<String> = if options_path.exists() {
+        std::fs::read_to_string(&options_path)
+            .unwrap_or_default()
+            .lines()
+            .map(|l| l.to_string())
+            .collect()
+    } else {
+        vec![]
+    };
+
+    fn set_option(lines: &mut Vec<String>, key: &str, value: &str) {
+        let prefix = format!("{}:", key);
+        if let Some(line) = lines.iter_mut().find(|l| l.starts_with(&prefix)) {
+            *line = format!("{}:{}", key, value);
+        } else {
+            lines.push(format!("{}:{}", key, value));
+        }
+    }
+
+    if let Some(v) = settings.fov { set_option(&mut lines, "fov", &v.to_string()); }
+    if let Some(v) = settings.render_distance { set_option(&mut lines, "renderDistance", &v.to_string()); }
+    if let Some(v) = &settings.graphics {
+        let mc_val = match v.as_str() {
+            "fast" => "0", "fancy" => "1", "fabulous" => "2", _ => "1"
+        };
+        set_option(&mut lines, "graphicsMode", mc_val);
+    }
+    if let Some(v) = settings.gui_scale { set_option(&mut lines, "guiScale", &v.to_string()); }
+    if let Some(v) = settings.sensitivity { set_option(&mut lines, "mouseSensitivity", &v.to_string()); }
+    if let Some(v) = settings.difficulty { set_option(&mut lines, "difficulty", &v.to_string()); }
+    if let Some(v) = settings.fullscreen { set_option(&mut lines, "fullscreen", if v { "true" } else { "false" }); }
+    if let Some(v) = settings.fov_effect { set_option(&mut lines, "fovEffectScale", &v.to_string()); }
+    if let Some(v) = settings.vsync { set_option(&mut lines, "enableVsync", if v { "true" } else { "false" }); }
+    if let Some(v) = settings.entity_shadows { set_option(&mut lines, "entityShadows", if v { "true" } else { "false" }); }
+    if let Some(v) = settings.view_bobbing { set_option(&mut lines, "bobView", if v { "true" } else { "false" }); }
+
+    let content = lines.join("\n");
+    let _ = std::fs::write(&options_path, content);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -827,7 +927,9 @@ pub fn run() {
             mc_auth_status,
             mc_auth_get_account,
             mc_auth_refresh,
-            mc_auth_logout
+            mc_auth_logout,
+            get_global_mc_settings,
+            save_global_mc_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -234,7 +234,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
             </h2>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
               {featured.slice(1).map((g) => (
-                <GameCard key={g.id} game={g} onClick={setSelected} />
+                <GameCard key={g.id} game={g} onClick={setSelected} session={session} />
               ))}
             </div>
           </div>
@@ -250,7 +250,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
           ) : rest.length > 0 ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
               {rest.map((g) => (
-                <GameCard key={g.id} game={g} onClick={setSelected} />
+                <GameCard key={g.id} game={g} onClick={setSelected} session={session} />
               ))}
             </div>
           ) : (

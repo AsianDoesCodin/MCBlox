@@ -21,6 +21,21 @@ interface StorageInfo {
   path: string;
 }
 
+interface GlobalMcSettings {
+  enabled: boolean;
+  fov: number | null;
+  render_distance: number | null;
+  graphics: string | null;
+  gui_scale: number | null;
+  sensitivity: number | null;
+  difficulty: number | null;
+  fullscreen: boolean | null;
+  fov_effect: number | null;
+  vsync: boolean | null;
+  entity_shadows: boolean | null;
+  view_bobbing: boolean | null;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -53,6 +68,13 @@ export default function Settings() {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateResult, setUpdateResult] = useState<string | null>(null);
 
+  // Global MC settings
+  const [mcSettings, setMcSettings] = useState<GlobalMcSettings>({
+    enabled: false, fov: null, render_distance: null, graphics: null,
+    gui_scale: null, sensitivity: null, difficulty: null, fullscreen: null,
+    fov_effect: null, vsync: null, entity_shadows: null, view_bobbing: null,
+  });
+
   useEffect(() => {
     // Check for saved MC account
     invoke("mc_auth_get_account").then((acc: any) => {
@@ -84,6 +106,9 @@ export default function Settings() {
 
     // Load storage info
     loadStorageInfo();
+
+    // Load global MC settings
+    invoke<GlobalMcSettings>("get_global_mc_settings").then(s => setMcSettings(s)).catch(() => {});
   }, []);
 
   async function loadStorageInfo() {
@@ -91,6 +116,15 @@ export default function Settings() {
       const info: any = await invoke("get_storage_info");
       setStorageInfo(info);
     } catch {}
+  }
+
+  function updateMcSetting<K extends keyof GlobalMcSettings>(key: K, value: GlobalMcSettings[K]) {
+    setMcSettings(prev => {
+      const next = { ...prev, [key]: value };
+      // Auto-save
+      invoke("save_global_mc_settings", { settings: next }).catch(() => {});
+      return next;
+    });
   }
 
   async function clearCache() {
@@ -354,6 +388,172 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Global Minecraft Settings */}
+          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-sm flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+                🎮 Global Minecraft Settings
+              </h2>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-xs text-[#64748b]">{mcSettings.enabled ? "On" : "Off"}</span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={mcSettings.enabled}
+                    onChange={(e) => updateMcSetting("enabled", e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-5 bg-[#1a2235] rounded peer-checked:bg-[#00e676] transition-colors" />
+                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded peer-checked:translate-x-5 transition-transform" />
+                </div>
+              </label>
+            </div>
+            {!mcSettings.enabled ? (
+              <p className="text-xs text-[#64748b]">Enable to override in-game settings (FOV, graphics, sensitivity, etc.) for all games on launch.</p>
+            ) : (
+              <div className="space-y-4">
+                {/* FOV */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">FOV</p>
+                    <p className="text-xs text-[#64748b]">Field of view (30-110, default 70)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range" min="30" max="110" step="1"
+                      value={mcSettings.fov ?? 70}
+                      onChange={(e) => updateMcSetting("fov", Number(e.target.value))}
+                      className="w-28 accent-[#00e676]"
+                    />
+                    <span className="text-xs text-white w-8 text-right">{mcSettings.fov ?? 70}</span>
+                  </div>
+                </div>
+                {/* Render Distance */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Render Distance</p>
+                    <p className="text-xs text-[#64748b]">Chunks (2-32, default 12)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range" min="2" max="32" step="1"
+                      value={mcSettings.render_distance ?? 12}
+                      onChange={(e) => updateMcSetting("render_distance", Number(e.target.value))}
+                      className="w-28 accent-[#00e676]"
+                    />
+                    <span className="text-xs text-white w-8 text-right">{mcSettings.render_distance ?? 12}</span>
+                  </div>
+                </div>
+                {/* Graphics */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Graphics</p>
+                    <p className="text-xs text-[#64748b]">Rendering quality</p>
+                  </div>
+                  <select
+                    value={mcSettings.graphics ?? "fancy"}
+                    onChange={(e) => updateMcSetting("graphics", e.target.value)}
+                    className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer"
+                  >
+                    <option value="fast">Fast</option>
+                    <option value="fancy">Fancy</option>
+                    <option value="fabulous">Fabulous</option>
+                  </select>
+                </div>
+                {/* GUI Scale */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">GUI Scale</p>
+                    <p className="text-xs text-[#64748b]">0=Auto, 1-4=fixed</p>
+                  </div>
+                  <select
+                    value={mcSettings.gui_scale ?? 0}
+                    onChange={(e) => updateMcSetting("gui_scale", Number(e.target.value))}
+                    className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer"
+                  >
+                    <option value={0}>Auto</option>
+                    <option value={1}>Small</option>
+                    <option value={2}>Normal</option>
+                    <option value={3}>Large</option>
+                    <option value={4}>Huge</option>
+                  </select>
+                </div>
+                {/* Sensitivity */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Mouse Sensitivity</p>
+                    <p className="text-xs text-[#64748b]">0%-200% (default 100%)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range" min="0" max="1" step="0.01"
+                      value={mcSettings.sensitivity ?? 0.5}
+                      onChange={(e) => updateMcSetting("sensitivity", Number(e.target.value))}
+                      className="w-28 accent-[#00e676]"
+                    />
+                    <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.sensitivity ?? 0.5) * 200)}%</span>
+                  </div>
+                </div>
+                {/* Difficulty */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Difficulty</p>
+                    <p className="text-xs text-[#64748b]">Default game difficulty</p>
+                  </div>
+                  <select
+                    value={mcSettings.difficulty ?? 2}
+                    onChange={(e) => updateMcSetting("difficulty", Number(e.target.value))}
+                    className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer"
+                  >
+                    <option value={0}>Peaceful</option>
+                    <option value={1}>Easy</option>
+                    <option value={2}>Normal</option>
+                    <option value={3}>Hard</option>
+                  </select>
+                </div>
+                {/* Toggle row: Fullscreen, VSync, Entity Shadows, View Bobbing */}
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    ["fullscreen", "Fullscreen", mcSettings.fullscreen],
+                    ["vsync", "VSync", mcSettings.vsync],
+                    ["entity_shadows", "Entity Shadows", mcSettings.entity_shadows],
+                    ["view_bobbing", "View Bobbing", mcSettings.view_bobbing],
+                  ] as [keyof GlobalMcSettings, string, boolean | null][]).map(([key, label, val]) => (
+                    <label key={key} className="flex items-center justify-between cursor-pointer bg-[#0a0e1a] rounded px-3 py-2 border border-[#1e3a5f]">
+                      <span className="text-xs font-medium">{label}</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={val ?? (key === "view_bobbing" || key === "entity_shadows")}
+                          onChange={(e) => updateMcSetting(key, e.target.checked as any)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-8 h-4 bg-[#1a2235] rounded peer-checked:bg-[#00e676] transition-colors" />
+                        <div className="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded peer-checked:translate-x-4 transition-transform" />
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {/* FOV Effect Scale */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">FOV Effects</p>
+                    <p className="text-xs text-[#64748b]">Speed/potion FOV change (0-1)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range" min="0" max="1" step="0.05"
+                      value={mcSettings.fov_effect ?? 1}
+                      onChange={(e) => updateMcSetting("fov_effect", Number(e.target.value))}
+                      className="w-28 accent-[#00e676]"
+                    />
+                    <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.fov_effect ?? 1) * 100)}%</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Behavior */}
