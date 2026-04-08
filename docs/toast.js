@@ -1,9 +1,14 @@
 // Toast notification system for McBlox website
 (function() {
-  const container = document.createElement('div');
-  container.id = 'toast-container';
-  container.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
-  document.body.appendChild(container);
+  let container;
+
+  function ensureContainer() {
+    if (container) return;
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+    document.body.appendChild(container);
+  }
 
   const colors = {
     success: { bg: '#2d5a1b', border: '#5b8731' },
@@ -14,6 +19,7 @@
   const icons = { success: '✓', error: '✗', warning: '⚠', info: 'ℹ' };
 
   window.showToast = function(message, type) {
+    ensureContainer();
     type = type || 'info';
     const c = colors[type] || colors.info;
     const el = document.createElement('div');
