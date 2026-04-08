@@ -27,4 +27,5 @@ jar {
             "Implementation-Version"  : project.version,
         ])
     }
+    finalizedBy 'reobfJar'
 }
