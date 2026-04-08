@@ -95,7 +95,7 @@ public class McBloxMod {
                         || msg.contains("disconnect") || msg.contains("quit")) {
                     event.removeListener(btn);
                     event.addListener(new Button(btn.x, btn.y, btn.getWidth(), btn.getHeight(),
-                        new TextComponent("Save and Quit"), b -> Minecraft.getInstance().stop()));
+                        new TextComponent("Exit Game"), b -> Minecraft.getInstance().stop()));
                     break;
                 }
             }

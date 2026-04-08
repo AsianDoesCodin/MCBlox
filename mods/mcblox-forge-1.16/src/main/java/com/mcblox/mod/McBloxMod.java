@@ -94,7 +94,7 @@ public class McBloxMod {
                         || msg.contains("disconnect") || msg.contains("quit")) {
                     event.removeWidget(btn);
                     event.addWidget(new Button(btn.x, btn.y, btn.getWidth(), btn.getHeight(),
-                        new StringTextComponent("Save and Quit"), b -> Minecraft.getInstance().stop()));
+                        new StringTextComponent("Exit Game"), b -> Minecraft.getInstance().stop()));
                     break;
                 }
             }

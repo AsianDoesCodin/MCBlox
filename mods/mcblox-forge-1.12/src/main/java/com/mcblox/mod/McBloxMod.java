@@ -87,7 +87,7 @@ public class McBloxMod {
                 if (btn.displayString.contains("Disconnect") || btn.displayString.contains("Save and Quit")
                         || btn.displayString.contains("disconnect") || btn.displayString.contains("quit")) {
                     event.getButtonList().remove(btn);
-                    GuiButton exitBtn = new GuiButton(9999, btn.x, btn.y, btn.width, btn.height, "Save and Quit");
+                    GuiButton exitBtn = new GuiButton(9999, btn.x, btn.y, btn.width, btn.height, "Exit Game");
                     event.getButtonList().add(exitBtn);
                     break;
                 }
