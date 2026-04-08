@@ -1,5 +1,6 @@
 use std::io::Write;
 use std::path::Path;
+use futures_util::StreamExt;
 
 /// Resolve a modpack URL to a direct download link
 pub async fn resolve_download_url(url: &str) -> Result<String, Box<dyn std::error::Error>> {
@@ -105,7 +106,8 @@ pub async fn resolve_download_url(url: &str) -> Result<String, Box<dyn std::erro
 }
 
 /// Download a modpack from URL to local path
-pub async fn download_modpack(url: &str, dest: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn download_modpack<F>(url: &str, dest: &Path, on_progress: F) -> Result<(), Box<dyn std::error::Error>>
+where F: Fn(u64, Option<u64>) {
     let download_url = resolve_download_url(url).await?;
 
     let client = reqwest::Client::builder()
@@ -119,9 +121,17 @@ pub async fn download_modpack(url: &str, dest: &Path) -> Result<(), Box<dyn std:
         return Err(format!("Download failed with status: {}", response.status()).into());
     }
 
-    let bytes = response.bytes().await?;
+    let total_size = response.content_length();
+    let mut downloaded: u64 = 0;
     let mut file = std::fs::File::create(dest)?;
-    file.write_all(&bytes)?;
+    let mut stream = response.bytes_stream();
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        file.write_all(&chunk)?;
+        downloaded += chunk.len() as u64;
+        on_progress(downloaded, total_size);
+    }
 
     Ok(())
 }

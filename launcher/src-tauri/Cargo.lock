@@ -2146,6 +2146,7 @@ name = "launcher"
 version = "0.3.5"
 dependencies = [
  "dirs",
+ "futures-util",
  "reqwest 0.12.28",
  "serde",
  "serde_json",

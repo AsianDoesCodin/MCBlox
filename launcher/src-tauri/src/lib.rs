@@ -257,7 +257,26 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     if !modpack_path.exists() && !request.modpack_url.is_empty() {
         emit("download", "Downloading modpack...", 0.1);
         println!("[McBlox] Downloading modpack from: {}", request.modpack_url);
-        instance::download_modpack(&request.modpack_url, &modpack_path)
+        let app_for_dl = app_handle.clone();
+        instance::download_modpack(&request.modpack_url, &modpack_path, move |downloaded, total| {
+            let pct_str = if let Some(t) = total {
+                let p = (downloaded as f64 / t as f64 * 100.0) as u32;
+                format!("{}%", p)
+            } else {
+                format!("{:.1} MB", downloaded as f64 / 1_048_576.0)
+            };
+            let msg = format!("Downloading modpack... ({})", pct_str);
+            let progress = if let Some(t) = total {
+                0.1 + 0.1 * (downloaded as f32 / t as f32)
+            } else {
+                0.1
+            };
+            app_for_dl.emit("launch-progress", LaunchProgress {
+                stage: "download".to_string(),
+                message: msg.clone(),
+                percent: progress,
+            }).ok();
+        })
             .await
             .map_err(|e| format!("Failed to download modpack: {}", e))?;
         println!("[McBlox] Modpack downloaded successfully");
