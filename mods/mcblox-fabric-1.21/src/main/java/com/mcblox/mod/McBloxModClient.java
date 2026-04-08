@@ -10,8 +10,7 @@ import java.io.FileReader;
 public class McBloxModClient implements ClientModInitializer {
 
     public static McBloxConfig config = null;
-    public static boolean autoJoinDone = false;
-    public static int tickDelay = 0;
+    public static boolean skipAttempted = false;
 
     @Override
     public void onInitializeClient() {
@@ -20,9 +19,7 @@ public class McBloxModClient implements ClientModInitializer {
 
     public static McBloxConfig loadConfig() {
         File configFile = new File("mcblox_config.json");
-        if (!configFile.exists()) {
-            return null;
-        }
+        if (!configFile.exists()) return null;
         try (FileReader reader = new FileReader(configFile)) {
             JsonObject json = new Gson().fromJson(reader, JsonObject.class);
             McBloxConfig cfg = new McBloxConfig();

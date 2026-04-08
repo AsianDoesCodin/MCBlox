@@ -8,9 +8,10 @@ import net.minecraft.client.gui.screens.*;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.LevelSummary;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.loading.FMLPaths;
@@ -22,8 +23,7 @@ import java.io.FileReader;
 public class McBloxMod {
 
     private static McBloxConfig config = null;
-    private static boolean autoJoinDone = false;
-    private static int tickDelay = 0;
+    private static boolean skipAttempted = false;
 
     public McBloxMod() {
         config = loadConfig();
@@ -33,11 +33,8 @@ public class McBloxMod {
     }
 
     private static McBloxConfig loadConfig() {
-        // Look for mcblox_config.json in game directory
         File configFile = new File(FMLPaths.GAMEDIR.get().toFile(), "mcblox_config.json");
-        if (!configFile.exists()) {
-            return null;
-        }
+        if (!configFile.exists()) return null;
         try (FileReader reader = new FileReader(configFile)) {
             JsonObject json = new Gson().fromJson(reader, JsonObject.class);
             McBloxConfig cfg = new McBloxConfig();
@@ -51,57 +48,79 @@ public class McBloxMod {
         }
     }
 
+    // Intercept TitleScreen BEFORE it opens — cancel it and auto-join
     @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        if (autoJoinDone || config == null) return;
+    public void onScreenOpen(ScreenEvent.Opening event) {
+        if (skipAttempted || config == null) return;
+        if (!(event.getScreen() instanceof TitleScreen)) return;
 
+        skipAttempted = true;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.screen instanceof TitleScreen || mc.screen instanceof GenericDirtMessageScreen) {
-            // Wait a few ticks for the title screen to stabilize
-            tickDelay++;
-            if (tickDelay < 20) return;
 
-            autoJoinDone = true;
-
-            if ("server".equals(config.gameType) && config.serverAddress != null) {
-                // Connect to server
-                ServerAddress addr = ServerAddress.parseString(config.serverAddress);
-                ServerData serverData = new ServerData("McBlox Server", config.serverAddress, false);
-                ConnectScreen.startConnecting(mc.screen, mc, addr, serverData, false);
-            } else if ("world".equals(config.gameType) && config.worldName != null) {
-                // Load singleplayer world by folder name
-                mc.forceSetScreen(new GenericDirtMessageScreen(Component.literal("Loading world...")));
-                mc.createWorldOpenFlows().loadLevel(mc.screen, config.worldName);
-            }
-        }
-    }
-
-    @SubscribeEvent
-    public void onScreenInit(ScreenEvent.Init.Post event) {
-        if (config == null) return;
-
-        Screen screen = event.getScreen();
-
-        // Replace Disconnect button with Exit button on pause screen
-        if (screen instanceof PauseScreen) {
-            // Find the disconnect/save-and-quit button
-            Button toRemove = null;
-            for (var widget : event.getListenersList()) {
-                if (widget instanceof Button btn) {
-                    String msg = btn.getMessage().getString();
-                    if (msg.contains("Disconnect") || msg.contains("Save and Quit")) {
-                        toRemove = btn;
+        if ("server".equals(config.gameType) && config.serverAddress != null) {
+            event.setCanceled(true);
+            ServerAddress addr = ServerAddress.parseString(config.serverAddress);
+            ServerData serverData = new ServerData("McBlox Server", config.serverAddress, false);
+            mc.tell(() -> {
+                try {
+                    ConnectScreen.startConnecting(new TitleScreen(), mc, addr, serverData, false);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    skipAttempted = false;
+                    mc.setScreen(new TitleScreen());
+                }
+            });
+        } else if ("world".equals(config.gameType) && config.worldName != null) {
+            // Verify the world exists before skipping
+            try {
+                LevelStorageSource levelSource = mc.getLevelSource();
+                boolean worldExists = false;
+                for (LevelSummary summary : levelSource.loadLevelSummaries(levelSource.findLevelCandidates()).join()) {
+                    if (summary.getLevelId().equals(config.worldName)) {
+                        worldExists = true;
                         break;
                     }
                 }
+                if (!worldExists) {
+                    skipAttempted = false;
+                    return; // Show normal title screen
+                }
+            } catch (Exception e) {
+                skipAttempted = false;
+                return;
             }
-            if (toRemove != null) {
-                Button exitBtn = Button.builder(Component.literal("Exit Game"), b -> {
-                    Minecraft.getInstance().stop();
-                }).bounds(toRemove.getX(), toRemove.getY(), toRemove.getWidth(), toRemove.getHeight()).build();
-                event.removeListener(toRemove);
-                event.addListener(exitBtn);
+
+            event.setCanceled(true);
+            mc.tell(() -> {
+                try {
+                    mc.createWorldOpenFlows().loadLevel(event.getScreen(), config.worldName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    skipAttempted = false;
+                    mc.setScreen(new TitleScreen());
+                }
+            });
+        }
+    }
+
+    // Replace Disconnect/Save-and-Quit button with Exit Game
+    @SubscribeEvent
+    public void onScreenInit(ScreenEvent.Init.Post event) {
+        if (config == null) return;
+        if (!(event.getScreen() instanceof PauseScreen)) return;
+
+        for (var widget : event.getListenersList()) {
+            if (widget instanceof Button btn) {
+                String msg = btn.getMessage().getString();
+                if (msg.contains("Disconnect") || msg.contains("Save and Quit")
+                        || msg.contains("disconnect") || msg.contains("quit")) {
+                    event.removeListener(btn);
+                    event.addListener(Button.builder(
+                            Component.literal("Save and Quit"),
+                            b -> Minecraft.getInstance().stop()
+                    ).bounds(btn.getX(), btn.getY(), btn.getWidth(), btn.getHeight()).build());
+                    break;
+                }
             }
         }
     }

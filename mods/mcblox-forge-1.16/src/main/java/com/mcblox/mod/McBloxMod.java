@@ -7,9 +7,9 @@ import net.minecraft.client.gui.screen.*;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.loading.FMLPaths;
@@ -21,8 +21,7 @@ import java.io.FileReader;
 public class McBloxMod {
 
     private static McBloxConfig config = null;
-    private static boolean autoJoinDone = false;
-    private static int tickDelay = 0;
+    private static boolean skipAttempted = false;
 
     public McBloxMod() {
         config = loadConfig();
@@ -33,9 +32,7 @@ public class McBloxMod {
 
     private static McBloxConfig loadConfig() {
         File configFile = new File(FMLPaths.GAMEDIR.get().toFile(), "mcblox_config.json");
-        if (!configFile.exists()) {
-            return null;
-        }
+        if (!configFile.exists()) return null;
         try (FileReader reader = new FileReader(configFile)) {
             JsonObject json = new Gson().fromJson(reader, JsonObject.class);
             McBloxConfig cfg = new McBloxConfig();
@@ -49,49 +46,57 @@ public class McBloxMod {
         }
     }
 
+    // 1.16.5 uses GuiOpenEvent to intercept screen opens
     @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        if (autoJoinDone || config == null) return;
+    public void onGuiOpen(GuiOpenEvent event) {
+        if (skipAttempted || config == null) return;
+        if (!(event.getGui() instanceof MainMenuScreen)) return;
 
+        skipAttempted = true;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.screen instanceof MainMenuScreen) {
-            tickDelay++;
-            if (tickDelay < 20) return;
-            autoJoinDone = true;
 
-            if ("server".equals(config.gameType) && config.serverAddress != null) {
-                ServerData serverData = new ServerData("McBlox Server", config.serverAddress, false);
-                mc.setScreen(new ConnectingScreen(mc.screen, mc, serverData));
-            } else if ("world".equals(config.gameType) && config.worldName != null) {
-                mc.setScreen(new DirtMessageScreen(new StringTextComponent("Loading world...")));
-                mc.loadLevel(config.worldName);
-            }
+        if ("server".equals(config.gameType) && config.serverAddress != null) {
+            event.setCanceled(true);
+            ServerData serverData = new ServerData("McBlox Server", config.serverAddress, false);
+            mc.tell(() -> {
+                try {
+                    mc.setScreen(new ConnectingScreen(new MainMenuScreen(), mc, serverData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    skipAttempted = false;
+                    mc.setScreen(new MainMenuScreen());
+                }
+            });
+        } else if ("world".equals(config.gameType) && config.worldName != null) {
+            event.setCanceled(true);
+            mc.tell(() -> {
+                try {
+                    mc.loadLevel(config.worldName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    skipAttempted = false;
+                    mc.setScreen(new MainMenuScreen());
+                }
+            });
         }
     }
 
     @SubscribeEvent
     public void onScreenInit(GuiScreenEvent.InitGuiEvent.Post event) {
         if (config == null) return;
+        if (!(event.getGui() instanceof IngameMenuScreen)) return;
 
-        Screen screen = event.getGui();
-        if (screen instanceof IngameMenuScreen) {
-            Button toRemove = null;
-            for (var widget : event.getWidgetList()) {
-                if (widget instanceof Button) {
-                    Button btn = (Button) widget;
-                    String msg = btn.getMessage().getString();
-                    if (msg.contains("Disconnect") || msg.contains("Save and Quit")) {
-                        toRemove = btn;
-                        break;
-                    }
+        for (var widget : event.getWidgetList()) {
+            if (widget instanceof Button) {
+                Button btn = (Button) widget;
+                String msg = btn.getMessage().getString();
+                if (msg.contains("Disconnect") || msg.contains("Save and Quit")
+                        || msg.contains("disconnect") || msg.contains("quit")) {
+                    event.removeWidget(btn);
+                    event.addWidget(new Button(btn.x, btn.y, btn.getWidth(), btn.getHeight(),
+                        new StringTextComponent("Save and Quit"), b -> Minecraft.getInstance().stop()));
+                    break;
                 }
-            }
-            if (toRemove != null) {
-                Button exitBtn = new Button(toRemove.x, toRemove.y, toRemove.getWidth(), toRemove.getHeight(),
-                    new StringTextComponent("Exit Game"), b -> Minecraft.getInstance().stop());
-                event.removeWidget(toRemove);
-                event.addWidget(exitBtn);
             }
         }
     }

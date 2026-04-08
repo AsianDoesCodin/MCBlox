@@ -9,12 +9,12 @@ import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.multiplayer.GuiConnecting;
 import net.minecraft.client.multiplayer.ServerData;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.io.File;
 import java.io.FileReader;
@@ -23,8 +23,7 @@ import java.io.FileReader;
 public class McBloxMod {
 
     private static McBloxConfig config = null;
-    private static boolean autoJoinDone = false;
-    private static int tickDelay = 0;
+    private static boolean skipAttempted = false;
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
@@ -37,9 +36,7 @@ public class McBloxMod {
     private static McBloxConfig loadConfig() {
         File gameDir = Minecraft.getMinecraft().gameDir;
         File configFile = new File(gameDir, "mcblox_config.json");
-        if (!configFile.exists()) {
-            return null;
-        }
+        if (!configFile.exists()) return null;
         try (FileReader reader = new FileReader(configFile)) {
             JsonObject json = new Gson().fromJson(reader, JsonObject.class);
             McBloxConfig cfg = new McBloxConfig();
@@ -53,50 +50,47 @@ public class McBloxMod {
         }
     }
 
+    // Intercept main menu before it opens
     @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        if (autoJoinDone || config == null) return;
+    public void onGuiOpen(GuiOpenEvent event) {
+        if (skipAttempted || config == null) return;
+        if (!(event.getGui() instanceof GuiMainMenu)) return;
 
+        skipAttempted = true;
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.currentScreen instanceof GuiMainMenu) {
-            tickDelay++;
-            if (tickDelay < 20) return;
-            autoJoinDone = true;
 
-            if ("server".equals(config.gameType) && config.serverAddress != null) {
-                ServerData serverData = new ServerData("McBlox Server", config.serverAddress, false);
-                mc.displayGuiScreen(new GuiConnecting(mc.currentScreen, mc, serverData));
-            } else if ("world".equals(config.gameType) && config.worldName != null) {
-                mc.launchIntegratedServer(config.worldName, config.worldName, null);
-            }
+        if ("server".equals(config.gameType) && config.serverAddress != null) {
+            ServerData serverData = new ServerData("McBlox Server", config.serverAddress, false);
+            event.setGui(new GuiConnecting(new GuiMainMenu(), mc, serverData));
+        } else if ("world".equals(config.gameType) && config.worldName != null) {
+            event.setCanceled(true);
+            mc.addScheduledTask(() -> {
+                try {
+                    mc.launchIntegratedServer(config.worldName, config.worldName, null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    skipAttempted = false;
+                    mc.displayGuiScreen(new GuiMainMenu());
+                }
+            });
         }
     }
 
     @SubscribeEvent
     public void onGuiInit(GuiScreenEvent.InitGuiEvent.Post event) {
         if (config == null) return;
+        if (!(event.getGui() instanceof GuiIngameMenu)) return;
 
-        GuiScreen screen = event.getGui();
-        if (screen instanceof GuiIngameMenu) {
-            GuiButton toRemove = null;
-            for (Object widget : event.getButtonList()) {
-                if (widget instanceof GuiButton) {
-                    GuiButton btn = (GuiButton) widget;
-                    if (btn.displayString.contains("Disconnect") || btn.displayString.contains("Save and Quit")) {
-                        toRemove = btn;
-                        break;
-                    }
+        for (Object widget : event.getButtonList()) {
+            if (widget instanceof GuiButton) {
+                GuiButton btn = (GuiButton) widget;
+                if (btn.displayString.contains("Disconnect") || btn.displayString.contains("Save and Quit")
+                        || btn.displayString.contains("disconnect") || btn.displayString.contains("quit")) {
+                    event.getButtonList().remove(btn);
+                    GuiButton exitBtn = new GuiButton(9999, btn.x, btn.y, btn.width, btn.height, "Save and Quit");
+                    event.getButtonList().add(exitBtn);
+                    break;
                 }
-            }
-            if (toRemove != null) {
-                final int x = toRemove.x;
-                final int y = toRemove.y;
-                final int w = toRemove.width;
-                final int h = toRemove.height;
-                event.getButtonList().remove(toRemove);
-                GuiButton exitBtn = new GuiButton(9999, x, y, w, h, "Exit Game");
-                event.getButtonList().add(exitBtn);
             }
         }
     }
@@ -104,11 +98,9 @@ public class McBloxMod {
     @SubscribeEvent
     public void onGuiAction(GuiScreenEvent.ActionPerformedEvent.Pre event) {
         if (config == null) return;
-        if (event.getGui() instanceof GuiIngameMenu) {
-            if (event.getButton().id == 9999) {
-                Minecraft.getMinecraft().shutdown();
-                event.setCanceled(true);
-            }
+        if (event.getGui() instanceof GuiIngameMenu && event.getButton().id == 9999) {
+            Minecraft.getMinecraft().shutdown();
+            event.setCanceled(true);
         }
     }
 

@@ -29,10 +29,9 @@ public class GameMenuScreenMixin {
             })
             .findFirst()
             .ifPresent(oldBtn -> {
-                // Remove old button and add exit button
                 screen.remove(oldBtn);
                 screen.addDrawableChild(ButtonWidget.builder(
-                    Text.literal("Exit Game"),
+                    Text.literal("Save and Quit"),
                     btn -> MinecraftClient.getInstance().scheduleStop()
                 ).dimensions(oldBtn.getX(), oldBtn.getY(), oldBtn.getWidth(), oldBtn.getHeight()).build());
             });
