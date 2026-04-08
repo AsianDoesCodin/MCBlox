@@ -447,11 +447,8 @@ pub async fn install_forge(
         if !profiles_path.exists() {
             std::fs::write(&profiles_path, r#"{"profiles":{}}"#).ok();
         }
-        // Find Java to run the installer
-        let java_exe = if crate::which_java("java.exe") {
-            "java.exe".to_string()
-        } else {
-            // Use bundled Java
+        // Find Java to run the installer — prefer bundled Java to avoid elevation issues
+        let java_exe = {
             let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
             let java_dir = base.join("McBlox").join("java");
             let mut found = None;
@@ -464,7 +461,13 @@ pub async fn install_forge(
                     }
                 }
             }
-            found.ok_or("No Java found to run Forge installer")?
+            found.unwrap_or_else(|| {
+                if crate::which_java("java.exe") {
+                    "java.exe".to_string()
+                } else {
+                    "java.exe".to_string() // will fail below with clear error
+                }
+            })
         };
         
         // Run the installer in headless/installClient mode
