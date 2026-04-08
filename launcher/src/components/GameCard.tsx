@@ -107,11 +107,20 @@ export default function GameCard({ game, onClick, onPlay, onStop, session }: Pro
             )}
           </div>
         )}
+        {/* Online/Offline label */}
+        <div className={`absolute top-1.5 left-1.5 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+          game.game_type === 'server'
+            ? 'bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40'
+            : 'bg-[#64748b]/20 text-[#94a3b8] border border-[#64748b]/40'
+        }`} style={{fontFamily: "'Silkscreen', monospace", backdropFilter: 'blur(4px)'}}>
+          <span className={`w-1.5 h-1.5 rounded-full ${game.game_type === 'server' ? 'bg-[#00e676]' : 'bg-[#64748b]'}`} />
+          {game.game_type === 'server' ? 'Online' : 'Offline'}
+        </div>
         {/* Player count badge */}
-        {(game.player_count || 0) > 0 && (
-          <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 px-2 py-0.5 bg-black/80 rounded text-[11px] font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00e676]" />
-            {game.player_count} playing
+        {game.game_type === 'server' && (game.player_count || 0) > 0 && (
+          <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1 px-2 py-0.5 bg-black/80 rounded text-[11px] font-medium" style={{backdropFilter: 'blur(4px)'}}>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00e676] animate-pulse" />
+            <span className="text-[#00e676]">{game.player_count}</span>
           </div>
         )}
         {/* Promoted badge */}

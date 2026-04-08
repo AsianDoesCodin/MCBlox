@@ -101,6 +101,20 @@ pub async fn resolve_download_url(url: &str) -> Result<String, Box<dyn std::erro
         return Err("Could not find MediaFire download link".into());
     }
 
+    // Dropbox: https://www.dropbox.com/scl/fi/...?dl=0 or https://www.dropbox.com/s/...?dl=0
+    if url.contains("dropbox.com/") {
+        // Replace dl=0 with dl=1 for direct download
+        let mut direct = url.to_string();
+        if direct.contains("dl=0") {
+            direct = direct.replace("dl=0", "dl=1");
+        } else if !direct.contains("dl=1") {
+            // No dl param — append it
+            let sep = if direct.contains('?') { "&" } else { "?" };
+            direct = format!("{}{}dl=1", direct, sep);
+        }
+        return Ok(direct);
+    }
+
     // Direct link — return as-is
     Ok(url.to_string())
 }

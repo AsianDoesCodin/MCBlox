@@ -206,10 +206,20 @@ export default function Home({ session, onPlay, onStop }: Props) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="px-2 py-0.5 bg-[#ffd740] rounded text-[10px] font-bold text-black uppercase" style={{fontFamily: "'Silkscreen', monospace"}}>★ Featured</span>
-                    <span className="flex items-center gap-1 text-xs text-[#94a3b8]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#00e676]" />
-                      {featured[0].player_count || 0} playing
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase flex items-center gap-1 ${
+                      featured[0].game_type === 'server'
+                        ? 'bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40'
+                        : 'bg-[#64748b]/20 text-[#94a3b8] border border-[#64748b]/40'
+                    }`} style={{fontFamily: "'Silkscreen', monospace"}}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${featured[0].game_type === 'server' ? 'bg-[#00e676]' : 'bg-[#64748b]'}`} />
+                      {featured[0].game_type === 'server' ? 'Online' : 'Offline'}
                     </span>
+                    {featured[0].game_type === 'server' && (featured[0].player_count || 0) > 0 && (
+                      <span className="flex items-center gap-1 text-xs text-[#00e676]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#00e676] animate-pulse" />
+                        {featured[0].player_count} playing
+                      </span>
+                    )}
                   </div>
                   <h2 className="text-2xl font-bold mb-1" style={{fontFamily: "'Silkscreen', monospace", textShadow: '2px 2px 0 #000'}}>{featured[0].title}</h2>
                   <p className="text-sm text-[#94a3b8] line-clamp-2 max-w-lg">{featured[0].description}</p>

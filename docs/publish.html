@@ -20,6 +20,7 @@
       <a href="index.html">Home</a>
       <a href="games.html">Games</a>
       <a href="publish.html" class="active">Publish</a>
+      <a href="guide.html">Guide</a>
       <a href="dashboard.html">Dashboard</a>
     </div>
     <div class="nav-right">
@@ -63,8 +64,12 @@
           <h2>Modpack</h2>
 
           <label>Modpack Download Link</label>
-          <p class="hint">Modrinth, CurseForge, MediaFire, or Google Drive link</p>
-          <input type="url" id="modpack-url" required placeholder="https://modrinth.com/modpack/... or https://www.curseforge.com/...">
+          <p class="hint">Google Drive, MediaFire, or Dropbox link. <a href="guide.html" style="color: #00e676">See the guide</a> for help.</p>
+          <input type="url" id="modpack-url" required placeholder="https://drive.google.com/file/d/... or https://www.mediafire.com/file/...">
+          <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,152,0,0.1);border:1px solid rgba(255,152,0,0.3);border-radius:6px;padding:8px 12px;margin-top:6px">
+            <span style="font-size:16px;flex-shrink:0">⚠️</span>
+            <span style="font-size:12px;color:#ffb74d">CurseForge &amp; Modrinth links are temporarily broken. Please use <strong>Google Drive</strong>, <strong>MediaFire</strong>, or <strong>Dropbox</strong> instead.</span>
+          </div>
 
           <label>Minecraft Version</label>
           <select id="mc-version" required>
