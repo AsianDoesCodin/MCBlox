@@ -25,6 +25,8 @@ interface GlobalMcSettings {
   enabled: boolean;
   fov: number | null;
   render_distance: number | null;
+  simulation_distance: number | null;
+  entity_distance: number | null;
   graphics: string | null;
   gui_scale: number | null;
   sensitivity: number | null;
@@ -71,7 +73,8 @@ export default function Settings() {
 
   // Global MC settings
   const [mcSettings, setMcSettings] = useState<GlobalMcSettings>({
-    enabled: false, fov: null, render_distance: null, graphics: null,
+    enabled: false, fov: null, render_distance: null, simulation_distance: null,
+    entity_distance: null, graphics: null,
     gui_scale: null, sensitivity: null, difficulty: null, fullscreen: null,
     fov_effect: null, vsync: null, entity_shadows: null, view_bobbing: null,
     keybinds: null,
@@ -448,6 +451,38 @@ export default function Settings() {
                       className="w-28 accent-[#00e676]"
                     />
                     <span className="text-xs text-white w-8 text-right">{mcSettings.render_distance ?? 12}</span>
+                  </div>
+                </div>
+                {/* Simulation Distance */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Simulation Distance</p>
+                    <p className="text-xs text-[#64748b]">Chunks (5-32, default 12)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range" min="5" max="32" step="1"
+                      value={mcSettings.simulation_distance ?? 12}
+                      onChange={(e) => updateMcSetting("simulation_distance", Number(e.target.value))}
+                      className="w-28 accent-[#00e676]"
+                    />
+                    <span className="text-xs text-white w-8 text-right">{mcSettings.simulation_distance ?? 12}</span>
+                  </div>
+                </div>
+                {/* Entity Distance */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Entity Distance</p>
+                    <p className="text-xs text-[#64748b]">Scaling (50%-500%, default 100%)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range" min="0.5" max="5.0" step="0.25"
+                      value={mcSettings.entity_distance ?? 1.0}
+                      onChange={(e) => updateMcSetting("entity_distance", Number(e.target.value))}
+                      className="w-28 accent-[#00e676]"
+                    />
+                    <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.entity_distance ?? 1.0) * 100)}%</span>
                   </div>
                 </div>
                 {/* Graphics */}

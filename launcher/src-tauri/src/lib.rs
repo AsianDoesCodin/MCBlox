@@ -831,6 +831,8 @@ pub struct GlobalMcSettings {
     pub enabled: bool,
     pub fov: Option<f64>,
     pub render_distance: Option<i32>,
+    pub simulation_distance: Option<i32>,
+    pub entity_distance: Option<f64>,       // entityDistanceScaling 0.5-5.0
     pub graphics: Option<String>,       // "fast", "fancy", "fabulous"
     pub gui_scale: Option<i32>,
     pub sensitivity: Option<f64>,        // 0.0-1.0, MC default is 0.5
@@ -859,7 +861,8 @@ fn get_global_mc_settings() -> GlobalMcSettings {
         }
     }
     GlobalMcSettings {
-        enabled: false, fov: None, render_distance: None, graphics: None,
+        enabled: false, fov: None, render_distance: None, simulation_distance: None,
+        entity_distance: None, graphics: None,
         gui_scale: None, sensitivity: None, difficulty: None, fullscreen: None,
         fov_effect: None, vsync: None, entity_shadows: None, view_bobbing: None,
         keybinds: None,
@@ -908,6 +911,8 @@ pub fn apply_global_settings_to_options(instance_dir: &std::path::Path) {
         set_option(&mut lines, "fov", &format!("{:.6}", normalized.clamp(-1.0, 1.0)));
     }
     if let Some(v) = settings.render_distance { set_option(&mut lines, "renderDistance", &v.to_string()); }
+    if let Some(v) = settings.simulation_distance { set_option(&mut lines, "simulationDistance", &v.to_string()); }
+    if let Some(v) = settings.entity_distance { set_option(&mut lines, "entityDistanceScaling", &format!("{:.1}", v)); }
     if let Some(v) = &settings.graphics {
         let mc_val = match v.as_str() {
             "fast" => "0", "fancy" => "1", "fabulous" => "2", _ => "1"
