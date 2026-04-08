@@ -127,8 +127,9 @@ function renderQueue() {
     const tags = (game.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
     const date = new Date(game.created_at).toLocaleDateString();
 
+    const thumbUrl = game.thumbnail_url;
     card.innerHTML = `
-      <div class="thumb">⛏</div>
+      <div class="thumb">${thumbUrl ? `<img src="${encodeURI(thumbUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '⛏'}</div>
       <div class="info">
         <h3>${escapeHtml(game.title)}${game.is_promoted ? ' <span style="color:#ffaa00;font-size:12px;">★ Featured</span>' : ''}</h3>
         <div class="desc">${escapeHtml(game.description || '')}</div>

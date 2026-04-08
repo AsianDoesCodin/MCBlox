@@ -334,15 +334,21 @@ document.querySelectorAll('.screenshot-slot').forEach(slot => {
 document.getElementById('game-form').addEventListener('submit', async (e) => {
   e.preventDefault();
 
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn && submitBtn.disabled) return;
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+
   const sb = getSupabase();
   const user = getUser();
   if (!sb || !user) {
     showToast('Please sign in first.', 'warning');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
     return;
   }
 
   if (!thumbCrop.hasImage()) {
     showToast('Please upload a thumbnail.', 'warning');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
     return;
   }
 
@@ -365,6 +371,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     }
   } catch (err) {
     showToast('Failed to upload thumbnail: ' + (err.message || 'Unknown error'), 'error');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
     return;
   }
 
@@ -422,5 +429,6 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     window.location.href = 'dashboard.html';
   } catch (e) {
     showToast('Error submitting: ' + (e.message || 'Unknown error'), 'error');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
   }
 });
