@@ -192,7 +192,7 @@ const autoJoinRow = document.getElementById('auto-join-row');
 
 // Check if we have an auto-join mod for this MC version + loader combo
 // Forge/NeoForge: 1.7.10+ (covered by 4 JARs: 1.12, 1.16, 1.18, 1.20)
-// Fabric: 1.21.x only
+// Fabric: 1.20+ (two JARs: 1.20 and 1.21)
 // Quilt: not supported yet
 function isAutoJoinSupported(mc, loader) {
   if (!mc || !loader) return false;
@@ -202,7 +202,7 @@ function isAutoJoinSupported(mc, loader) {
   if (loader === 'forge' || loader === 'neoforge') {
     return minor >= 7;
   } else if (loader === 'fabric') {
-    return minor === 21;
+    return minor >= 20;
   }
   return false;
 }

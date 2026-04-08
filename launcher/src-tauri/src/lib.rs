@@ -313,7 +313,18 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
                     "mcblox-mod-forge.jar"
                 }
             },
-            _ => "mcblox-mod-fabric.jar",
+            _ => {
+                // Fabric: parse MC minor version
+                let parts: Vec<u32> = request.mc_version.split('.')
+                    .filter_map(|p| p.parse().ok())
+                    .collect();
+                let minor = parts.get(1).copied().unwrap_or(0);
+                if minor >= 21 {
+                    "mcblox-mod-fabric.jar"        // Fabric 1.21+
+                } else {
+                    "mcblox-mod-fabric-1.20.jar"   // Fabric 1.20.x and earlier
+                }
+            },
         };
         let target_jar = mods_dir.join("mcblox-mod.jar");
         

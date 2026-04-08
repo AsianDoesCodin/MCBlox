@@ -126,7 +126,7 @@ function isAutoJoinSupported(mc, loader) {
   if (parts.length < 2) return false;
   const minor = parts[1];
   if (loader === 'forge' || loader === 'neoforge') return minor >= 7;
-  if (loader === 'fabric') return minor === 21;
+  if (loader === 'fabric') return minor >= 20;
   return false;
 }
 

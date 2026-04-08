@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.mcblox.mod.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "MinecraftClientMixin",
+    "GameMenuScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
