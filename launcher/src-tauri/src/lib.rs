@@ -902,7 +902,11 @@ pub fn apply_global_settings_to_options(instance_dir: &std::path::Path) {
         }
     }
 
-    if let Some(v) = settings.fov { set_option(&mut lines, "fov", &v.to_string()); }
+    if let Some(v) = settings.fov {
+        // MC stores FOV as normalized: -1.0 (FOV 30) to 1.0 (FOV 110), with 0.0 = FOV 70
+        let normalized = (v - 70.0) / 40.0;
+        set_option(&mut lines, "fov", &format!("{:.6}", normalized.clamp(-1.0, 1.0)));
+    }
     if let Some(v) = settings.render_distance { set_option(&mut lines, "renderDistance", &v.to_string()); }
     if let Some(v) = &settings.graphics {
         let mc_val = match v.as_str() {
