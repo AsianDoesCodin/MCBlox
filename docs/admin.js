@@ -294,6 +294,9 @@ reviewModal.addEventListener('click', (e) => {
 reviewApprove.addEventListener('click', () => setGameStatus('approved'));
 reviewReject.addEventListener('click', () => setGameStatus('rejected'));
 
+const reviewEdit = document.getElementById('review-edit');
+reviewEdit.addEventListener('click', () => openAdminEdit());
+
 async function setGameStatus(status) {
   if (!reviewingGame) return;
 
@@ -315,3 +318,173 @@ async function setGameStatus(status) {
     showToast('Error updating status: ' + (err.message || 'Unknown error'), 'error');
   }
 }
+
+// --- Admin Edit Mode ---
+const TAGS = [
+  'Adventure', 'RPG', 'PvP', 'Creative', 'Survival',
+  'Skyblock', 'Horror', 'Puzzle', 'Minigame', 'Parkour',
+  'Tech', 'Magic', 'Quests', 'Building', 'Exploration',
+  'Competitive', 'Coop', 'Story', 'Open World', 'Hardcore'
+];
+
+function openAdminEdit() {
+  if (!reviewingGame) return;
+  const game = reviewingGame;
+
+  const tags = (game.tags || []);
+  let selectedTags = new Set(tags);
+
+  function renderTagPicker() {
+    const picker = document.getElementById('admin-edit-tags');
+    if (!picker) return;
+    picker.innerHTML = '';
+    TAGS.forEach(tag => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.cssText = `display:inline-block;padding:4px 10px;margin:2px 4px 2px 0;border-radius:4px;font-size:12px;cursor:pointer;border:1px solid ${selectedTags.has(tag) ? '#00e676' : '#1e3a5f'};background:${selectedTags.has(tag) ? 'rgba(0,230,118,0.15)' : '#111827'};color:${selectedTags.has(tag) ? '#00e676' : '#94a3b8'};transition:all 0.15s;`;
+      btn.textContent = tag;
+      btn.addEventListener('click', () => {
+        if (selectedTags.has(tag)) selectedTags.delete(tag);
+        else if (selectedTags.size < 5) selectedTags.add(tag);
+        renderTagPicker();
+      });
+      picker.appendChild(btn);
+    });
+  }
+
+  reviewContent.innerHTML = `
+    <form id="admin-edit-form">
+      <div class="review-detail-field">
+        <label>Title</label>
+        <input type="text" id="admin-edit-title" value="${escapeHtml(game.title)}" required maxlength="60" style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;">
+      </div>
+      <div class="review-detail-field">
+        <label>Description</label>
+        <textarea id="admin-edit-desc" required rows="3" maxlength="500" style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;resize:vertical;">${escapeHtml(game.description || '')}</textarea>
+      </div>
+      <div class="review-detail-field">
+        <label>Thumbnail</label>
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div id="admin-edit-thumb-preview" style="width:160px;height:90px;border-radius:4px;overflow:hidden;border:2px solid #1e3a5f;background:#0a0e1a;flex-shrink:0;">
+            ${game.thumbnail_url ? `<img src="${encodeURI(game.thumbnail_url)}" style="width:100%;height:100%;object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#64748b;">No image</div>'}
+          </div>
+          <label style="padding:6px 14px;background:#1e3a5f;border-radius:4px;color:#e8eaf0;font-size:12px;cursor:pointer;">
+            📷 Replace
+            <input type="file" id="admin-edit-thumb-input" accept="image/*" style="display:none">
+          </label>
+        </div>
+      </div>
+      <div class="review-detail-field">
+        <label>Tags</label>
+        <div id="admin-edit-tags"></div>
+      </div>
+      <div class="review-detail-field">
+        <label>Modpack URL</label>
+        <input type="url" id="admin-edit-modpack" value="${escapeHtml(game.modpack_url || '')}" required style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;">
+      </div>
+      <div class="review-detail-field" style="display:flex;gap:12px;">
+        <div style="flex:1;">
+          <label>Game Type</label>
+          <select id="admin-edit-game-type" style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;">
+            <option value="server" ${game.game_type === 'server' ? 'selected' : ''}>Server</option>
+            <option value="world" ${game.game_type === 'world' ? 'selected' : ''}>World</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label>Server Address / World Name</label>
+          <input type="text" id="admin-edit-address" value="${escapeHtml(game.server_address || game.world_name || '')}" style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;">
+        </div>
+      </div>
+    </form>
+  `;
+
+  renderTagPicker();
+
+  // Thumbnail upload in edit mode
+  let adminEditNewThumb = null;
+  document.getElementById('admin-edit-thumb-input').addEventListener('change', (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    adminEditNewThumb = file;
+    const preview = document.getElementById('admin-edit-thumb-preview');
+    preview.innerHTML = `<img src="${URL.createObjectURL(file)}" style="width:100%;height:100%;object-fit:cover;">`;
+  });
+
+  // Replace action buttons
+  reviewApprove.style.display = 'none';
+  reviewReject.style.display = 'none';
+  reviewEdit.style.display = 'none';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn btn-approve';
+  saveBtn.textContent = '💾 Save';
+  saveBtn.id = 'admin-edit-save';
+  reviewEdit.parentElement.insertBefore(saveBtn, reviewCancel);
+
+  saveBtn.addEventListener('click', async () => {
+    const sb = getSupabase();
+    if (!sb || !reviewingGame) return;
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+      const gameType = document.getElementById('admin-edit-game-type').value;
+      const addressVal = document.getElementById('admin-edit-address').value.trim();
+
+      const updated = {
+        title: document.getElementById('admin-edit-title').value.trim(),
+        description: document.getElementById('admin-edit-desc').value.trim(),
+        tags: [...selectedTags],
+        modpack_url: document.getElementById('admin-edit-modpack').value.trim(),
+        game_type: gameType,
+        server_address: gameType === 'server' ? addressVal : null,
+        world_name: gameType === 'world' ? addressVal : null,
+      };
+
+      // Upload new thumbnail if changed
+      if (adminEditNewThumb) {
+        const bitmap = await createImageBitmap(adminEditNewThumb);
+        const canvas = document.createElement('canvas');
+        const MAX_W = 1280, MAX_H = 720;
+        let w = bitmap.width, h = bitmap.height;
+        if (w > MAX_W || h > MAX_H) {
+          const scale = Math.min(MAX_W / w, MAX_H / h);
+          w = Math.round(w * scale); h = Math.round(h * scale);
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.8));
+        const path = `thumbnails/${reviewingGame.id}_${Date.now()}.jpg`;
+        const { error: upErr } = await sb.storage.from('MCBlox').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+        if (upErr) throw upErr;
+        const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(path);
+        updated.thumbnail_url = urlData.publicUrl;
+      }
+
+      const { error } = await sb.from('games').update(updated).eq('id', reviewingGame.id);
+      if (error) throw error;
+
+      Object.assign(reviewingGame, updated);
+      updateStats();
+      renderQueue();
+      closeReview();
+      showToast('Game updated!', 'success');
+    } catch (err) {
+      showToast('Error: ' + (err.message || 'Unknown'), 'error');
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 Save';
+    }
+  });
+}
+
+// Restore action buttons when closing review modal
+const _originalCloseReview = closeReview;
+closeReview = function() {
+  reviewApprove.style.display = '';
+  reviewReject.style.display = '';
+  reviewEdit.style.display = '';
+  const saveBtn = document.getElementById('admin-edit-save');
+  if (saveBtn) saveBtn.remove();
+  _originalCloseReview();
+};
