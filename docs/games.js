@@ -19,6 +19,7 @@ const tagDropdown = document.getElementById('tag-dropdown');
 const tagClearBtn = document.getElementById('tag-clear-btn');
 
 const activeTags = new Set();
+let activeTypeFilter = 'all';
 let allGames = [];
 
 // Toggle dropdown
@@ -36,9 +37,40 @@ document.addEventListener('click', (e) => {
 
 tagClearBtn.addEventListener('click', () => {
   activeTags.clear();
+  activeTypeFilter = 'all';
   renderTagFilters();
+  renderTypeFilters();
   render();
 });
+
+// Type filter buttons
+const typeFilterBar = document.getElementById('type-filter-bar');
+function renderTypeFilters() {
+  typeFilterBar.querySelectorAll('.tag-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === activeTypeFilter);
+  });
+  updateToggleBtn();
+}
+typeFilterBar.querySelectorAll('.tag-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeTypeFilter = btn.dataset.type;
+    renderTypeFilters();
+    render();
+  });
+});
+
+function updateToggleBtn() {
+  const count = activeTags.size + (activeTypeFilter !== 'all' ? 1 : 0);
+  if (count > 0) {
+    tagToggleBtn.textContent = `Tags (${count})`;
+    tagToggleBtn.classList.add('has-tags');
+    tagClearBtn.style.display = '';
+  } else {
+    tagToggleBtn.textContent = 'Tags';
+    tagToggleBtn.classList.remove('has-tags');
+    tagClearBtn.style.display = 'none';
+  }
+}
 
 // Render tag filter buttons
 function renderTagFilters() {
@@ -57,15 +89,7 @@ function renderTagFilters() {
     tagFilterBar.appendChild(btn);
   });
   // Update toggle button
-  if (activeTags.size > 0) {
-    tagToggleBtn.textContent = `Tags (${activeTags.size})`;
-    tagToggleBtn.classList.add('has-tags');
-    tagClearBtn.style.display = '';
-  } else {
-    tagToggleBtn.textContent = 'Tags';
-    tagToggleBtn.classList.remove('has-tags');
-    tagClearBtn.style.display = 'none';
-  }
+  updateToggleBtn();
 }
 renderTagFilters();
 
@@ -148,6 +172,10 @@ function render() {
   const sort = sortSelect.value;
 
   let filtered = allGames.filter(g => g.status === 'approved');
+
+  if (activeTypeFilter !== 'all') {
+    filtered = filtered.filter(g => g.game_type === activeTypeFilter);
+  }
 
   if (query) {
     filtered = filtered.filter(g => {

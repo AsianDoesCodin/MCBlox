@@ -27,6 +27,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
   const [selected, setSelected] = useState<Game | null>(null);
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [showTags, setShowTags] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "server" | "world">("all");
 
   useEffect(() => {
     loadGames();
@@ -79,6 +80,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
   const query = search.toLowerCase().trim();
   let filtered = games.filter((g) => {
     if (query && !g.title.toLowerCase().includes(query)) return false;
+    if (typeFilter !== "all" && g.game_type !== typeFilter) return false;
     if (activeTags.size > 0) {
       const gameTags = (g.tags || []).map(t => t.toLowerCase());
       if (![...activeTags].every(t => gameTags.includes(t))) return false;
@@ -152,18 +154,34 @@ export default function Home({ session, onPlay, onStop }: Props) {
           <button
             onClick={() => setShowTags(!showTags)}
             className={`px-4 py-2 rounded text-xs font-medium cursor-pointer transition-all border-2 ${
-              activeTags.size > 0
+              activeTags.size > 0 || typeFilter !== "all"
                 ? 'bg-[#00e676] border-[#00e676] text-black'
                 : 'bg-[#0a0e1a] border-[#1e3a5f] text-[#94a3b8] hover:border-[#00e676]'
             }`}
             style={{fontFamily: "'Silkscreen', monospace"}}
           >
-            Tags {activeTags.size > 0 ? `(${activeTags.size})` : ''}
+            Tags {(activeTags.size > 0 || typeFilter !== "all") ? `(${activeTags.size + (typeFilter !== "all" ? 1 : 0)})` : ''}
           </button>
           {showTags && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowTags(false)} />
               <div className="absolute right-0 top-full mt-2 z-50 w-[320px] p-3 bg-[#111827] border-2 border-[#00e676] rounded shadow-xl" style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 15px rgba(0, 230, 118, 0.15)'}}>
+                {/* Game type filter */}
+                <div className="flex gap-1.5 mb-2 pb-2 border-b border-[#1e3a5f]">
+                  {([["all", "All"], ["server", "Multiplayer"], ["world", "Singleplayer"]] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      onClick={() => setTypeFilter(val)}
+                      className={`px-2.5 py-1 rounded text-[11px] cursor-pointer transition-all border-2 ${
+                        typeFilter === val
+                          ? 'bg-[#00e676] border-[#00e676] text-black font-bold'
+                          : 'bg-[#1a2235] border-[#1e3a5f] text-[#64748b] hover:border-[#00e676] hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {TAGS.map(tag => (
                     <button
@@ -179,9 +197,9 @@ export default function Home({ session, onPlay, onStop }: Props) {
                     </button>
                   ))}
                 </div>
-                {activeTags.size > 0 && (
+                {(activeTags.size > 0 || typeFilter !== "all") && (
                   <button
-                    onClick={() => setActiveTags(new Set())}
+                    onClick={() => { setActiveTags(new Set()); setTypeFilter("all"); }}
                     className="mt-2 text-[11px] text-[#808080] hover:text-white cursor-pointer"
                   >
                     Clear all
