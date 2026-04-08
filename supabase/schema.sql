@@ -149,3 +149,33 @@ CREATE POLICY "Users can insert own profile"
 
 -- Add avatar_url column if profiles table already exists
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- Player activity table (heartbeat-based active player tracking)
+CREATE TABLE IF NOT EXISTS player_activity (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  last_heartbeat TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (game_id, user_id)
+);
+
+ALTER TABLE player_activity ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read player activity"
+  ON player_activity FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can insert own activity"
+  ON player_activity FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own activity"
+  ON player_activity FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own activity"
+  ON player_activity FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_player_activity_game ON player_activity(game_id);
+CREATE INDEX IF NOT EXISTS idx_player_activity_heartbeat ON player_activity(last_heartbeat);
