@@ -1,13 +1,17 @@
+import { useState, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import type { Game } from "../types";
 import type { GameSession } from "../App";
 
 interface Props {
   game: Game;
   onClick: (game: Game) => void;
+  onPlay?: (game: Game) => void;
+  onStop?: () => void;
   session?: GameSession;
 }
 
-export default function GameCard({ game, onClick, session }: Props) {
+export default function GameCard({ game, onClick, onPlay, onStop, session }: Props) {
   const likes = game.thumbs_up || 0;
   const total = likes + (game.thumbs_down || 0);
   const pct = total > 0 ? Math.round((likes / total) * 100) : 0;
@@ -22,10 +26,35 @@ export default function GameCard({ game, onClick, session }: Props) {
     ? session.progress.message
     : "";
 
+  // Context menu state
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setCtxMenu(null);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [ctxMenu]);
+
+  function handleCtxMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY });
+  }
+
+  function ctxAction(fn: () => void) {
+    setCtxMenu(null);
+    fn();
+  }
+
   return (
     <div
       onClick={() => onClick(game)}
-      className="group cursor-pointer"
+      onContextMenu={handleCtxMenu}
+      className="group cursor-pointer relative"
     >
       {/* Thumbnail */}
       <div className="relative aspect-video rounded overflow-hidden mb-2 border-2 border-[#1e3a5f] group-hover:border-[#00bcd4] transition-all" style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: 'none'}}
@@ -110,6 +139,56 @@ export default function GameCard({ game, onClick, session }: Props) {
           )}
         </div>
       </div>
+
+      {/* Context menu */}
+      {ctxMenu && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 bg-[#111827] border-2 border-[#1e3a5f] rounded shadow-xl py-1 min-w-[160px]"
+          style={{ left: ctxMenu.x, top: ctxMenu.y, boxShadow: '0 4px 20px rgba(0,0,0,0.6)' }}
+        >
+          {isRunning ? (
+            <button
+              className="w-full px-4 py-2 text-left text-xs text-[#ff5555] hover:bg-[#1a2235] flex items-center gap-2"
+              style={{fontFamily: "'Silkscreen', monospace"}}
+              onClick={() => ctxAction(() => onStop?.())}
+            >
+              ⏹ Stop Game
+            </button>
+          ) : (
+            <button
+              className="w-full px-4 py-2 text-left text-xs text-[#00e676] hover:bg-[#1a2235] flex items-center gap-2"
+              style={{fontFamily: "'Silkscreen', monospace"}}
+              onClick={() => ctxAction(() => onPlay?.(game))}
+              disabled={isLaunching}
+            >
+              ▶ Play
+            </button>
+          )}
+          <button
+            className="w-full px-4 py-2 text-left text-xs text-white hover:bg-[#1a2235] flex items-center gap-2"
+            style={{fontFamily: "'Silkscreen', monospace"}}
+            onClick={() => ctxAction(() => onClick(game))}
+          >
+            📋 View Details
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-xs text-white hover:bg-[#1a2235] flex items-center gap-2"
+            style={{fontFamily: "'Silkscreen', monospace"}}
+            onClick={() => ctxAction(() => invoke("open_instance_folder", { gameId: game.id }).catch(() => {}))}
+          >
+            📁 Open Game Folder
+          </button>
+          <div className="border-t border-[#1e3a5f] my-1" />
+          <button
+            className="w-full px-4 py-2 text-left text-xs text-[#ff5555] hover:bg-[#1a2235] flex items-center gap-2"
+            style={{fontFamily: "'Silkscreen', monospace"}}
+            onClick={() => ctxAction(() => invoke("delete_instance", { gameId: game.id }).catch(() => {}))}
+          >
+            🗑 Clear Cache
+          </button>
+        </div>
+      )}
     </div>
   );
 }

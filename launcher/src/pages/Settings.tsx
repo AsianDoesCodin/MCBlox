@@ -34,6 +34,7 @@ interface GlobalMcSettings {
   vsync: boolean | null;
   entity_shadows: boolean | null;
   view_bobbing: boolean | null;
+  keybinds: Record<string, string> | null;
 }
 
 function formatBytes(bytes: number): string {
@@ -73,7 +74,10 @@ export default function Settings() {
     enabled: false, fov: null, render_distance: null, graphics: null,
     gui_scale: null, sensitivity: null, difficulty: null, fullscreen: null,
     fov_effect: null, vsync: null, entity_shadows: null, view_bobbing: null,
+    keybinds: null,
   });
+  const [showKeybinds, setShowKeybinds] = useState(false);
+  const [listeningKey, setListeningKey] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for saved MC account
@@ -496,23 +500,6 @@ export default function Settings() {
                     <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.sensitivity ?? 0.5) * 200)}%</span>
                   </div>
                 </div>
-                {/* Difficulty */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Difficulty</p>
-                    <p className="text-xs text-[#64748b]">Default game difficulty</p>
-                  </div>
-                  <select
-                    value={mcSettings.difficulty ?? 2}
-                    onChange={(e) => updateMcSetting("difficulty", Number(e.target.value))}
-                    className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer"
-                  >
-                    <option value={0}>Peaceful</option>
-                    <option value={1}>Easy</option>
-                    <option value={2}>Normal</option>
-                    <option value={3}>Hard</option>
-                  </select>
-                </div>
                 {/* Toggle row: Fullscreen, VSync, Entity Shadows, View Bobbing */}
                 <div className="grid grid-cols-2 gap-3">
                   {([
@@ -552,6 +539,14 @@ export default function Settings() {
                     <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.fov_effect ?? 1) * 100)}%</span>
                   </div>
                 </div>
+                {/* Keybinds button */}
+                <button
+                  onClick={() => setShowKeybinds(true)}
+                  className="w-full py-2.5 bg-[#1a2235] hover:bg-[#1f2a40] border-2 border-[#1e3a5f] rounded text-xs font-medium cursor-pointer text-white"
+                  style={{fontFamily: "'Silkscreen', monospace"}}
+                >
+                  ⌨ Configure Keybinds
+                </button>
               </div>
             )}
           </div>
@@ -661,6 +656,17 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* Keybinds Modal */}
+      {showKeybinds && (
+        <KeybindsModal
+          keybinds={mcSettings.keybinds || {}}
+          onSave={(kb) => { updateMcSetting("keybinds", Object.keys(kb).length > 0 ? kb : null); setShowKeybinds(false); }}
+          onClose={() => setShowKeybinds(false)}
+          listeningKey={listeningKey}
+          setListeningKey={setListeningKey}
+        />
+      )}
+
       {/* Auth Modal */}
       {showAuthModal && (
         <div
@@ -722,6 +728,182 @@ export default function Settings() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// MC key name mapping for display
+const MC_KEYBINDS: { key: string; label: string; category: string }[] = [
+  // Movement
+  { key: "key_key.forward", label: "Walk Forward", category: "Movement" },
+  { key: "key_key.back", label: "Walk Backward", category: "Movement" },
+  { key: "key_key.left", label: "Strafe Left", category: "Movement" },
+  { key: "key_key.right", label: "Strafe Right", category: "Movement" },
+  { key: "key_key.jump", label: "Jump", category: "Movement" },
+  { key: "key_key.sneak", label: "Sneak", category: "Movement" },
+  { key: "key_key.sprint", label: "Sprint", category: "Movement" },
+  // Gameplay
+  { key: "key_key.attack", label: "Attack/Destroy", category: "Gameplay" },
+  { key: "key_key.use", label: "Use Item/Place Block", category: "Gameplay" },
+  { key: "key_key.pickItem", label: "Pick Block", category: "Gameplay" },
+  { key: "key_key.drop", label: "Drop Item", category: "Gameplay" },
+  { key: "key_key.swapOffhand", label: "Swap Offhand", category: "Gameplay" },
+  // Inventory
+  { key: "key_key.inventory", label: "Open Inventory", category: "Inventory" },
+  { key: "key_key.hotbar.1", label: "Hotbar 1", category: "Inventory" },
+  { key: "key_key.hotbar.2", label: "Hotbar 2", category: "Inventory" },
+  { key: "key_key.hotbar.3", label: "Hotbar 3", category: "Inventory" },
+  { key: "key_key.hotbar.4", label: "Hotbar 4", category: "Inventory" },
+  { key: "key_key.hotbar.5", label: "Hotbar 5", category: "Inventory" },
+  { key: "key_key.hotbar.6", label: "Hotbar 6", category: "Inventory" },
+  { key: "key_key.hotbar.7", label: "Hotbar 7", category: "Inventory" },
+  { key: "key_key.hotbar.8", label: "Hotbar 8", category: "Inventory" },
+  { key: "key_key.hotbar.9", label: "Hotbar 9", category: "Inventory" },
+  // Misc
+  { key: "key_key.chat", label: "Open Chat", category: "Misc" },
+  { key: "key_key.command", label: "Open Command", category: "Misc" },
+  { key: "key_key.playerlist", label: "Player List", category: "Misc" },
+  { key: "key_key.screenshot", label: "Screenshot", category: "Misc" },
+  { key: "key_key.togglePerspective", label: "Toggle Perspective", category: "Misc" },
+  { key: "key_key.fullscreen", label: "Toggle Fullscreen", category: "Misc" },
+];
+
+// Maps browser KeyboardEvent.code to Minecraft's LWJGL key name
+function browserKeyToMcKey(e: KeyboardEvent): string {
+  const map: Record<string, string> = {
+    KeyA: "key.keyboard.a", KeyB: "key.keyboard.b", KeyC: "key.keyboard.c", KeyD: "key.keyboard.d",
+    KeyE: "key.keyboard.e", KeyF: "key.keyboard.f", KeyG: "key.keyboard.g", KeyH: "key.keyboard.h",
+    KeyI: "key.keyboard.i", KeyJ: "key.keyboard.j", KeyK: "key.keyboard.k", KeyL: "key.keyboard.l",
+    KeyM: "key.keyboard.m", KeyN: "key.keyboard.n", KeyO: "key.keyboard.o", KeyP: "key.keyboard.p",
+    KeyQ: "key.keyboard.q", KeyR: "key.keyboard.r", KeyS: "key.keyboard.s", KeyT: "key.keyboard.t",
+    KeyU: "key.keyboard.u", KeyV: "key.keyboard.v", KeyW: "key.keyboard.w", KeyX: "key.keyboard.x",
+    KeyY: "key.keyboard.y", KeyZ: "key.keyboard.z",
+    Digit0: "key.keyboard.0", Digit1: "key.keyboard.1", Digit2: "key.keyboard.2", Digit3: "key.keyboard.3",
+    Digit4: "key.keyboard.4", Digit5: "key.keyboard.5", Digit6: "key.keyboard.6", Digit7: "key.keyboard.7",
+    Digit8: "key.keyboard.8", Digit9: "key.keyboard.9",
+    Space: "key.keyboard.space", ShiftLeft: "key.keyboard.left.shift", ShiftRight: "key.keyboard.right.shift",
+    ControlLeft: "key.keyboard.left.control", ControlRight: "key.keyboard.right.control",
+    AltLeft: "key.keyboard.left.alt", AltRight: "key.keyboard.right.alt",
+    Tab: "key.keyboard.tab", Enter: "key.keyboard.enter", Escape: "key.keyboard.escape",
+    Backspace: "key.keyboard.backspace", Delete: "key.keyboard.delete",
+    ArrowUp: "key.keyboard.up", ArrowDown: "key.keyboard.down", ArrowLeft: "key.keyboard.left", ArrowRight: "key.keyboard.right",
+    F1: "key.keyboard.f1", F2: "key.keyboard.f2", F3: "key.keyboard.f3", F4: "key.keyboard.f4",
+    F5: "key.keyboard.f5", F6: "key.keyboard.f6", F7: "key.keyboard.f7", F8: "key.keyboard.f8",
+    F9: "key.keyboard.f9", F10: "key.keyboard.f10", F11: "key.keyboard.f11", F12: "key.keyboard.f12",
+    Minus: "key.keyboard.minus", Equal: "key.keyboard.equal",
+    BracketLeft: "key.keyboard.left.bracket", BracketRight: "key.keyboard.right.bracket",
+    Semicolon: "key.keyboard.semicolon", Quote: "key.keyboard.apostrophe",
+    Comma: "key.keyboard.comma", Period: "key.keyboard.period", Slash: "key.keyboard.slash",
+    Backslash: "key.keyboard.backslash", Backquote: "key.keyboard.grave.accent",
+  };
+  return map[e.code] || `key.keyboard.${e.key.toLowerCase()}`;
+}
+
+function mcKeyDisplayName(mcKey: string): string {
+  if (!mcKey || mcKey === "key.keyboard.unknown") return "—";
+  const short = mcKey.replace("key.keyboard.", "").replace("key.mouse.", "Mouse ");
+  return short.split(".").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+}
+
+import { useEffect as useEff } from "react";
+
+function KeybindsModal({ keybinds, onSave, onClose, listeningKey, setListeningKey }: {
+  keybinds: Record<string, string>;
+  onSave: (kb: Record<string, string>) => void;
+  onClose: () => void;
+  listeningKey: string | null;
+  setListeningKey: (k: string | null) => void;
+}) {
+  const [local, setLocal] = useState<Record<string, string>>({ ...keybinds });
+
+  useEff(() => {
+    if (!listeningKey) return;
+    const handler = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const mc = browserKeyToMcKey(e);
+      setLocal(prev => ({ ...prev, [listeningKey]: mc }));
+      setListeningKey(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [listeningKey]);
+
+  const categories = [...new Set(MC_KEYBINDS.map(k => k.category))];
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
+      onClick={(e) => { if (e.target === e.currentTarget) { setListeningKey(null); onClose(); } }}
+    >
+      <div className="bg-[#0a0e1a] border-2 border-[#00e676] rounded w-[520px] max-h-[80vh] flex flex-col" style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: '0 0 30px rgba(0, 230, 118, 0.15)'}}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#1e3a5f]">
+          <h2 className="text-sm font-bold" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+            ⌨ Keybinds
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setLocal({}); }}
+              className="px-3 py-1 bg-[#1a2235] hover:bg-[#1f2a40] border border-[#1e3a5f] rounded text-[10px] text-[#94a3b8] cursor-pointer"
+              style={{fontFamily: "'Silkscreen', monospace"}}
+            >
+              Reset All
+            </button>
+            <button
+              onClick={() => onSave(local)}
+              className="px-3 py-1 bg-[#00e676] hover:bg-[#33ff99] rounded text-[10px] text-black font-bold cursor-pointer"
+              style={{fontFamily: "'Silkscreen', monospace"}}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto flex-1 px-5 py-3 space-y-4">
+          {categories.map(cat => (
+            <div key={cat}>
+              <h3 className="text-xs font-bold text-[#64748b] uppercase mb-2" style={{fontFamily: "'Silkscreen', monospace"}}>{cat}</h3>
+              <div className="space-y-1">
+                {MC_KEYBINDS.filter(k => k.category === cat).map(kb => {
+                  const current = local[kb.key];
+                  const isListening = listeningKey === kb.key;
+                  return (
+                    <div key={kb.key} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-[#111827]">
+                      <span className="text-xs text-white">{kb.label}</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setListeningKey(isListening ? null : kb.key)}
+                          className={`px-3 py-1 rounded text-[10px] font-medium cursor-pointer border ${
+                            isListening
+                              ? "bg-[#ff9800] border-[#ff9800] text-black animate-pulse"
+                              : current
+                                ? "bg-[#1a2235] border-[#1e3a5f] text-[#00e676]"
+                                : "bg-[#1a2235] border-[#1e3a5f] text-[#64748b]"
+                          }`}
+                          style={{fontFamily: "'Silkscreen', monospace", minWidth: '80px'}}
+                        >
+                          {isListening ? "Press a key..." : current ? mcKeyDisplayName(current) : "Not set"}
+                        </button>
+                        {current && (
+                          <button
+                            onClick={() => setLocal(prev => { const n = { ...prev }; delete n[kb.key]; return n; })}
+                            className="px-1.5 py-1 text-[10px] text-[#ff5555] hover:text-[#ff8888] cursor-pointer bg-transparent border-none"
+                            title="Let game decide"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="px-5 py-2 border-t border-[#1e3a5f] text-[10px] text-[#64748b]">
+          Click a keybind button then press a key to set it. ✕ = let game decide.
+        </div>
+      </div>
     </div>
   );
 }

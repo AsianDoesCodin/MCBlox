@@ -608,6 +608,20 @@ async fn delete_instance(game_id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn open_instance_folder(game_id: String) -> Result<(), String> {
+    let instance_dir = get_instances_dir().join(&game_id);
+    if !instance_dir.exists() {
+        std::fs::create_dir_all(&instance_dir).map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "windows")]
+    Command::new("explorer")
+        .arg(instance_dir.to_string_lossy().to_string())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn clear_all_instances() -> Result<String, String> {
     let instances_dir = get_instances_dir();
     let mut count = 0u32;
@@ -826,6 +840,7 @@ pub struct GlobalMcSettings {
     pub vsync: Option<bool>,
     pub entity_shadows: Option<bool>,
     pub view_bobbing: Option<bool>,
+    pub keybinds: Option<std::collections::HashMap<String, String>>,
 }
 
 fn global_settings_path() -> PathBuf {
@@ -847,6 +862,7 @@ fn get_global_mc_settings() -> GlobalMcSettings {
         enabled: false, fov: None, render_distance: None, graphics: None,
         gui_scale: None, sensitivity: None, difficulty: None, fullscreen: None,
         fov_effect: None, vsync: None, entity_shadows: None, view_bobbing: None,
+        keybinds: None,
     }
 }
 
@@ -903,6 +919,13 @@ pub fn apply_global_settings_to_options(instance_dir: &std::path::Path) {
     if let Some(v) = settings.entity_shadows { set_option(&mut lines, "entityShadows", if v { "true" } else { "false" }); }
     if let Some(v) = settings.view_bobbing { set_option(&mut lines, "bobView", if v { "true" } else { "false" }); }
 
+    // Apply keybinds
+    if let Some(ref binds) = settings.keybinds {
+        for (key, value) in binds {
+            set_option(&mut lines, key, value);
+        }
+    }
+
     let content = lines.join("\n");
     let _ = std::fs::write(&options_path, content);
 }
@@ -920,6 +943,7 @@ pub fn run() {
             is_game_running,
             get_instances,
             delete_instance,
+            open_instance_folder,
             clear_all_instances,
             get_storage_info,
             mc_auth_start_device_flow,
