@@ -120,13 +120,13 @@ avatarInput.addEventListener('change', async (e) => {
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
     const path = `avatars/${user.id}.jpg`;
 
-    const { error: uploadErr } = await sb.storage.from('game-assets').upload(path, blob, {
+    const { error: uploadErr } = await sb.storage.from('MCBlox').upload(path, blob, {
       contentType: 'image/jpeg',
       upsert: true,
     });
     if (uploadErr) throw uploadErr;
 
-    const { data: urlData } = sb.storage.from('game-assets').getPublicUrl(path);
+    const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(path);
     const avatarUrl = urlData.publicUrl + '?t=' + Date.now(); // cache bust
 
     const { error: updateErr } = await sb

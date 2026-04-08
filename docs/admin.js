@@ -255,13 +255,13 @@ function openReview(game) {
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
       const path = `thumbnails/${reviewingGame.id}_${Date.now()}.jpg`;
 
-      const { error: uploadErr } = await sb.storage.from('game-assets').upload(path, blob, {
+      const { error: uploadErr } = await sb.storage.from('MCBlox').upload(path, blob, {
         contentType: 'image/jpeg',
         upsert: true,
       });
       if (uploadErr) throw uploadErr;
 
-      const { data: urlData } = sb.storage.from('game-assets').getPublicUrl(path);
+      const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(path);
       const newUrl = urlData.publicUrl;
 
       const { error: updateErr } = await sb.from('games').update({ thumbnail_url: newUrl }).eq('id', reviewingGame.id);
