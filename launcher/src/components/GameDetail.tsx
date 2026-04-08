@@ -2,21 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useToast } from "./Toast";
 import type { Game } from "../types";
 import { supabase } from "../lib/supabase";
-
-interface ProgressPayload {
-  stage: string;
-  message: string;
-  percent: number;
-}
-
-interface GameSession {
-  launching: boolean;
-  gameRunning: boolean;
-  progress: ProgressPayload | null;
-  logs: string[];
-  mcLogs: string[];
-  sessionGameId: string | null;
-}
+import type { GameSession } from "../App";
 
 interface Props {
   game: Game;

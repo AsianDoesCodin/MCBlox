@@ -258,24 +258,30 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
         emit("download", "Downloading modpack...", 0.1);
         println!("[McBlox] Downloading modpack from: {}", request.modpack_url);
         let app_for_dl = app_handle.clone();
+        let last_logged_pct = std::sync::Mutex::new(0u32);
         instance::download_modpack(&request.modpack_url, &modpack_path, move |downloaded, total| {
-            let pct_str = if let Some(t) = total {
+            let (pct_str, dl_pct) = if let Some(t) = total {
                 let p = (downloaded as f64 / t as f64 * 100.0) as u32;
-                format!("{}%", p)
+                (format!("{}%", p), p as f32 / 100.0)
             } else {
-                format!("{:.1} MB", downloaded as f64 / 1_048_576.0)
+                (format!("{:.1} MB", downloaded as f64 / 1_048_576.0), 0.0)
             };
             let msg = format!("Downloading modpack... ({})", pct_str);
-            let progress = if let Some(t) = total {
-                0.1 + 0.1 * (downloaded as f32 / t as f32)
-            } else {
-                0.1
-            };
+            let progress = 0.1 + 0.1 * dl_pct;
             app_for_dl.emit("launch-progress", LaunchProgress {
                 stage: "download".to_string(),
                 message: msg.clone(),
                 percent: progress,
             }).ok();
+            // Log every 10% change to avoid spamming
+            let current_pct = (dl_pct * 10.0) as u32; // 0..10
+            let mut last = last_logged_pct.lock().unwrap();
+            if current_pct != *last {
+                *last = current_pct;
+                app_for_dl.emit("launch-log", LaunchLog {
+                    message: msg,
+                }).ok();
+            }
         })
             .await
             .map_err(|e| format!("Failed to download modpack: {}", e))?;
@@ -385,6 +391,12 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     mc_launcher::download_assets(&client, &version_json, &assets_dir).await?;
     println!("[McBlox] Assets downloaded");
 
+    // Ensure Java is available BEFORE mod loader install (Forge installer needs it)
+    emit("java", "Checking Java installation...", 0.6);
+    println!("[McBlox] Finding Java for MC {}...", request.mc_version);
+    let java = ensure_java(&request.mc_version).await?;
+    println!("[McBlox] Java: {}", java);
+
     // Install mod loader
     emit("modloader", &format!("Installing {}...", request.mod_loader), 0.65);
     println!("[McBlox] Installing mod loader: {}", request.mod_loader);
@@ -406,12 +418,6 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     // Build classpath
     let classpath = mc_launcher::build_classpath(&client_jar, &lib_paths, &loader_libs);
     println!("[McBlox] Classpath entries: {}", classpath.matches(';').count() + 1);
-
-    // Find or download Java
-    emit("java", "Checking Java installation...", 0.8);
-    println!("[McBlox] Finding Java for MC {}...", request.mc_version);
-    let java = ensure_java(&request.mc_version).await?;
-    println!("[McBlox] Java: {}", java);
 
     // Build launch args
     // If auto_join is on, don't pass --server since the mod handles it
