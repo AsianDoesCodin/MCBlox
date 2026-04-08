@@ -118,18 +118,23 @@ const editWorldField = document.getElementById('edit-world-field');
 const editAutoJoinRow = document.querySelector('.edit-toggle-row');
 const editTagPicker = document.getElementById('edit-tag-picker');
 
-// Check if MC version supports the auto-join mod (1.12+)
-function isMcVersionSupported(mc) {
-  if (!mc) return false;
+// Check if we have an auto-join mod for this MC version + loader combo
+// Forge/NeoForge: 1.7+ | Fabric: 1.21.x only
+function isAutoJoinSupported(mc, loader) {
+  if (!mc || !loader) return false;
   const parts = mc.split('.').map(Number);
   if (parts.length < 2) return false;
-  return parts[0] >= 1 && parts[1] >= 12;
+  const minor = parts[1];
+  if (loader === 'forge' || loader === 'neoforge') return minor >= 7;
+  if (loader === 'fabric') return minor === 21;
+  return false;
 }
 
 function updateEditAutoJoinVisibility() {
   const mc = editMcVersionSelect ? editMcVersionSelect.value : '';
   const type = editGameType.value;
-  const supported = isMcVersionSupported(mc) && (type === 'server' || type === 'world');
+  const loader = editModLoaderSelect ? editModLoaderSelect.value : '';
+  const supported = isAutoJoinSupported(mc, loader) && (type === 'server' || type === 'world');
   if (editAutoJoinRow) {
     editAutoJoinRow.style.display = supported ? '' : 'none';
     if (!supported) document.getElementById('edit-auto-join').checked = false;
@@ -342,7 +347,7 @@ function populateEditLoaderVersions(versions, preselect) {
 }
 
 editMcVersionSelect.addEventListener('change', () => { fetchEditLoaderVersions(); updateEditAutoJoinVisibility(); });
-editModLoaderSelect.addEventListener('change', () => fetchEditLoaderVersions());
+editModLoaderSelect.addEventListener('change', () => { fetchEditLoaderVersions(); updateEditAutoJoinVisibility(); });
 
 function renderEditTags() {
   editTagPicker.innerHTML = '';
@@ -398,8 +403,8 @@ function openEditModal(game) {
   editWorldField.style.display = game.game_type === 'world' ? '' : 'none';
 
   document.getElementById('edit-auto-join').checked = !!game.auto_join;
-  // Show auto-join toggle only for supported versions
-  const autoJoinSupported = isMcVersionSupported(game.mc_version) && (game.game_type === 'server' || game.game_type === 'world');
+  // Show auto-join toggle only for supported version + loader combos
+  const autoJoinSupported = isAutoJoinSupported(game.mc_version, game.mod_loader) && (game.game_type === 'server' || game.game_type === 'world');
   if (editAutoJoinRow) editAutoJoinRow.style.display = autoJoinSupported ? '' : 'none';
 
   editSelectedTags = new Set(game.tags || []);

@@ -190,19 +190,28 @@ const serverField = document.getElementById('server-field');
 const worldField = document.getElementById('world-field');
 const autoJoinRow = document.getElementById('auto-join-row');
 
-// Check if MC version supports the auto-join mod (1.12+)
-function isMcVersionSupported(mc) {
-  if (!mc) return false;
+// Check if we have an auto-join mod for this MC version + loader combo
+// Forge/NeoForge: 1.7.10+ (covered by 4 JARs: 1.12, 1.16, 1.18, 1.20)
+// Fabric: 1.21.x only
+// Quilt: not supported yet
+function isAutoJoinSupported(mc, loader) {
+  if (!mc || !loader) return false;
   const parts = mc.split('.').map(Number);
   if (parts.length < 2) return false;
-  // 1.12+ is supported
-  return parts[0] >= 1 && parts[1] >= 12;
+  const minor = parts[1];
+  if (loader === 'forge' || loader === 'neoforge') {
+    return minor >= 7;
+  } else if (loader === 'fabric') {
+    return minor === 21;
+  }
+  return false;
 }
 
 function updateAutoJoinVisibility() {
   const mc = mcVersionSelect.value;
   const type = gameTypeSelect.value;
-  const supported = isMcVersionSupported(mc) && (type === 'server' || type === 'world');
+  const loader = modLoaderSelect.value;
+  const supported = isAutoJoinSupported(mc, loader) && (type === 'server' || type === 'world');
   autoJoinRow.style.display = supported ? '' : 'none';
   if (!supported) document.getElementById('auto-join').checked = false;
 }
