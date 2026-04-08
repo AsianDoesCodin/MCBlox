@@ -205,7 +205,7 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
             <div className="flex items-center gap-2 px-4 py-2.5 bg-[#111827] rounded border-2 border-[#1e3a5f]">
               <span className="text-lg">{game.game_type === 'server' ? '🌐' : '🗺️'}</span>
               <div>
-                <p className="text-sm font-bold capitalize">{game.game_type}</p>
+                <p className="text-sm font-bold">{game.game_type === 'server' ? 'Multiplayer' : 'Singleplayer'}</p>
                 <p className="text-[10px] text-[#64748b]">
                   {game.game_type === 'server' ? game.server_address : game.world_name}
                 </p>

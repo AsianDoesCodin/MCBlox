@@ -107,14 +107,13 @@ export default function GameCard({ game, onClick, onPlay, onStop, session }: Pro
             )}
           </div>
         )}
-        {/* Online/Offline label */}
-        <div className={`absolute top-1.5 left-1.5 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-          game.game_type === 'server'
-            ? 'bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40'
-            : 'bg-[#64748b]/20 text-[#94a3b8] border border-[#64748b]/40'
-        }`} style={{fontFamily: "'Silkscreen', monospace", backdropFilter: 'blur(4px)'}}>
-          <span className={`w-1.5 h-1.5 rounded-full ${game.game_type === 'server' ? 'bg-[#00e676]' : 'bg-[#64748b]'}`} />
-          {game.game_type === 'server' ? 'Online' : 'Offline'}
+        {/* Multiplayer/Singleplayer label */}
+        <div className="absolute top-1.5 left-1.5 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/70 text-[10px] font-bold uppercase text-white"
+          style={{fontFamily: "'Silkscreen', monospace", backdropFilter: 'blur(4px)', letterSpacing: '0.5px'}}>
+          <span className="w-4 h-4 rounded-full bg-[#1e3a5f] flex items-center justify-center text-[8px] text-[#94a3b8]">
+            {game.game_type === 'server' ? 'MP' : 'SP'}
+          </span>
+          {game.game_type === 'server' ? 'Multiplayer' : 'Singleplayer'}
         </div>
         {/* Player count badge */}
         {game.game_type === 'server' && (game.player_count || 0) > 0 && (
