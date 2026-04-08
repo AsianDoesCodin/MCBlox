@@ -23,14 +23,19 @@ public class McBloxModClient implements ClientModInitializer {
         try (FileReader reader = new FileReader(configFile)) {
             JsonObject json = new Gson().fromJson(reader, JsonObject.class);
             McBloxConfig cfg = new McBloxConfig();
-            cfg.gameType = json.has("game_type") ? json.get("game_type").getAsString() : "server";
-            cfg.serverAddress = json.has("server_address") ? json.get("server_address").getAsString() : null;
-            cfg.worldName = json.has("world_name") ? json.get("world_name").getAsString() : null;
+            cfg.gameType = getStr(json, "game_type", "server");
+            cfg.serverAddress = getStr(json, "server_address", null);
+            cfg.worldName = getStr(json, "world_name", null);
             return cfg;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private static String getStr(JsonObject json, String key, String def) {
+        if (!json.has(key) || json.get(key).isJsonNull()) return def;
+        return json.get(key).getAsString();
     }
 
     public static class McBloxConfig {
