@@ -89,20 +89,12 @@ function App() {
 
   async function startHeartbeat(gameId: string) {
     if (!supabase) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    await supabase.from("player_activity").upsert({
-      game_id: gameId,
-      user_id: session.user.id,
-      last_heartbeat: new Date().toISOString(),
-    }, { onConflict: "game_id,user_id" });
+    const username = mcUsername;
+    if (!username) return;
+    await supabase.rpc("heartbeat", { p_game_id: gameId, p_mc_username: username });
     const sb = supabase;
     heartbeatRef.current = setInterval(async () => {
-      await sb.from("player_activity").upsert({
-        game_id: gameId,
-        user_id: session.user.id,
-        last_heartbeat: new Date().toISOString(),
-      }, { onConflict: "game_id,user_id" });
+      await sb.rpc("heartbeat", { p_game_id: gameId, p_mc_username: username });
     }, 60000);
   }
 
