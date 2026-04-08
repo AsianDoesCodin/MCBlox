@@ -116,6 +116,7 @@ function renderCard(game) {
     <div class="game-thumb">${thumbContent}</div>
     <div class="game-info">
       <h3>${escapeHtml(game.title)}</h3>
+      <div class="game-author">by ${escapeHtml(game.author || 'Unknown')}</div>
       <div class="game-meta">
         <span class="players">&#9654; ${players} playing</span>
         <span>${total > 0 ? pct + '% &#128077;' : ''}</span>
@@ -186,10 +187,13 @@ async function fetchGames() {
   try {
     const { data, error } = await sb
       .from('games')
-      .select('*')
+      .select('*, profiles:creator_id(username)')
       .eq('status', 'approved');
     if (error) throw error;
-    allGames = data || [];
+    allGames = (data || []).map(g => ({
+      ...g,
+      author: g.profiles?.username || 'Unknown'
+    }));
     render();
   } catch (e) {
     console.error('Failed to fetch games:', e);

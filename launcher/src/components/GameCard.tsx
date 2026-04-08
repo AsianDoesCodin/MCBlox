@@ -55,6 +55,7 @@ export default function GameCard({ game, onClick }: Props) {
       {/* Info */}
       <div className="px-0.5">
         <h3 className="text-[13px] font-semibold truncate leading-tight" style={{fontFamily: "'Silkscreen', monospace", fontSize: '11px'}}>{game.title}</h3>
+        <p className="text-[10px] text-[#64748b] truncate mt-0.5">by {game.author || 'Unknown'}</p>
         <div className="flex items-center gap-2 mt-0.5">
           {total > 0 && (
             <span className={`text-[11px] font-medium ${pct >= 70 ? 'text-[#00e676]' : pct >= 40 ? 'text-[#ffd740]' : 'text-red-400'}`}>

@@ -124,3 +124,28 @@ BEGIN
   UPDATE games SET total_plays = total_plays + 1 WHERE id = game_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Profiles table (for username, avatar, etc.)
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read profiles"
+  ON profiles FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can update own profile"
+  ON profiles FOR UPDATE
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile"
+  ON profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
+-- Add avatar_url column if profiles table already exists
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;

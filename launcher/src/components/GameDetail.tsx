@@ -223,6 +223,7 @@ export default function GameDetail({ game, onBack, onPlay, onGameRunning }: Prop
           <div className="flex items-end justify-between gap-6 mb-6">
             <div>
               <h1 className="text-2xl font-black tracking-wide" style={{fontFamily: "'Silkscreen', monospace", textShadow: '2px 2px 0 #000'}}>{game.title}</h1>
+              <p className="text-sm text-[#64748b] mt-1">by {game.author || 'Unknown'}</p>
               <div className="flex items-center gap-4 mt-2 text-sm text-[#b0b0b0]">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#00e676]" />

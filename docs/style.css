@@ -380,6 +380,15 @@ footer {
   font-family: 'Silkscreen', monospace;
   font-size: 12px;
   font-weight: 700;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-author {
+  font-size: 11px;
+  color: var(--text-dim);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;

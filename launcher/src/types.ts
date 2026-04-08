@@ -19,4 +19,5 @@ export interface Game {
   auto_join: boolean;
   status: string;
   created_at: string;
+  author?: string;
 }

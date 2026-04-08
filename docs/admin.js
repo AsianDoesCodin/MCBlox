@@ -1,9 +1,5 @@
 // Admin panel — uses shared supabase-client.js for auth
-
-// Hardcoded admin user IDs (set these to your Supabase auth user IDs)
-const ADMIN_IDS = [
-  'ff83d829-9583-4025-af2c-8cf082696d55'
-];
+// ADMIN_IDS is defined in supabase-client.js
 
 const adminGate = document.getElementById('admin-gate');
 const adminPanel = document.getElementById('admin-panel');
@@ -69,11 +65,14 @@ async function loadAllGames() {
     for (const status of statuses) {
       const { data, error } = await sb
         .from('games')
-        .select('*')
+        .select('*, profiles:creator_id(username)')
         .eq('status', status)
         .order('created_at', { ascending: false });
       if (!error && data) {
-        allGames.push(...data);
+        allGames.push(...data.map(g => ({
+          ...g,
+          author: g.profiles?.username || 'Unknown'
+        })));
       }
     }
 
@@ -156,6 +155,22 @@ function openReview(game) {
 
   reviewContent.innerHTML = `
     <div class="review-detail-field">
+      <label>Thumbnail</label>
+      <div class="value">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div id="review-thumb-preview" style="width:160px;height:90px;border-radius:4px;overflow:hidden;border:2px solid #1e3a5f;background:#0a0e1a;flex-shrink:0;">
+            ${game.thumbnail_url ? `<img src="${encodeURI(game.thumbnail_url)}" style="width:100%;height:100%;object-fit:cover;" id="review-thumb-img">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#64748b;">No image</div>'}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <label style="padding:6px 14px;background:#1e3a5f;border-radius:4px;color:#e8eaf0;font-size:12px;cursor:pointer;text-align:center;transition:background 0.15s;" onmouseover="this.style.background='#2a4a7f'" onmouseout="this.style.background='#1e3a5f'">
+              📷 Replace Image
+              <input type="file" id="review-thumb-upload" accept="image/*" style="display:none">
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="review-detail-field">
       <label>Title</label>
       <div class="value">${escapeHtml(game.title)}</div>
     </div>
@@ -184,8 +199,8 @@ function openReview(game) {
       <div class="value"><span class="status-badge ${game.status}" style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;">${(game.status || '').replace('_', ' ')}</span></div>
     </div>
     <div class="review-detail-field">
-      <label>Creator ID</label>
-      <div class="value" style="font-size:11px;color:#808080;">${game.creator_id || 'Unknown'}</div>
+      <label>Creator</label>
+      <div class="value">${escapeHtml(game.author || 'Unknown')} <span style="font-size:10px;color:#555;">(${game.creator_id || '?'})</span></div>
     </div>
     <div class="review-detail-field">
       <label>Featured / Promoted</label>
@@ -210,6 +225,55 @@ function openReview(game) {
     } catch (err) {
       ev.target.checked = !promoted;
       showToast('Error: ' + (err.message || 'Unknown'), 'error');
+    }
+  });
+
+  // Thumbnail upload handler
+  document.getElementById('review-thumb-upload').addEventListener('change', async (ev) => {
+    const file = ev.target.files[0];
+    if (!file || !reviewingGame) return;
+
+    const sb = getSupabase();
+    if (!sb) return;
+
+    try {
+      // Compress image via canvas
+      const bitmap = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      const MAX_W = 1280, MAX_H = 720;
+      let w = bitmap.width, h = bitmap.height;
+      if (w > MAX_W || h > MAX_H) {
+        const scale = Math.min(MAX_W / w, MAX_H / h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(bitmap, 0, 0, w, h);
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+      const path = `thumbnails/${reviewingGame.id}_${Date.now()}.jpg`;
+
+      const { error: uploadErr } = await sb.storage.from('game-assets').upload(path, blob, {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = sb.storage.from('game-assets').getPublicUrl(path);
+      const newUrl = urlData.publicUrl;
+
+      const { error: updateErr } = await sb.from('games').update({ thumbnail_url: newUrl }).eq('id', reviewingGame.id);
+      if (updateErr) throw updateErr;
+
+      reviewingGame.thumbnail_url = newUrl;
+      const preview = document.getElementById('review-thumb-preview');
+      preview.innerHTML = `<img src="${encodeURI(newUrl)}" style="width:100%;height:100%;object-fit:cover;" id="review-thumb-img">`;
+      renderQueue();
+      showToast('Thumbnail updated!', 'success');
+    } catch (err) {
+      showToast('Failed to upload: ' + (err.message || 'Unknown'), 'error');
     }
   });
 

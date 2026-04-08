@@ -33,7 +33,7 @@ export default function Home() {
       if (supabase) {
         const { data } = await supabase
           .from("games")
-          .select("*")
+          .select("*, profiles:creator_id(username)")
           .eq("status", "approved");
         if (data) {
           const twoMinAgo = new Date(Date.now() - 120000).toISOString();
@@ -49,7 +49,11 @@ export default function Home() {
             }
           }
 
-          setGames(data.map(g => ({ ...g, player_count: counts[g.id] || 0 })));
+          setGames(data.map((g: any) => ({
+            ...g,
+            player_count: counts[g.id] || 0,
+            author: g.profiles?.username || 'Unknown',
+          })));
         }
       }
     } finally {

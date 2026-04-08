@@ -4,6 +4,15 @@
 const SUPABASE_URL = 'https://ldipundnojizgnykqvdd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_l5NXtUaTUkl6zzEMZlBAjw_fw-8YJb7';
 
+const ADMIN_IDS = [
+  'ff83d829-9583-4025-af2c-8cf082696d55'
+];
+
+function isAdmin() {
+  const user = getUser();
+  return user && ADMIN_IDS.includes(user.id);
+}
+
 let _supabase = null;
 let _session = null;
 
@@ -92,18 +101,56 @@ function setupNavAuth() {
   const authBtn = document.getElementById('auth-btn');
   if (!authBtn) return;
 
+  // Wrap auth-btn in a dropdown container
+  const navRight = authBtn.parentElement;
+  const dropWrap = document.createElement('div');
+  dropWrap.style.cssText = 'position:relative;display:inline-block;';
+  navRight.replaceChild(dropWrap, authBtn);
+  dropWrap.appendChild(authBtn);
+
+  const dropMenu = document.createElement('div');
+  dropMenu.id = 'user-dropdown';
+  dropMenu.style.cssText = 'display:none;position:absolute;right:0;top:calc(100% + 6px);background:#1a2235;border:2px solid #1e3a5f;border-radius:4px;min-width:160px;z-index:200;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.5);';
+  dropWrap.appendChild(dropMenu);
+
   function updateBtn() {
     const user = getUser();
     if (user) {
-      authBtn.textContent = user.user_metadata?.username || user.email?.split('@')[0] || 'Account';
-      authBtn.onclick = () => {
-        if (confirm('Sign out?')) signOut();
+      const name = user.user_metadata?.username || user.email?.split('@')[0] || 'Account';
+      authBtn.textContent = name;
+      authBtn.onclick = (e) => {
+        e.stopPropagation();
+        dropMenu.style.display = dropMenu.style.display === 'none' ? '' : 'none';
       };
+
+      // Build dropdown items
+      let items = '';
+      items += `<a href="profile.html" style="display:block;padding:10px 16px;color:#e8eaf0;text-decoration:none;font-size:13px;border-bottom:1px solid #1e3a5f;transition:background 0.15s;" onmouseover="this.style.background='#111827'" onmouseout="this.style.background='transparent'">👤 Profile</a>`;
+      if (isAdmin()) {
+        items += `<a href="admin.html" style="display:block;padding:10px 16px;color:#ff4444;text-decoration:none;font-size:13px;font-weight:600;border-bottom:1px solid #1e3a5f;transition:background 0.15s;" onmouseover="this.style.background='#1a0a0a'" onmouseout="this.style.background='transparent'">🛡️ Admin</a>`;
+      }
+      items += `<a href="#" id="logout-link" style="display:block;padding:10px 16px;color:#ff5555;text-decoration:none;font-size:13px;transition:background 0.15s;" onmouseover="this.style.background='#1a0a0a'" onmouseout="this.style.background='transparent'">↩ Sign Out</a>`;
+      dropMenu.innerHTML = items;
+
+      document.getElementById('logout-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        signOut();
+        dropMenu.style.display = 'none';
+      });
     } else {
       authBtn.textContent = 'Sign In';
       authBtn.onclick = () => showAuthModal();
+      dropMenu.style.display = 'none';
+      dropMenu.innerHTML = '';
     }
   }
+
+  // Close dropdown on outside click
+  document.addEventListener('click', (e) => {
+    if (!dropWrap.contains(e.target)) {
+      dropMenu.style.display = 'none';
+    }
+  });
 
   onAuthChange(updateBtn);
   updateBtn();

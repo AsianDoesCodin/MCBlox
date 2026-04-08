@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — McBlox</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="toast.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="logo"><img src="mcbloxlogo.png" alt="McBlox" class="nav-logo"></a>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="games.html">Games</a>
+      <a href="publish.html">Publish</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-sm" id="auth-btn">Sign In</button>
+    </div>
+  </nav>
+
+  <!-- Auth gate -->
+  <div id="auth-gate" class="auth-gate">
+    <h2>Profile</h2>
+    <p class="auth-gate-sub">Sign in to view your profile.</p>
+    <button class="btn btn-lg" id="signin-btn">Sign In</button>
+  </div>
+
+  <!-- Profile content -->
+  <main id="profile-panel" style="display:none">
+    <div class="profile-container">
+      <h1 class="profile-title">My Profile</h1>
+
+      <div class="profile-card">
+        <!-- Avatar -->
+        <div class="profile-avatar-section">
+          <div class="profile-avatar" id="profile-avatar">
+            <span id="avatar-placeholder">?</span>
+            <img id="avatar-img" style="display:none">
+          </div>
+          <label class="btn btn-sm btn-secondary profile-avatar-btn">
+            Change Avatar
+            <input type="file" id="avatar-input" accept="image/*" style="display:none">
+          </label>
+        </div>
+
+        <!-- Fields -->
+        <form id="profile-form" class="profile-fields">
+          <label>Username</label>
+          <input type="text" id="profile-username" required maxlength="30" placeholder="Your username">
+
+          <label>Email</label>
+          <input type="email" id="profile-email" disabled>
+
+          <label>Member Since</label>
+          <input type="text" id="profile-joined" disabled>
+
+          <button type="submit" class="btn btn-md" id="profile-save">Save Changes</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 McBlox</p>
+  </footer>
+
+  <style>
+    .profile-container {
+      max-width: 520px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+    .profile-title {
+      font-family: 'Silkscreen', monospace;
+      font-size: 22px;
+      margin-bottom: 24px;
+      color: #ffd740;
+    }
+    .profile-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      padding: 28px;
+    }
+    .profile-avatar-section {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #111827;
+      border: 3px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    #avatar-placeholder {
+      font-size: 28px;
+      color: var(--text-dim);
+      font-family: 'Silkscreen', monospace;
+    }
+    .profile-avatar-btn {
+      cursor: pointer;
+    }
+    .profile-fields label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      margin-top: 14px;
+    }
+    .profile-fields label:first-child {
+      margin-top: 0;
+    }
+    .profile-fields input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #0a0e1a;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .profile-fields input:focus {
+      border-color: var(--accent);
+    }
+    .profile-fields input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #profile-save {
+      margin-top: 24px;
+      width: 100%;
+    }
+  </style>
+
+  <script src="profile.js"></script>
+</body>
+</html>
