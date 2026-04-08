@@ -352,15 +352,18 @@ function openAdminEdit() {
     });
   }
 
+  const inputStyle = 'width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;';
+  const selectStyle = inputStyle;
+
   reviewContent.innerHTML = `
     <form id="admin-edit-form">
       <div class="review-detail-field">
         <label>Title</label>
-        <input type="text" id="admin-edit-title" value="${escapeHtml(game.title)}" required maxlength="60" style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;">
+        <input type="text" id="admin-edit-title" value="${escapeHtml(game.title)}" required maxlength="60" style="${inputStyle}">
       </div>
       <div class="review-detail-field">
         <label>Description</label>
-        <textarea id="admin-edit-desc" required rows="3" maxlength="500" style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;resize:vertical;">${escapeHtml(game.description || '')}</textarea>
+        <textarea id="admin-edit-desc" required rows="3" maxlength="500" style="${inputStyle}resize:vertical;">${escapeHtml(game.description || '')}</textarea>
       </div>
       <div class="review-detail-field">
         <label>Thumbnail</label>
@@ -380,25 +383,140 @@ function openAdminEdit() {
       </div>
       <div class="review-detail-field">
         <label>Modpack URL</label>
-        <input type="url" id="admin-edit-modpack" value="${escapeHtml(game.modpack_url || '')}" required style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;">
+        <input type="url" id="admin-edit-modpack" value="${escapeHtml(game.modpack_url || '')}" required style="${inputStyle}">
+      </div>
+      <div class="review-detail-field" style="display:flex;gap:12px;">
+        <div style="flex:1;">
+          <label>MC Version</label>
+          <select id="admin-edit-mc-version" style="${selectStyle}">
+            <option value="">Loading...</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label>Mod Loader</label>
+          <select id="admin-edit-mod-loader" style="${selectStyle}">
+            <option value="fabric" ${game.mod_loader === 'fabric' ? 'selected' : ''}>Fabric</option>
+            <option value="forge" ${game.mod_loader === 'forge' ? 'selected' : ''}>Forge</option>
+            <option value="neoforge" ${game.mod_loader === 'neoforge' ? 'selected' : ''}>NeoForge</option>
+            <option value="quilt" ${game.mod_loader === 'quilt' ? 'selected' : ''}>Quilt</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label>Loader Version</label>
+          <select id="admin-edit-loader-version" style="${selectStyle}">
+            <option value="">Loading...</option>
+          </select>
+        </div>
       </div>
       <div class="review-detail-field" style="display:flex;gap:12px;">
         <div style="flex:1;">
           <label>Game Type</label>
-          <select id="admin-edit-game-type" style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;">
+          <select id="admin-edit-game-type" style="${selectStyle}">
             <option value="server" ${game.game_type === 'server' ? 'selected' : ''}>Server</option>
             <option value="world" ${game.game_type === 'world' ? 'selected' : ''}>World</option>
           </select>
         </div>
         <div style="flex:1;">
           <label>Server Address / World Name</label>
-          <input type="text" id="admin-edit-address" value="${escapeHtml(game.server_address || game.world_name || '')}" style="width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;">
+          <input type="text" id="admin-edit-address" value="${escapeHtml(game.server_address || game.world_name || '')}" style="${inputStyle}">
         </div>
+      </div>
+      <div class="review-detail-field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="admin-edit-auto-join" ${game.auto_join ? 'checked' : ''} style="width:18px;height:18px;accent-color:#00e676;">
+          <span>Auto-Join (McBlox mod auto-connects to server/world on launch)</span>
+        </label>
       </div>
     </form>
   `;
 
   renderTagPicker();
+
+  // Fetch MC versions and populate select
+  const mcSelect = document.getElementById('admin-edit-mc-version');
+  const loaderSelect = document.getElementById('admin-edit-mod-loader');
+  const loaderVerSelect = document.getElementById('admin-edit-loader-version');
+
+  async function fetchWithCorsProxy(url) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    } catch {
+      const proxies = [
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        `https://corsproxy.io/?${encodeURIComponent(url)}`
+      ];
+      for (const p of proxies) {
+        try { const r = await fetch(p); if (r.ok) return await r.json(); } catch {}
+      }
+      throw new Error('CORS proxy failed');
+    }
+  }
+
+  async function loadMcVersions() {
+    try {
+      const resp = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json');
+      const data = await resp.json();
+      const releases = data.versions.filter(v => v.type === 'release').map(v => v.id);
+      mcSelect.innerHTML = '<option value="">Select MC version</option>';
+      releases.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v;
+        if (v === game.mc_version) opt.selected = true;
+        mcSelect.appendChild(opt);
+      });
+    } catch { mcSelect.innerHTML = `<option value="${escapeHtml(game.mc_version)}">${escapeHtml(game.mc_version)}</option>`; }
+  }
+
+  async function loadLoaderVersions() {
+    const mc = mcSelect.value;
+    const loader = loaderSelect.value;
+    if (!mc || !loader) { loaderVerSelect.innerHTML = '<option value="">Select MC version & loader first</option>'; return; }
+    loaderVerSelect.innerHTML = '<option value="">Loading...</option>';
+    try {
+      let versions = [];
+      if (loader === 'forge') {
+        try {
+          const data = await fetchWithCorsProxy('https://files.minecraftforge.net/net/minecraftforge/forge/maven-metadata.json');
+          versions = (data[mc] || []).map(v => v.replace(mc + '-', '')).reverse();
+        } catch {}
+        if (!versions.length) {
+          try {
+            const data = await fetchWithCorsProxy('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
+            const p = data.promos || {};
+            if (p[`${mc}-recommended`]) versions.push(p[`${mc}-recommended`]);
+            if (p[`${mc}-latest`] && p[`${mc}-latest`] !== p[`${mc}-recommended`]) versions.push(p[`${mc}-latest`]);
+          } catch {}
+        }
+      } else if (loader === 'fabric') {
+        const resp = await fetch(`https://meta.fabricmc.net/v2/versions/loader/${mc}`);
+        const data = await resp.json();
+        versions = data.map(v => v.loader?.version).filter(Boolean);
+      } else if (loader === 'neoforge') {
+        const data = await fetchWithCorsProxy('https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge');
+        const parts = mc.split('.');
+        const prefix = parts.length >= 2 ? `${parts[1]}.${parts[2] || '0'}` : mc;
+        versions = (data.versions || []).filter(v => v.startsWith(prefix)).reverse();
+      }
+      loaderVerSelect.innerHTML = '<option value="">Select version</option>';
+      versions.forEach((v, i) => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = i === 0 ? `${v} (latest)` : v;
+        if (v === game.loader_version) opt.selected = true;
+        loaderVerSelect.appendChild(opt);
+      });
+      if (game.loader_version && !versions.includes(game.loader_version)) {
+        const opt = document.createElement('option');
+        opt.value = game.loader_version; opt.textContent = `${game.loader_version} (current)`;
+        opt.selected = true; loaderVerSelect.prepend(opt);
+      }
+    } catch { loaderVerSelect.innerHTML = `<option value="${escapeHtml(game.loader_version || '')}">${escapeHtml(game.loader_version || 'Unknown')}</option>`; }
+  }
+
+  mcSelect.addEventListener('change', loadLoaderVersions);
+  loaderSelect.addEventListener('change', loadLoaderVersions);
+  loadMcVersions().then(loadLoaderVersions);
 
   // Thumbnail upload in edit mode
   let adminEditNewThumb = null;
@@ -437,9 +555,13 @@ function openAdminEdit() {
         description: document.getElementById('admin-edit-desc').value.trim(),
         tags: [...selectedTags],
         modpack_url: document.getElementById('admin-edit-modpack').value.trim(),
+        mc_version: document.getElementById('admin-edit-mc-version').value.trim(),
+        mod_loader: document.getElementById('admin-edit-mod-loader').value,
+        loader_version: document.getElementById('admin-edit-loader-version').value.trim() || null,
         game_type: gameType,
         server_address: gameType === 'server' ? addressVal : null,
         world_name: gameType === 'world' ? addressVal : null,
+        auto_join: document.getElementById('admin-edit-auto-join').checked,
       };
 
       // Upload new thumbnail if changed

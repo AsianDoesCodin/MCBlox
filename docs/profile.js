@@ -131,7 +131,8 @@ avatarInput.addEventListener('change', async (e) => {
 
     const { error: updateErr } = await sb
       .from('profiles')
-      .upsert({ id: user.id, avatar_url: avatarUrl }, { onConflict: 'id' });
+      .update({ avatar_url: avatarUrl })
+      .eq('id', user.id);
     if (updateErr) throw updateErr;
 
     avatarImg.src = avatarUrl;
