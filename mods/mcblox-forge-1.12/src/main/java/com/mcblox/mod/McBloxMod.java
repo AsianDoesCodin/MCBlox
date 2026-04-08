@@ -15,6 +15,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.io.File;
 import java.io.FileReader;
@@ -63,16 +64,24 @@ public class McBloxMod {
             ServerData serverData = new ServerData("McBlox Server", config.serverAddress, false);
             event.setGui(new GuiConnecting(new GuiMainMenu(), mc, serverData));
         } else if ("world".equals(config.gameType) && config.worldName != null) {
-            event.setCanceled(true);
-            mc.addScheduledTask(() -> {
-                try {
-                    mc.launchIntegratedServer(config.worldName, config.worldName, null);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    skipAttempted = false;
-                    mc.displayGuiScreen(new GuiMainMenu());
-                }
-            });
+            // Can't cancel+schedule during init; let menu show then load on first tick
+            pendingWorldLoad = true;
+        }
+    }
+
+    private static boolean pendingWorldLoad = false;
+
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !pendingWorldLoad) return;
+        pendingWorldLoad = false;
+        Minecraft mc = Minecraft.getMinecraft();
+        try {
+            mc.launchIntegratedServer(config.worldName, config.worldName, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            skipAttempted = false;
+            mc.displayGuiScreen(new GuiMainMenu());
         }
     }
 
