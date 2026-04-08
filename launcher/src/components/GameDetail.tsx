@@ -75,12 +75,12 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const { data } = await supabase
-      .from("game_ratings")
-      .select("is_positive")
+      .from("ratings")
+      .select("vote")
       .eq("game_id", game.id)
       .eq("user_id", session.user.id)
       .maybeSingle();
-    if (data) setMyRating(data.is_positive);
+    if (data) setMyRating(data.vote === 'up');
   }
 
   async function rate(positive: boolean) {
@@ -103,11 +103,11 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
     setMyRating(positive);
 
     const { error } = await supabase
-      .from("game_ratings")
+      .from("ratings")
       .upsert({
         game_id: game.id,
         user_id: session.user.id,
-        is_positive: positive,
+        vote: positive ? 'up' : 'down',
       }, { onConflict: "game_id,user_id" });
 
     if (error) {
@@ -184,7 +184,7 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
                   : "bg-[#111827] border-[#1e3a5f] hover:border-[#00e676]"
               }`}
             >
-              <span className="text-lg">👍</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={myRating === true ? "#00e676" : "none"} stroke={myRating === true ? "#00e676" : "currentColor"} strokeWidth="2"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
               <span className="text-sm font-bold">{likes}</span>
             </button>
             <button
@@ -195,7 +195,7 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
                   : "bg-[#111827] border-[#1e3a5f] hover:border-[#7a2e2e]"
               }`}
             >
-              <span className="text-lg">👎</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={myRating === false ? "#ff5555" : "none"} stroke={myRating === false ? "#ff5555" : "currentColor"} strokeWidth="2"><path d="M12 20l8-8h-5V4H9v8H4z"/></svg>
               <span className="text-sm font-bold">{dislikes}</span>
             </button>
             <div className="flex items-center gap-2 px-4 py-2.5 bg-[#111827] rounded border-2 border-[#1e3a5f]">

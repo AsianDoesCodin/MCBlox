@@ -137,8 +137,9 @@ export default function GameCard({ game, onClick, onPlay, onStop, session }: Pro
         <p className="text-[10px] text-[#64748b] truncate mt-0.5">by {game.author || 'Unknown'}</p>
         <div className="flex items-center gap-2 mt-0.5">
           {total > 0 && (
-            <span className={`text-[11px] font-medium ${pct >= 70 ? 'text-[#00e676]' : pct >= 40 ? 'text-[#ffd740]' : 'text-red-400'}`}>
-              👍 {pct}%
+            <span className={`text-[11px] font-medium flex items-center gap-0.5 ${pct >= 70 ? 'text-[#00e676]' : pct >= 40 ? 'text-[#ffd740]' : 'text-red-400'}`}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
+              {pct}%
             </span>
           )}
           {game.tags && game.tags.length > 0 && (

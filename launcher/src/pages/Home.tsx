@@ -23,7 +23,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<"popular" | "newest" | "top-rated">("popular");
+  const [sort, setSort] = useState<"popular" | "newest" | "top-rated" | "players" | "featured">("popular");
   const [selected, setSelected] = useState<Game | null>(null);
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [showTags, setShowTags] = useState(false);
@@ -89,9 +89,14 @@ export default function Home({ session, onPlay, onStop }: Props) {
   if (sort === "popular") filtered.sort((a, b) => (b.total_plays || 0) - (a.total_plays || 0));
   else if (sort === "newest") filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   else if (sort === "top-rated") filtered.sort((a, b) => (b.thumbs_up || 0) - (a.thumbs_up || 0));
+  else if (sort === "players") filtered.sort((a, b) => (b.player_count || 0) - (a.player_count || 0));
+  else if (sort === "featured") filtered.sort((a, b) => (b.is_promoted ? 1 : 0) - (a.is_promoted ? 1 : 0));
 
   const featured = filtered.filter((g) => g.is_promoted);
-  const rest = filtered.filter((g) => !g.is_promoted);
+  const nonFeatured = filtered.filter((g) => !g.is_promoted);
+  const popular = [...nonFeatured].sort((a, b) => (b.player_count || 0) + (b.total_plays || 0) - (a.player_count || 0) - (a.total_plays || 0)).slice(0, 8);
+  const popularIds = new Set(popular.map(g => g.id));
+  const discover = nonFeatured.filter(g => !popularIds.has(g.id));
 
   if (selected) {
     return (
@@ -137,8 +142,10 @@ export default function Home({ session, onPlay, onStop }: Props) {
           style={{fontFamily: "'Silkscreen', monospace"}}
         >
           <option value="popular">Most Popular</option>
-          <option value="newest">Newest</option>
+          <option value="players">Current Players</option>
           <option value="top-rated">Top Rated</option>
+          <option value="newest">Newest</option>
+          <option value="featured">Featured</option>
         </select>
 
         <div className="relative shrink-0">
@@ -188,88 +195,81 @@ export default function Home({ session, onPlay, onStop }: Props) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Featured banner */}
-        {!search && featured.length > 0 && (
-          <div className="px-6 pt-5 pb-2">
-            <div
-              onClick={() => setSelected(featured[0])}
-              className="relative h-[220px] rounded overflow-hidden cursor-pointer group border-2 border-[#1e3a5f] hover:border-[#00e676]"
-              style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: '0 0 20px rgba(0, 188, 212, 0.1)'}}
-            >
-              {featured[0].thumbnail_url ? (
-                <img src={featured[0].thumbnail_url} alt={featured[0].title} className="absolute inset-0 w-full h-full object-cover" />
-              ) : (
-                <div className="absolute inset-0" style={{background: 'linear-gradient(135deg, #3a5f1e 0%, #2d4a17 50%, #1e3310 100%)'}} />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-              <div className="absolute inset-0 flex items-end p-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-[#ffd740] rounded text-[10px] font-bold text-black uppercase" style={{fontFamily: "'Silkscreen', monospace"}}>★ Featured</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase flex items-center gap-1 ${
-                      featured[0].game_type === 'server'
-                        ? 'bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40'
-                        : 'bg-[#64748b]/20 text-[#94a3b8] border border-[#64748b]/40'
-                    }`} style={{fontFamily: "'Silkscreen', monospace"}}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${featured[0].game_type === 'server' ? 'bg-[#00e676]' : 'bg-[#64748b]'}`} />
-                      {featured[0].game_type === 'server' ? 'Online' : 'Offline'}
-                    </span>
-                    {featured[0].game_type === 'server' && (featured[0].player_count || 0) > 0 && (
-                      <span className="flex items-center gap-1 text-xs text-[#00e676]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00e676] animate-pulse" />
-                        {featured[0].player_count} playing
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-2xl font-bold mb-1" style={{fontFamily: "'Silkscreen', monospace", textShadow: '2px 2px 0 #000'}}>{featured[0].title}</h2>
-                  <p className="text-sm text-[#94a3b8] line-clamp-2 max-w-lg">{featured[0].description}</p>
-                </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setSelected(featured[0]); }}
-                  className="px-8 py-3 bg-[#00e676] hover:bg-[#33ff99] text-black font-bold rounded text-sm cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]"
-                  style={{fontFamily: "'Silkscreen', monospace"}}
-                >
-                  ▶ PLAY
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Promoted row */}
-        {!search && featured.length > 1 && (
-          <div className="px-6 pt-4">
-            <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
-              ★ Sponsored
-            </h2>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
-              {featured.slice(1).map((g) => (
-                <GameCard key={g.id} game={g} onClick={setSelected} session={session} onPlay={onPlay} onStop={onStop} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* All games / search results */}
-        <div className="px-6 pt-5 pb-8">
-          <h2 className="text-base font-bold mb-3" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
-            {search ? `Results for "${search}"` : "Popular Right Now"}
-          </h2>
-          {loading ? (
+        {loading ? (
+          <div className="px-6 pt-5 pb-8">
             <SkeletonGrid count={6} />
-          ) : rest.length > 0 ? (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
-              {rest.map((g) => (
-                <GameCard key={g.id} game={g} onClick={setSelected} session={session} onPlay={onPlay} onStop={onStop} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <span className="text-4xl mb-3 block">⛏</span>
-              <p className="text-[#64748b]" style={{fontFamily: "'Silkscreen', monospace"}}>No games found</p>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : search ? (
+          /* Search results — flat list */
+          <div className="px-6 pt-5 pb-8">
+            <h2 className="text-base font-bold mb-3" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+              Results for "{search}"
+            </h2>
+            {filtered.length > 0 ? (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+                {filtered.map((g) => (
+                  <GameCard key={g.id} game={g} onClick={setSelected} session={session} onPlay={onPlay} onStop={onStop} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <span className="text-4xl mb-3 block">⛏</span>
+                <p className="text-[#64748b]" style={{fontFamily: "'Silkscreen', monospace"}}>No games found</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Featured section */}
+            {featured.length > 0 && (
+              <div className="px-6 pt-5 pb-2">
+                <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+                  ★ Featured
+                </h2>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+                  {featured.map((g) => (
+                    <GameCard key={g.id} game={g} onClick={setSelected} session={session} onPlay={onPlay} onStop={onStop} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Popular section */}
+            {popular.length > 0 && (
+              <div className="px-6 pt-5 pb-2">
+                <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#00e676'}}>
+                  🔥 Popular
+                </h2>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+                  {popular.map((g) => (
+                    <GameCard key={g.id} game={g} onClick={setSelected} session={session} onPlay={onPlay} onStop={onStop} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Discover section */}
+            {discover.length > 0 && (
+              <div className="px-6 pt-5 pb-8">
+                <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#94a3b8'}}>
+                  🎲 Discover
+                </h2>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+                  {discover.map((g) => (
+                    <GameCard key={g.id} game={g} onClick={setSelected} session={session} onPlay={onPlay} onStop={onStop} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {filtered.length === 0 && (
+              <div className="text-center py-16">
+                <span className="text-4xl mb-3 block">⛏</span>
+                <p className="text-[#64748b]" style={{fontFamily: "'Silkscreen', monospace"}}>No games found</p>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
