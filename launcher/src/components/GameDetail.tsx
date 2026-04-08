@@ -152,7 +152,7 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
               <p className="text-sm text-[#64748b] mt-1">by {game.author || 'Unknown'}</p>
               <div className="flex items-center gap-4 mt-2 text-sm text-[#b0b0b0]">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#00e676]" />
+                  <span className={`w-2 h-2 rounded-full ${(game.player_count || 0) > 0 ? 'bg-[#00e676]' : 'bg-[#64748b]'}`} />
                   {game.player_count || 0} active
                 </span>
                 <span>📥 {(game.total_plays || 0).toLocaleString()} plays</span>

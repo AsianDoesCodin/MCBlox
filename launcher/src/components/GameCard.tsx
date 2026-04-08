@@ -142,6 +142,10 @@ export default function GameCard({ game, onClick, onPlay, onStop, session }: Pro
               {pct}%
             </span>
           )}
+          <span className="text-[11px] text-[#64748b] flex items-center gap-1">
+            <span className={`w-1.5 h-1.5 rounded-full ${(game.player_count || 0) > 0 ? 'bg-[#00e676]' : 'bg-[#64748b]'}`} />
+            {game.player_count || 0} active
+          </span>
           {game.tags && game.tags.length > 0 && (
             <span className="text-[11px] text-[#64748b] truncate">
               {game.tags[0]}
