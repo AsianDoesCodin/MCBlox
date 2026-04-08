@@ -42,11 +42,15 @@ function App() {
   const [mcLogs, setMcLogs] = useState<string[]>([]);
   const launchUnsubs = useRef<(() => void)[]>([]);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mcUsernameRef = useRef<string | null>(null);
 
   useEffect(() => {
     checkForUpdates();
     invoke("mc_auth_get_account").then((acc: any) => {
-      if (acc?.username) setMcUsername(acc.username);
+      if (acc?.username) {
+        setMcUsername(acc.username);
+        mcUsernameRef.current = acc.username;
+      }
     }).catch(() => {});
     // Check if a game is already running
     invoke<string | null>("is_game_running").then(id => {
@@ -89,7 +93,17 @@ function App() {
 
   async function startHeartbeat(gameId: string) {
     if (!supabase) return;
-    const username = mcUsername;
+    let username = mcUsernameRef.current;
+    if (!username) {
+      try {
+        const acc: any = await invoke("mc_auth_get_account");
+        if (acc?.username) {
+          username = acc.username;
+          mcUsernameRef.current = username;
+          setMcUsername(username);
+        }
+      } catch {}
+    }
     if (!username) return;
     await supabase.rpc("heartbeat", { p_game_id: gameId, p_mc_username: username });
     const sb = supabase;
