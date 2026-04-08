@@ -404,7 +404,48 @@ footer {
 }
 
 .game-meta .players {
-  color: var(--green);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.game-meta .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.game-meta .dot-active { background: var(--green); }
+.game-meta .dot-inactive { background: var(--text-dim); }
+
+.game-meta .rate-good { color: var(--green); display: flex; align-items: center; gap: 2px; }
+.game-meta .rate-mid { color: var(--gold); display: flex; align-items: center; gap: 2px; }
+.game-meta .rate-bad { color: #ff5555; display: flex; align-items: center; gap: 2px; }
+
+.game-meta .game-tag {
+  font-size: 10px;
+  color: var(--text-dim);
+  background: rgba(30,58,95,0.4);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+.game-type-row {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.game-type-label {
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  background: rgba(30,58,95,0.3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 6px;
 }
 
 .featured {

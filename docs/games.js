@@ -111,6 +111,13 @@ function renderCard(game) {
   const dislikes = game.thumbs_down || 0;
   const total = likes + dislikes;
   const pct = total > 0 ? Math.round((likes / total) * 100) : 0;
+  const pctClass = pct >= 70 ? 'rate-good' : pct >= 40 ? 'rate-mid' : 'rate-bad';
+  const gameType = game.game_type === 'server' ? 'Multiplayer' : 'Singleplayer';
+  const dotClass = players > 0 ? 'dot-active' : 'dot-inactive';
+
+  const tagsHtml = (game.tags || []).slice(0, 2).map(t =>
+    `<span class="game-tag">${escapeHtml(t)}</span>`
+  ).join('');
 
   card.innerHTML = `
     <div class="game-thumb">${thumbContent}</div>
@@ -118,8 +125,12 @@ function renderCard(game) {
       <h3>${escapeHtml(game.title)}</h3>
       <div class="game-author">by ${escapeHtml(game.author || 'Unknown')}</div>
       <div class="game-meta">
-        <span class="players">&#9654; ${players} playing</span>
-        <span>${total > 0 ? pct + '% &#128077;' : ''}</span>
+        ${total > 0 ? `<span class="${pctClass}"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg> ${pct}%</span>` : ''}
+        <span class="players"><span class="dot ${dotClass}"></span> ${players} active</span>
+        ${tagsHtml}
+      </div>
+      <div class="game-type-row">
+        <span class="game-type-label">${gameType}</span>
       </div>
     </div>
   `;
@@ -153,8 +164,10 @@ function render() {
   }
 
   if (sort === 'popular') filtered.sort((a, b) => (b.total_plays || 0) - (a.total_plays || 0));
+  else if (sort === 'active') filtered.sort((a, b) => (b.player_count || 0) - (a.player_count || 0));
   else if (sort === 'newest') filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   else if (sort === 'top-rated') filtered.sort((a, b) => (b.thumbs_up || 0) - (a.thumbs_up || 0));
+  else if (sort === 'featured') filtered.sort((a, b) => (b.is_promoted ? 1 : 0) - (a.is_promoted ? 1 : 0));
 
   const featured = filtered.filter(g => g.is_promoted);
   const rest = filtered.filter(g => !g.is_promoted);
@@ -190,8 +203,24 @@ async function fetchGames() {
       .select('*, profiles:creator_id(username)')
       .eq('status', 'approved');
     if (error) throw error;
+
+    // Fetch active player counts (heartbeats within last 2 minutes)
+    const twoMinAgo = new Date(Date.now() - 120000).toISOString();
+    const { data: activity } = await sb
+      .from('player_activity')
+      .select('game_id')
+      .gte('last_heartbeat', twoMinAgo);
+
+    const counts = {};
+    if (activity) {
+      for (const row of activity) {
+        counts[row.game_id] = (counts[row.game_id] || 0) + 1;
+      }
+    }
+
     allGames = (data || []).map(g => ({
       ...g,
+      player_count: counts[g.id] || 0,
       author: g.profiles?.username || 'Unknown'
     }));
     render();
