@@ -107,14 +107,6 @@ export default function GameCard({ game, onClick, onPlay, onStop, session }: Pro
             )}
           </div>
         )}
-        {/* Multiplayer/Singleplayer label */}
-        <div className="absolute top-1.5 left-1.5 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/70 text-[10px] font-bold uppercase text-white"
-          style={{fontFamily: "'Silkscreen', monospace", backdropFilter: 'blur(4px)', letterSpacing: '0.5px'}}>
-          <span className="w-4 h-4 rounded-full bg-[#1e3a5f] flex items-center justify-center text-[8px] text-[#94a3b8]">
-            {game.game_type === 'server' ? 'MP' : 'SP'}
-          </span>
-          {game.game_type === 'server' ? 'Multiplayer' : 'Singleplayer'}
-        </div>
         {/* Player count badge */}
         {game.game_type === 'server' && (game.player_count || 0) > 0 && (
           <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1 px-2 py-0.5 bg-black/80 rounded text-[11px] font-medium" style={{backdropFilter: 'blur(4px)'}}>
@@ -150,6 +142,13 @@ export default function GameCard({ game, onClick, onPlay, onStop, session }: Pro
               {game.tags[0]}
             </span>
           )}
+        </div>
+        {/* Separator + game type */}
+        <div className="border-t border-[#1e3a5f] mt-1 pt-1 flex items-center gap-1.5">
+          <span className="text-[10px] text-[#94a3b8] px-1.5 py-0.5 rounded bg-[#1a2235] border border-[#1e3a5f]"
+            style={{fontFamily: "'Silkscreen', monospace"}}>
+            {game.game_type === 'server' ? 'Multiplayer' : 'Singleplayer'}
+          </span>
         </div>
       </div>
 
