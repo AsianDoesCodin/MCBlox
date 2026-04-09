@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS games (
   modpack_url TEXT NOT NULL,
   mc_version TEXT NOT NULL,
   mod_loader TEXT NOT NULL CHECK (mod_loader IN ('fabric', 'forge', 'neoforge', 'quilt')),
+  loader_version TEXT,
   game_type TEXT NOT NULL CHECK (game_type IN ('server', 'world')),
   server_address TEXT,
   world_name TEXT,
