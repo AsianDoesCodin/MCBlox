@@ -470,12 +470,33 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     println!("[McBlox] Main class: {}", args.iter().find(|a| !a.starts_with('-') && !a.contains(';') && !a.contains('\\') && !a.contains('/')).unwrap_or(&"???".to_string()));
     println!("[McBlox] Game dir: {:?}", instance_dir);
     
-    // Log first few and last few args for debugging
+    // Log all args for debugging and save launch command to file
     for (i, arg) in args.iter().enumerate() {
         if i < 10 || i > args.len() - 5 {
             println!("[McBlox]   arg[{}]: {}", i, if arg.len() > 200 { &arg[..200] } else { arg });
         }
     }
+    // Write full launch command to a debug file
+    {
+        let debug_path = instance_dir.join("mcblox_launch.txt");
+        let mut cmd_str = format!("\"{}\"", java);
+        for arg in &args {
+            if arg.contains(' ') || arg.contains(';') {
+                cmd_str.push_str(&format!(" \"{}\"", arg));
+            } else {
+                cmd_str.push_str(&format!(" {}", arg));
+            }
+        }
+        std::fs::write(&debug_path, &cmd_str).ok();
+        println!("[McBlox] Launch command saved to {:?}", debug_path);
+    }
+
+    // Open stderr log file for the instance so crash info is never lost
+    let stderr_log_path = instance_dir.join("logs").join("mcblox_stderr.log");
+    let stdout_log_path = instance_dir.join("logs").join("mcblox_stdout.log");
+    std::fs::create_dir_all(instance_dir.join("logs")).ok();
+    let stderr_log = std::fs::File::create(&stderr_log_path).ok();
+    let stdout_log = std::fs::File::create(&stdout_log_path).ok();
 
     // Use javaw.exe to avoid opening a CMD window, pipe stdout/stderr
     let mut child = Command::new(&java)
@@ -509,9 +530,14 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
             let app = app_handle_bg.clone();
             let reader = std::io::BufReader::new(stdout);
             std::thread::spawn(move || {
+                let mut log_file = stdout_log;
                 for line in reader.lines() {
                     if let Ok(line) = line {
                         app.emit("mc-output", serde_json::json!({ "line": line, "stream": "stdout" })).ok();
+                        if let Some(ref mut f) = log_file {
+                            use std::io::Write;
+                            writeln!(f, "{}", line).ok();
+                        }
                     }
                 }
             });
@@ -521,9 +547,15 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
             let app = app_handle_bg.clone();
             let reader = std::io::BufReader::new(stderr);
             std::thread::spawn(move || {
+                let mut log_file = stderr_log;
                 for line in reader.lines() {
                     if let Ok(line) = line {
                         app.emit("mc-output", serde_json::json!({ "line": line, "stream": "stderr" })).ok();
+                        // Also write to stderr log file
+                        if let Some(ref mut f) = log_file {
+                            use std::io::Write;
+                            writeln!(f, "{}", line).ok();
+                        }
                     }
                 }
             });
