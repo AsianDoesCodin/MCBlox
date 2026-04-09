@@ -385,19 +385,25 @@ pub async fn install_forge(
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Bad Forge installer: {}", e))?;
 
     let version_json: serde_json::Value = {
-        // Try "version.json" first (modern Forge), then "install_profile.json" (legacy)
-        let entry_name = if archive.by_name("version.json").is_ok() {
-            "version.json"
-        } else {
-            "install_profile.json"
-        };
+        // Try "version.json" first (modern Forge has both; legacy only has install_profile.json)
+        // Read the entry names first to avoid borrow issues with ZipArchive
+        let has_version_json = (0..archive.len()).any(|i| {
+            archive.by_index(i).map(|e| e.name() == "version.json").unwrap_or(false)
+        });
+        let entry_name = if has_version_json { "version.json" } else { "install_profile.json" };
+        println!("[McBlox] Reading Forge installer entry: {}", entry_name);
         let entry = archive.by_name(entry_name).map_err(|e| format!("No version info in Forge installer: {}", e))?;
         serde_json::from_reader(entry).map_err(|e| format!("Bad Forge version JSON: {}", e))?
     };
 
     let main_class = version_json["mainClass"].as_str()
-        .unwrap_or("cpw.mods.modlauncher.Launcher")
+        .unwrap_or_else(|| {
+            // Legacy Forge (1.12 and earlier) with install_profile.json that has versionInfo
+            version_json["versionInfo"]["mainClass"].as_str()
+                .unwrap_or("net.minecraft.launchwrapper.Launch")
+        })
         .to_string();
+    println!("[McBlox] Forge main class: {}", main_class);
 
     // Extract Forge-specific JVM arguments (--add-opens, --add-exports, etc.)
     let mut forge_jvm_args: Vec<String> = Vec::new();
