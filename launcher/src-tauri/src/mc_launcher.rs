@@ -384,7 +384,7 @@ pub async fn install_forge(
     let file = std::fs::File::open(&installer_path).map_err(|e| e.to_string())?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Bad Forge installer: {}", e))?;
 
-    let version_json: serde_json::Value = {
+    let raw_json: serde_json::Value = {
         // Try "version.json" first (modern Forge has both; legacy only has install_profile.json)
         // Read the entry names first to avoid borrow issues with ZipArchive
         let has_version_json = (0..archive.len()).any(|i| {
@@ -396,12 +396,19 @@ pub async fn install_forge(
         serde_json::from_reader(entry).map_err(|e| format!("Bad Forge version JSON: {}", e))?
     };
 
+    // Legacy Forge installers (pre-2859) have everything under "versionInfo"
+    // Modern ones have it at top level. Normalize to always use top-level access.
+    let version_json = if raw_json.get("versionInfo").is_some() {
+        println!("[McBlox] Legacy Forge installer detected (versionInfo format)");
+        raw_json["versionInfo"].clone()
+    } else {
+        raw_json.clone()
+    };
+    // Keep raw_json around for install_profile data like processors
+    let install_profile = &raw_json;
+
     let main_class = version_json["mainClass"].as_str()
-        .unwrap_or_else(|| {
-            // Legacy Forge (1.12 and earlier) with install_profile.json that has versionInfo
-            version_json["versionInfo"]["mainClass"].as_str()
-                .unwrap_or("net.minecraft.launchwrapper.Launch")
-        })
+        .unwrap_or("net.minecraft.launchwrapper.Launch")
         .to_string();
     println!("[McBlox] Forge main class: {}", main_class);
 
@@ -436,10 +443,13 @@ pub async fn install_forge(
     println!("[McBlox] Forge JVM args: {}, game args: {}", forge_jvm_args.len(), forge_game_args.len());
 
     // Run the Forge installer to process client artifacts (srg, extra, patched)
-    // Check if the client-srg JAR exists (indicates installer has been run)
+    // Only needed for modern Forge (1.13+) which has processors in install_profile.json
+    let has_processors = install_profile.get("processors").is_some() 
+        || install_profile.get("data").is_some();
+    if has_processors {
     let srg_path = libraries_dir.join(maven_to_path(
         &format!("net.minecraft:client:{}:srg", 
-            version_json["data"]["MCP_VERSION"]["client"].as_str()
+            install_profile["data"]["MCP_VERSION"]["client"].as_str()
                 .map(|s| format!("{}-{}", mc_version, s.trim_matches('\'')))
                 .unwrap_or_else(|| format!("{}-20230612.114412", mc_version))
         )
@@ -497,6 +507,9 @@ pub async fn install_forge(
     } else {
         println!("[McBlox] Forge client already patched");
     }
+    } else {
+        println!("[McBlox] Legacy Forge — no processor step needed");
+    }
 
     // Download Forge libraries
     let mut forge_libs = Vec::new();
@@ -505,9 +518,15 @@ pub async fn install_forge(
             let name = lib["name"].as_str().unwrap_or("");
             if name.is_empty() { continue; }
 
+            // Legacy format: skip server-only libs (clientreq: false)
+            if lib.get("clientreq").is_some() && lib["clientreq"].as_bool() == Some(false) {
+                println!("[McBlox]   Skipping server-only lib: {}", name);
+                continue;
+            }
+
             let artifact_path = maven_to_path(name);
 
-            // Check for explicit URL
+            // Check for explicit URL in modern format (downloads.artifact.url)
             let url = if let Some(downloads) = lib["downloads"]["artifact"]["url"].as_str() {
                 if downloads.is_empty() {
                     // Empty URL means it's in the installer
@@ -521,8 +540,10 @@ pub async fn install_forge(
                 }
                 downloads.to_string()
             } else if let Some(url_base) = lib["url"].as_str() {
+                // Legacy or modern format with base URL
                 format!("{}{}", url_base, artifact_path)
             } else {
+                // No URL at all — try standard Maven repos
                 format!("https://libraries.minecraft.net/{}", artifact_path)
             };
 
