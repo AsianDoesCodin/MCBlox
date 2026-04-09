@@ -185,6 +185,55 @@ nav {
   line-height: 1.5;
 }
 
+/* About Section */
+.about-section {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+  line-height: 1.8;
+}
+
+.about-section h2 {
+  font-family: 'Silkscreen', monospace;
+  font-size: 18px;
+  color: var(--accent);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.about-section p {
+  font-size: 15px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+.about-section strong {
+  color: var(--text);
+}
+
+.about-lead {
+  font-size: 17px !important;
+  color: var(--text) !important;
+  text-align: center;
+  margin-bottom: 24px !important;
+}
+
+.about-highlight {
+  color: var(--text) !important;
+  font-size: 16px !important;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.about-tagline {
+  font-family: 'Silkscreen', monospace;
+  font-size: 14px !important;
+  color: var(--gold) !important;
+  text-align: center;
+  margin-top: 24px !important;
+  letter-spacing: 1px;
+}
+
 /* Footer */
 footer {
   text-align: center;
