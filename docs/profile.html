@@ -28,14 +28,14 @@
     </div>
   </nav>
 
-  <!-- Auth gate -->
-  <div id="auth-gate" class="auth-gate">
+  <!-- Auth gate (only for own profile) -->
+  <div id="auth-gate" class="auth-gate" style="display:none">
     <h2>Profile</h2>
     <p class="auth-gate-sub">Sign in to view your profile.</p>
     <button class="btn btn-lg" id="signin-btn">Sign In</button>
   </div>
 
-  <!-- Profile content -->
+  <!-- Own profile (editable) -->
   <main id="profile-panel" style="display:none">
     <div class="profile-container">
       <h1 class="profile-title">My Profile</h1>
@@ -67,6 +67,35 @@
           <button type="submit" class="btn btn-md" id="profile-save">Save Changes</button>
         </form>
       </div>
+    </div>
+  </main>
+
+  <!-- Public profile (read-only) -->
+  <main id="public-profile" style="display:none">
+    <div class="profile-container">
+      <div class="public-profile-header">
+        <div class="profile-avatar public-avatar" id="pub-avatar">
+          <span id="pub-avatar-placeholder">?</span>
+          <img id="pub-avatar-img" style="display:none">
+        </div>
+        <div class="public-profile-info">
+          <h1 class="profile-title" id="pub-username">Player</h1>
+          <span class="pub-member-since" id="pub-joined"></span>
+        </div>
+      </div>
+
+      <h2 class="pub-section-title">Published Games</h2>
+      <div class="pub-games-grid" id="pub-games-grid"></div>
+      <p class="pub-empty" id="pub-empty" style="display:none">No published games yet.</p>
+    </div>
+  </main>
+
+  <!-- Profile not found -->
+  <main id="profile-not-found" style="display:none">
+    <div class="profile-container" style="text-align:center;padding-top:80px">
+      <h2 class="profile-title">Player not found</h2>
+      <p style="color:var(--text-dim);margin-bottom:24px">This profile doesn't exist.</p>
+      <a href="games.html" class="btn btn-sm">Browse Games</a>
     </div>
   </main>
 
@@ -159,8 +188,56 @@
       margin-top: 24px;
       width: 100%;
     }
+
+    /* Public profile styles */
+    .public-profile-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 32px;
+      padding: 24px;
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+    }
+    .public-avatar {
+      width: 80px;
+      height: 80px;
+    }
+    .public-profile-info {
+      flex: 1;
+    }
+    .public-profile-info .profile-title {
+      margin-bottom: 4px;
+    }
+    .pub-member-since {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .pub-section-title {
+      font-family: 'Silkscreen', monospace;
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .pub-games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .pub-games-grid .game-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
+    .pub-empty {
+      color: var(--text-dim);
+      font-size: 14px;
+      text-align: center;
+      padding: 40px;
+    }
   </style>
 
-  <script src="profile.js"></script>
+  <script src="profile.js?v=20260411b"></script>
 </body>
 </html>

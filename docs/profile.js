@@ -1,5 +1,16 @@
 // Profile page — uses shared supabase-client.js for auth
+// Supports two modes:
+// - Own profile (no ?id or ?id=self): editable form
+// - Public profile (?id=<other-user>): read-only with their games
 
+const viewingId = new URLSearchParams(window.location.search).get('id');
+
+// --- Detect mode ---
+function isOwnProfile(userId) {
+  return !viewingId || viewingId === userId;
+}
+
+// --- Own profile elements ---
 const authGate = document.getElementById('auth-gate');
 const profilePanel = document.getElementById('profile-panel');
 const signinBtn = document.getElementById('signin-btn');
@@ -11,24 +22,47 @@ const avatarInput = document.getElementById('avatar-input');
 const avatarImg = document.getElementById('avatar-img');
 const avatarPlaceholder = document.getElementById('avatar-placeholder');
 
-let currentProfile = null;
+// --- Public profile elements ---
+const publicProfile = document.getElementById('public-profile');
+const profileNotFound = document.getElementById('profile-not-found');
 
-function updateProfileAuth() {
+let currentProfile = null;
+let modeSet = false;
+
+function setupMode() {
+  if (modeSet) return;
   const user = getUser();
-  if (user) {
+
+  if (viewingId && (!user || viewingId !== user.id)) {
+    // Public mode — viewing someone else
+    modeSet = true;
+    authGate.style.display = 'none';
+    profilePanel.style.display = 'none';
+    loadPublicProfile(viewingId);
+  } else if (user) {
+    // Own profile
+    modeSet = true;
     authGate.style.display = 'none';
     profilePanel.style.display = '';
-    loadProfile(user);
+    loadOwnProfile(user);
   } else {
+    // Not logged in, no ID
     authGate.style.display = '';
     profilePanel.style.display = 'none';
   }
 }
 
-onAuthChange(updateProfileAuth);
+onAuthChange(setupMode);
+
+// Also run immediately if viewing a public profile (no auth needed)
+if (viewingId) {
+  setupMode();
+}
+
 signinBtn.addEventListener('click', () => showAuthModal());
 
-async function loadProfile(user) {
+// --- Own profile ---
+async function loadOwnProfile(user) {
   emailInput.value = user.email || '';
   joinedInput.value = new Date(user.created_at).toLocaleDateString();
 
@@ -143,3 +177,106 @@ avatarInput.addEventListener('change', async (e) => {
     showToast('Failed to upload: ' + (err.message || 'Unknown'), 'error');
   }
 });
+
+// --- Public profile ---
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+async function loadPublicProfile(userId) {
+  const sb = getSupabase();
+  if (!sb) { showProfileNotFound(); return; }
+
+  try {
+    // Fetch profile
+    const { data: profile, error } = await sb
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error || !profile) {
+      showProfileNotFound();
+      return;
+    }
+
+    // Show public profile
+    publicProfile.style.display = '';
+    document.title = `${profile.username || 'Player'} — McBlox`;
+
+    // Avatar
+    const pubAvatarImg = document.getElementById('pub-avatar-img');
+    const pubAvatarPlaceholder = document.getElementById('pub-avatar-placeholder');
+    if (profile.avatar_url) {
+      pubAvatarImg.src = profile.avatar_url;
+      pubAvatarImg.style.display = '';
+      pubAvatarPlaceholder.style.display = 'none';
+    } else {
+      pubAvatarPlaceholder.textContent = (profile.username || '?')[0].toUpperCase();
+    }
+
+    // Name
+    document.getElementById('pub-username').textContent = profile.username || 'Player';
+
+    // Joined date
+    if (profile.created_at) {
+      document.getElementById('pub-joined').textContent =
+        'Member since ' + new Date(profile.created_at).toLocaleDateString();
+    }
+
+    // Fetch their published games
+    const { data: games } = await sb
+      .from('games')
+      .select('*')
+      .eq('creator_id', userId)
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+
+    const gamesGrid = document.getElementById('pub-games-grid');
+    const emptyEl = document.getElementById('pub-empty');
+
+    if (games && games.length > 0) {
+      games.forEach(game => {
+        const card = document.createElement('a');
+        card.className = 'game-card';
+        card.href = `game.html?id=${game.id}`;
+
+        const thumbContent = game.thumbnail_url
+          ? `<img src="${encodeURI(game.thumbnail_url)}" alt="${escapeHtml(game.title)}">`
+          : '<div style="height:140px;display:flex;align-items:center;justify-content:center;font-size:32px">⛏</div>';
+
+        const likes = game.thumbs_up || 0;
+        const dislikes = game.thumbs_down || 0;
+        const total = likes + dislikes;
+        const pct = total > 0 ? Math.round((likes / total) * 100) : 0;
+        const pctClass = pct >= 70 ? 'rate-good' : pct >= 40 ? 'rate-mid' : 'rate-bad';
+        const tagsHtml = (game.tags || []).slice(0, 2).map(t =>
+          `<span class="game-tag">${escapeHtml(t)}</span>`
+        ).join('');
+
+        card.innerHTML = `
+          <div class="game-thumb">${thumbContent}</div>
+          <div class="game-info">
+            <h3>${escapeHtml(game.title)}</h3>
+            <div class="game-meta">
+              ${total > 0 ? `<span class="${pctClass}">👍 ${pct}%</span>` : ''}
+              ${tagsHtml}
+            </div>
+          </div>
+        `;
+        gamesGrid.appendChild(card);
+      });
+    } else {
+      emptyEl.style.display = '';
+    }
+  } catch (e) {
+    console.error('Failed to load public profile:', e);
+    showProfileNotFound();
+  }
+}
+
+function showProfileNotFound() {
+  profileNotFound.style.display = '';
+}
