@@ -457,6 +457,7 @@ footer {
 }
 
 .game-card {
+  display: block;
   background: var(--surface);
   border: 2px solid var(--border);
   border-radius: var(--radius);

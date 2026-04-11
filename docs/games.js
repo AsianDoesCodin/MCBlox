@@ -125,8 +125,11 @@ document.head.appendChild(skeletonStyle);
 showSkeletons(6);
 
 function renderCard(game) {
-  const card = document.createElement('div');
+  const card = document.createElement('a');
   card.className = 'game-card';
+  card.href = `game.html?id=${game.id}`;
+  card.style.textDecoration = 'none';
+  card.style.color = 'inherit';
   const thumbContent = game.thumbnail_url
     ? `<img src="${encodeURI(game.thumbnail_url)}" alt="${escapeHtml(game.title)}">`
     : '⛏';

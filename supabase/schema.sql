@@ -179,3 +179,38 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE INDEX IF NOT EXISTS idx_player_activity_game ON player_activity(game_id);
 CREATE INDEX IF NOT EXISTS idx_player_activity_heartbeat ON player_activity(last_heartbeat);
+
+-- Comments table
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (char_length(content) <= 1000),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read comments"
+  ON comments FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can insert own comments"
+  ON comments FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own comments"
+  ON comments FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own comments"
+  ON comments FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE TRIGGER comments_updated_at
+  BEFORE UPDATE ON comments
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_comments_game ON comments(game_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created ON comments(created_at);
