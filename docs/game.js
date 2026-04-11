@@ -330,13 +330,31 @@ async function loadComments() {
   try {
     const { data, error } = await sb
       .from('comments')
-      .select('*, profiles:user_id(username, avatar_url)')
+      .select('*')
       .eq('game_id', gameId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    renderComments(data || []);
+    // Fetch profiles for comment authors
+    const userIds = [...new Set((data || []).map(c => c.user_id))];
+    let profilesMap = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await sb
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', userIds);
+      if (profiles) {
+        profiles.forEach(p => { profilesMap[p.id] = p; });
+      }
+    }
+
+    const enriched = (data || []).map(c => ({
+      ...c,
+      profiles: profilesMap[c.user_id] || null
+    }));
+
+    renderComments(enriched);
   } catch (e) {
     console.error('Failed to load comments:', e);
   }
