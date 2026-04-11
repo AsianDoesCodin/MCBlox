@@ -9,6 +9,170 @@ const TAGS = [
 ];
 const MAX_TAGS = 5;
 
+// --- Wizard Step Management ---
+const TOTAL_STEPS = 5;
+let currentStep = 1;
+const visitedSteps = new Set([1]);
+
+const stepItems = document.querySelectorAll('.step-item');
+const stepLines = document.querySelectorAll('.step-line');
+const wizardSteps = document.querySelectorAll('.wizard-step');
+const backBtn = document.getElementById('wizard-back');
+const nextBtn = document.getElementById('wizard-next');
+const submitBtn = document.getElementById('wizard-submit');
+
+function goToStep(step) {
+  if (step < 1 || step > TOTAL_STEPS) return;
+  currentStep = step;
+  visitedSteps.add(step);
+
+  // Show/hide step panels
+  wizardSteps.forEach(el => {
+    el.style.display = el.dataset.step == step ? '' : 'none';
+  });
+
+  // Update stepper indicators
+  stepItems.forEach(item => {
+    const s = parseInt(item.dataset.step);
+    item.classList.remove('active', 'completed', 'visited');
+    if (s === step) {
+      item.classList.add('active');
+    } else if (visitedSteps.has(s) && s < step) {
+      item.classList.add('completed');
+    } else if (visitedSteps.has(s)) {
+      item.classList.add('visited');
+    }
+  });
+
+  // Update step lines
+  stepLines.forEach((line, i) => {
+    line.classList.toggle('completed', i + 1 < step);
+  });
+
+  // Show/hide nav buttons
+  backBtn.style.display = step > 1 ? '' : 'none';
+  nextBtn.style.display = step < TOTAL_STEPS ? '' : 'none';
+  submitBtn.style.display = step === TOTAL_STEPS ? '' : 'none';
+
+  // Build review summary on step 5
+  if (step === TOTAL_STEPS) buildReviewSummary();
+}
+
+// Validate current step before advancing
+function validateStep(step) {
+  switch (step) {
+    case 1: {
+      const title = document.getElementById('title').value.trim();
+      const desc = document.getElementById('description').value.trim();
+      if (!title) { showToast('Please enter a title.', 'warning'); return false; }
+      if (!desc) { showToast('Please enter a description.', 'warning'); return false; }
+      if (selectedTags.size === 0) { showToast('Please select at least one tag.', 'warning'); return false; }
+      return true;
+    }
+    case 2: {
+      const url = document.getElementById('modpack-url').value.trim();
+      const mc = document.getElementById('mc-version').value;
+      const loader = document.getElementById('mod-loader').value;
+      const loaderVer = document.getElementById('loader-version').value;
+      if (!url) { showToast('Please enter a modpack download link.', 'warning'); return false; }
+      if (!mc) { showToast('Please select a Minecraft version.', 'warning'); return false; }
+      if (!loader) { showToast('Please select a mod loader.', 'warning'); return false; }
+      if (!loaderVer) { showToast('Please select a loader version.', 'warning'); return false; }
+      return true;
+    }
+    case 3: {
+      const type = document.getElementById('game-type').value;
+      if (!type) { showToast('Please select a game type.', 'warning'); return false; }
+      return true;
+    }
+    case 4:
+      return true; // Images optional except thumbnail, validated on submit
+    default:
+      return true;
+  }
+}
+
+// Next button
+nextBtn.addEventListener('click', () => {
+  if (validateStep(currentStep)) {
+    goToStep(currentStep + 1);
+  }
+});
+
+// Back button
+backBtn.addEventListener('click', () => {
+  goToStep(currentStep - 1);
+});
+
+// Click stepper items to jump
+stepItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const target = parseInt(item.dataset.step);
+    if (visitedSteps.has(target) || target === currentStep + 1) {
+      // Validate all steps up to target
+      if (target > currentStep) {
+        for (let s = currentStep; s < target; s++) {
+          if (!validateStep(s)) return;
+          visitedSteps.add(s);
+        }
+      }
+      goToStep(target);
+    }
+  });
+});
+
+// Build review summary
+function buildReviewSummary() {
+  const summary = document.getElementById('review-summary');
+  const title = document.getElementById('title').value.trim();
+  const desc = document.getElementById('description').value.trim();
+  const tags = [...selectedTags];
+  const url = document.getElementById('modpack-url').value.trim();
+  const mc = document.getElementById('mc-version').value;
+  const loader = document.getElementById('mod-loader').value;
+  const loaderVer = document.getElementById('loader-version').value;
+  const type = document.getElementById('game-type').value;
+  const serverAddr = document.getElementById('server-address').value.trim();
+  const worldNm = document.getElementById('world-name').value.trim();
+  const autoJoin = document.getElementById('auto-join').checked;
+
+  let html = '';
+  const row = (label, value, missing) => `
+    <div class="review-row">
+      <div class="review-label">${label}</div>
+      <div class="review-value${missing ? ' missing' : ''}">${missing ? 'Not set' : value}</div>
+    </div>`;
+
+  html += row('Title', title, !title);
+  html += row('Description', desc.length > 100 ? desc.slice(0, 100) + '...' : desc, !desc);
+  html += row('Tags', tags.length ? tags.join(', ') : '', !tags.length);
+  html += row('Modpack URL', `<a href="${url}" target="_blank" style="color:var(--accent);word-break:break-all">${url.length > 50 ? url.slice(0, 50) + '...' : url}</a>`, !url);
+  html += row('MC Version', mc, !mc);
+  html += row('Mod Loader', loader, !loader);
+  html += row('Loader Version', loaderVer, !loaderVer);
+  html += row('Game Type', type === 'server' ? 'Server (Multiplayer)' : type === 'world' ? 'World (Singleplayer)' : '', !type);
+  if (type === 'server') html += row('Server Address', serverAddr, !serverAddr);
+  if (type === 'world') html += row('World Name', worldNm, !worldNm);
+  html += row('Auto-Join', autoJoin ? 'Yes' : 'No', false);
+
+  // Thumbnail preview
+  if (thumbCrop.hasImage()) {
+    const dataUrl = document.getElementById('thumb-canvas').toDataURL('image/jpeg', 0.5);
+    html += `<div class="review-row">
+      <div class="review-label">Thumbnail</div>
+      <div class="review-value"><img class="review-thumb-preview" src="${dataUrl}" alt="Thumbnail preview"></div>
+    </div>`;
+  } else {
+    html += row('Thumbnail', '', true);
+  }
+
+  // Screenshot count
+  const ssCount = screenshotCrops.filter(c => c.hasImage()).length;
+  html += row('Screenshots', ssCount > 0 ? `${ssCount} uploaded` : 'None', false);
+
+  summary.innerHTML = html;
+}
+
 // --- Auth ---
 const authGate = document.getElementById('auth-gate');
 const publishForm = document.getElementById('publish-form');
@@ -343,21 +507,21 @@ document.querySelectorAll('.screenshot-slot').forEach(slot => {
 document.getElementById('game-form').addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const submitBtn = e.target.querySelector('button[type="submit"]');
-  if (submitBtn && submitBtn.disabled) return;
-  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+  const wizSubmitBtn = document.getElementById('wizard-submit');
+  if (wizSubmitBtn && wizSubmitBtn.disabled) return;
+  if (wizSubmitBtn) { wizSubmitBtn.disabled = true; wizSubmitBtn.textContent = 'Submitting...'; }
 
   const sb = getSupabase();
   const user = getUser();
   if (!sb || !user) {
     showToast('Please sign in first.', 'warning');
-    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
+    if (wizSubmitBtn) { wizSubmitBtn.disabled = false; wizSubmitBtn.textContent = 'Submit for Review'; }
     return;
   }
 
   if (!thumbCrop.hasImage()) {
-    showToast('Please upload a thumbnail.', 'warning');
-    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
+    showToast('Please upload a thumbnail (Step 4).', 'warning');
+    if (wizSubmitBtn) { wizSubmitBtn.disabled = false; wizSubmitBtn.textContent = 'Submit for Review'; }
     return;
   }
 
@@ -380,7 +544,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     }
   } catch (err) {
     showToast('Failed to upload thumbnail: ' + (err.message || 'Unknown error'), 'error');
-    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
+    if (wizSubmitBtn) { wizSubmitBtn.disabled = false; wizSubmitBtn.textContent = 'Submit for Review'; }
     return;
   }
 
@@ -438,6 +602,6 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     window.location.href = 'dashboard.html';
   } catch (e) {
     showToast('Error submitting: ' + (e.message || 'Unknown error'), 'error');
-    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit for Review'; }
+    if (wizSubmitBtn) { wizSubmitBtn.disabled = false; wizSubmitBtn.textContent = 'Submit for Review'; }
   }
 });

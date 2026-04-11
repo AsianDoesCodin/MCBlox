@@ -81,6 +81,18 @@ nav {
   color: var(--text);
 }
 
+.nav-discord {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #5865f2 !important;
+  font-weight: 600;
+}
+
+.nav-discord:hover {
+  color: #7289da !important;
+}
+
 /* Buttons */
 .btn {
   display: inline-block;
@@ -242,6 +254,73 @@ footer {
   color: var(--text-dim);
   border-bottom: 3px solid #00e676;
   background: #060a14;
+}
+
+/* Discord Section */
+.discord-section {
+  text-align: center;
+  padding: 0 24px 60px;
+}
+
+.discord-card {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 40px 32px;
+  background: #2b2d31;
+  border: 2px solid #5865f2;
+  border-radius: 16px;
+  border-bottom: 4px solid rgba(0,0,0,0.3);
+  box-shadow: 0 8px 32px rgba(88, 101, 242, 0.15);
+}
+
+.discord-icon {
+  margin-bottom: 16px;
+}
+
+.discord-icon svg {
+  fill: #5865f2;
+}
+
+.discord-card h2 {
+  font-family: 'Silkscreen', monospace;
+  font-size: 18px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.discord-card p {
+  font-size: 14px;
+  color: #b5bac1;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.discord-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 32px;
+  background: #5865f2;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  font-family: 'Silkscreen', monospace;
+  font-size: 14px;
+  border-radius: 8px;
+  border: none;
+  border-bottom: 4px solid #4752c4;
+  transition: background 0.15s, transform 0.1s;
+  cursor: pointer;
+}
+
+.discord-btn:hover {
+  background: #4752c4;
+  transform: translateY(-1px);
+}
+
+.discord-btn:active {
+  border-bottom: 2px solid #3c45a5;
+  transform: translateY(1px);
 }
 
 /* Games page */
