@@ -40,6 +40,20 @@ function updateAdminAuth() {
 onAuthChange(updateAdminAuth);
 signinBtn.addEventListener('click', () => showAuthModal());
 
+// --- Sidebar navigation ---
+document.querySelectorAll('.admin-nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    const section = item.dataset.section;
+    document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('section-' + section).classList.add('active');
+    // Lazy-load section data
+    if (section === 'users' && !_usersLoaded) loadUsers();
+    if (section === 'stats' && !_statsLoaded) loadStats();
+  });
+});
+
 // --- Tabs ---
 document.querySelectorAll('.admin-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -616,3 +630,178 @@ closeReview = function() {
   if (saveBtn) saveBtn.remove();
   _originalCloseReview();
 };
+
+// ==========================================
+// Users Section
+// ==========================================
+let _usersLoaded = false;
+let allUsers = [];
+
+async function loadUsers() {
+  if (_usersLoaded) return;
+  _usersLoaded = true;
+
+  const sb = getSupabase();
+  if (!sb) { _usersLoaded = false; return; }
+
+  try {
+    const { data, error } = await sb
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    allUsers = data || [];
+
+    // Count games per user
+    const { data: gameCounts } = await sb
+      .from('games')
+      .select('creator_id');
+    const countMap = {};
+    (gameCounts || []).forEach(g => {
+      countMap[g.creator_id] = (countMap[g.creator_id] || 0) + 1;
+    });
+    allUsers.forEach(u => { u._gameCount = countMap[u.id] || 0; });
+
+    document.getElementById('user-stats').innerHTML = `
+      <span class="stat-badge approved">${allUsers.length} total</span>
+      <span class="stat-badge pending">${allUsers.filter(u => u._gameCount > 0).length} creators</span>
+    `;
+
+    renderUsers();
+  } catch (e) {
+    console.error('Failed to load users:', e);
+    _usersLoaded = false;
+  }
+}
+
+function renderUsers(filter = '') {
+  const container = document.getElementById('user-list');
+  const empty = document.getElementById('user-empty');
+  container.innerHTML = '';
+
+  const filtered = filter
+    ? allUsers.filter(u =>
+        (u.username || '').toLowerCase().includes(filter) ||
+        (u.email || '').toLowerCase().includes(filter)
+      )
+    : allUsers;
+
+  if (filtered.length === 0) {
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  filtered.forEach(u => {
+    const isAdminUser = ADMIN_IDS.includes(u.id);
+    const role = isAdminUser ? 'admin' : (u._gameCount > 0 ? 'creator' : 'player');
+    const initial = (u.username || '?')[0].toUpperCase();
+    const joined = u.created_at ? new Date(u.created_at).toLocaleDateString() : '?';
+
+    const card = document.createElement('div');
+    card.className = 'user-card';
+    card.innerHTML = `
+      <div class="user-avatar">${escapeHtml(initial)}</div>
+      <div class="user-info">
+        <div class="username">${escapeHtml(u.username || 'Anonymous')}</div>
+        <div class="user-meta">
+          <span>${u._gameCount} game${u._gameCount !== 1 ? 's' : ''}</span>
+          <span>Joined ${joined}</span>
+        </div>
+      </div>
+      <span class="user-role ${role}">${role}</span>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// User search
+document.getElementById('user-search').addEventListener('input', (e) => {
+  renderUsers(e.target.value.toLowerCase());
+});
+
+// ==========================================
+// Stats Section
+// ==========================================
+let _statsLoaded = false;
+
+async function loadStats() {
+  if (_statsLoaded) return;
+  _statsLoaded = true;
+
+  const sb = getSupabase();
+  if (!sb) { _statsLoaded = false; return; }
+
+  try {
+    const [gamesRes, profilesRes] = await Promise.all([
+      sb.from('games').select('id, status, total_plays, mc_version, mod_loader, thumbs_up, thumbs_down'),
+      sb.from('profiles').select('id')
+    ]);
+
+    const games = gamesRes.data || [];
+    const users = profilesRes.data || [];
+
+    const approved = games.filter(g => g.status === 'approved');
+    const totalPlays = games.reduce((s, g) => s + (g.total_plays || 0), 0);
+    const upvotes = games.reduce((s, g) => s + (g.thumbs_up || 0), 0);
+    const downvotes = games.reduce((s, g) => s + (g.thumbs_down || 0), 0);
+
+    // MC version breakdown
+    const versionMap = {};
+    approved.forEach(g => {
+      const v = g.mc_version || 'unknown';
+      versionMap[v] = (versionMap[v] || 0) + 1;
+    });
+
+    // Loader breakdown
+    const loaderMap = {};
+    approved.forEach(g => {
+      const l = g.mod_loader || 'unknown';
+      loaderMap[l] = (loaderMap[l] || 0) + 1;
+    });
+
+    const grid = document.getElementById('stats-grid');
+    grid.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-value">${users.length}</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${games.length}</div>
+        <div class="stat-label">Total Games</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${approved.length}</div>
+        <div class="stat-label">Approved Games</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${totalPlays}</div>
+        <div class="stat-label">Total Plays</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${upvotes}</div>
+        <div class="stat-label">Upvotes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${downvotes}</div>
+        <div class="stat-label">Downvotes</div>
+      </div>
+      ${Object.entries(versionMap).map(([v, c]) => `
+        <div class="stat-card">
+          <div class="stat-value">${c}</div>
+          <div class="stat-label">MC ${escapeHtml(v)}</div>
+        </div>
+      `).join('')}
+      ${Object.entries(loaderMap).map(([l, c]) => `
+        <div class="stat-card">
+          <div class="stat-value">${c}</div>
+          <div class="stat-label">${escapeHtml(l)}</div>
+        </div>
+      `).join('')}
+    `;
+  } catch (e) {
+    console.error('Failed to load stats:', e);
+    _statsLoaded = false;
+  }
+}

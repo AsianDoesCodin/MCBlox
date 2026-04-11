@@ -36,24 +36,73 @@
 
   <!-- Admin content -->
   <main id="admin-panel" style="display:none">
-    <div class="admin-header">
-      <h1>Review Queue</h1>
-      <div class="admin-stats" id="admin-stats"></div>
-    </div>
+    <div class="admin-layout">
+      <!-- Sidebar -->
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-header">
+          <span class="admin-sidebar-title">Admin</span>
+        </div>
+        <nav class="admin-sidebar-nav">
+          <button class="admin-nav-item active" data-section="games">
+            <span class="admin-nav-icon">&#9654;</span>
+            <span>Games</span>
+          </button>
+          <button class="admin-nav-item" data-section="users">
+            <span class="admin-nav-icon">&#9787;</span>
+            <span>Users</span>
+          </button>
+          <button class="admin-nav-item" data-section="stats">
+            <span class="admin-nav-icon">&#9733;</span>
+            <span>Stats</span>
+          </button>
+        </nav>
+      </aside>
 
-    <div class="admin-tabs">
-      <button class="admin-tab active" data-tab="pending">Pending Review</button>
-      <button class="admin-tab" data-tab="approved">Approved</button>
-      <button class="admin-tab" data-tab="rejected">Rejected</button>
-      <button class="admin-tab" data-tab="all">All Games</button>
-    </div>
+      <!-- Main content area -->
+      <div class="admin-content">
+        <!-- Games Section -->
+        <div class="admin-section active" id="section-games">
+          <div class="admin-header">
+            <h1>Review Queue</h1>
+            <div class="admin-stats" id="admin-stats"></div>
+          </div>
 
-    <div class="admin-queue" id="admin-queue">
-      <!-- Game review cards rendered by JS -->
-    </div>
+          <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="pending">Pending Review</button>
+            <button class="admin-tab" data-tab="approved">Approved</button>
+            <button class="admin-tab" data-tab="rejected">Rejected</button>
+            <button class="admin-tab" data-tab="all">All Games</button>
+          </div>
 
-    <div class="empty-state" id="admin-empty" style="display:none">
-      <p>No games to review.</p>
+          <div class="admin-queue" id="admin-queue"></div>
+          <div class="empty-state" id="admin-empty" style="display:none">
+            <p>No games to review.</p>
+          </div>
+        </div>
+
+        <!-- Users Section -->
+        <div class="admin-section" id="section-users">
+          <div class="admin-header">
+            <h1>Users</h1>
+            <div class="admin-stats" id="user-stats"></div>
+          </div>
+          <div class="admin-user-search">
+            <input type="text" class="search-input" id="user-search" placeholder="Search by username or email...">
+          </div>
+          <div class="admin-queue" id="user-list"></div>
+          <div class="empty-state" id="user-empty" style="display:none">
+            <p>No users found.</p>
+          </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="admin-section" id="section-stats">
+          <div class="admin-header">
+            <h1>Platform Stats</h1>
+          </div>
+          <div class="stats-grid" id="stats-grid"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Review modal -->
@@ -67,7 +116,7 @@
         <div class="review-actions">
           <button class="btn btn-approve" id="review-approve">Approve</button>
           <button class="btn btn-reject" id="review-reject">Reject</button>
-          <button class="btn" id="review-edit" style="background:#1e3a5f;border-color:#2a4a7f;">✏️ Edit</button>
+          <button class="btn" id="review-edit" style="background:#1e3a5f;border-color:#2a4a7f;">&#9999;&#65039; Edit</button>
           <button class="btn btn-secondary" id="review-cancel">Cancel</button>
         </div>
       </div>
