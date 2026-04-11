@@ -51,13 +51,13 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
 });
 
 // --- Load games ---
-let _loadingGames = false;
+let _gamesLoaded = false;
 async function loadAllGames() {
-  if (_loadingGames) return;
-  _loadingGames = true;
+  if (_gamesLoaded) return;
+  _gamesLoaded = true;
 
   const sb = getSupabase();
-  if (!sb) { _loadingGames = false; return; }
+  if (!sb) { _gamesLoaded = false; return; }
 
   try {
     // Admin needs to read ALL games regardless of status
@@ -85,8 +85,7 @@ async function loadAllGames() {
     renderQueue();
   } catch (e) {
     console.error('Failed to load games:', e);
-  } finally {
-    _loadingGames = false;
+    _gamesLoaded = false; // Allow retry on error
   }
 }
 
