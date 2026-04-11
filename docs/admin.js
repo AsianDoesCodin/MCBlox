@@ -51,16 +51,20 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
 });
 
 // --- Load games ---
+let _loadingGames = false;
 async function loadAllGames() {
+  if (_loadingGames) return;
+  _loadingGames = true;
+
   const sb = getSupabase();
-  if (!sb) return;
+  if (!sb) { _loadingGames = false; return; }
 
   try {
     // Admin needs to read ALL games regardless of status
     // This requires a special RLS policy or service role key
     // For now, fetch all statuses separately
     const statuses = ['pending_review', 'approved', 'rejected', 'unlisted'];
-    allGames = [];
+    const results = [];
 
     for (const status of statuses) {
       const { data, error } = await sb
@@ -69,17 +73,20 @@ async function loadAllGames() {
         .eq('status', status)
         .order('created_at', { ascending: false });
       if (!error && data) {
-        allGames.push(...data.map(g => ({
+        results.push(...data.map(g => ({
           ...g,
           author: g.profiles?.username || 'Unknown'
         })));
       }
     }
 
+    allGames = results;
     updateStats();
     renderQueue();
   } catch (e) {
     console.error('Failed to load games:', e);
+  } finally {
+    _loadingGames = false;
   }
 }
 
