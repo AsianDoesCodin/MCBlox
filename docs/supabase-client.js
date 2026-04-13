@@ -102,11 +102,22 @@ function setupNavAuth() {
   const authWrap = document.getElementById('auth-wrap');
   if (!authBtn) return;
 
-  function updateBtn() {
+  async function updateBtn() {
     const user = getUser();
     if (user) {
       const name = user.user_metadata?.username || user.email?.split('@')[0] || 'Account';
-      const avatarUrl = user.user_metadata?.avatar_url;
+      let avatarUrl = user.user_metadata?.avatar_url;
+
+      // If no avatar in auth metadata, try profiles table
+      if (!avatarUrl) {
+        try {
+          const sb = getSupabase();
+          if (sb) {
+            const { data } = await sb.from('profiles').select('avatar_url').eq('id', user.id).single();
+            if (data?.avatar_url) avatarUrl = data.avatar_url;
+          }
+        } catch (e) {}
+      }
 
       // Hide sign in, show avatar
       authBtn.style.display = 'none';
