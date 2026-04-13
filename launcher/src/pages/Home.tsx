@@ -115,22 +115,21 @@ export default function Home({ session, onPlay, onStop }: Props) {
   return (
     <div className="h-full flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-[#060a14] border-b-[3px] border-[#00e676] shrink-0 flex-nowrap" style={{boxShadow: '0 3px 15px rgba(0, 230, 118, 0.1)'}}>
+      <div className="flex items-center gap-3 px-6 py-3 bg-[#150e28] border-b-2 border-[rgba(184,169,232,0.10)] shrink-0 flex-nowrap">
         <div className="relative max-w-[400px] flex-1 min-w-[180px] flex">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search games..."
-            className="w-full pl-4 pr-10 py-2 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded-l text-sm text-white outline-none focus:border-[#00e676] placeholder:text-[#64748b]"
-            style={{fontFamily: "'Silkscreen', monospace"}}
+            className="w-full pl-4 pr-10 py-2 bg-[#1a1232] border-2 border-[rgba(184,169,232,0.10)] rounded-l text-sm text-white outline-none focus:border-[#e8956a] placeholder:text-[#5c5478]"
           />
           <button
-            className="px-3 bg-[#00e676] hover:bg-[#33ff99] border-2 border-[#00e676] rounded-r flex items-center justify-center cursor-pointer transition-colors"
+            className="px-3 bg-[#e8956a] hover:bg-[#f0a87e] border-2 border-[#e8956a] rounded-r flex items-center justify-center cursor-pointer transition-colors"
             onClick={() => {/* search is live, button is visual */}}
             tabIndex={-1}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/>
               <path d="m21 21-4.35-4.35"/>
             </svg>
@@ -140,8 +139,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="px-4 py-2 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-[#94a3b8] outline-none cursor-pointer hover:border-[#00e676] shrink-0"
-          style={{fontFamily: "'Silkscreen', monospace"}}
+          className="px-4 py-2 bg-[#1a1232] border-2 border-[rgba(184,169,232,0.10)] rounded text-xs text-[#c4bdd6] outline-none cursor-pointer hover:border-[#e8956a] shrink-0"
         >
           <option value="popular">Most Popular</option>
           <option value="players">Current Players</option>
@@ -153,29 +151,28 @@ export default function Home({ session, onPlay, onStop }: Props) {
         <div className="relative shrink-0">
           <button
             onClick={() => setShowTags(!showTags)}
-            className={`px-4 py-2 rounded text-xs font-medium cursor-pointer transition-all border-2 ${
+            className={`px-4 py-2 rounded text-xs font-semibold cursor-pointer transition-all border-2 ${
               activeTags.size > 0 || typeFilter !== "all"
-                ? 'bg-[#00e676] border-[#00e676] text-black'
-                : 'bg-[#0a0e1a] border-[#1e3a5f] text-[#94a3b8] hover:border-[#00e676]'
+                ? 'bg-[#e8956a] border-[#e8956a] text-white'
+                : 'bg-[#1a1232] border-[rgba(184,169,232,0.10)] text-[#8b82a8] hover:border-[#e8956a]'
             }`}
-            style={{fontFamily: "'Silkscreen', monospace"}}
           >
             Tags {(activeTags.size > 0 || typeFilter !== "all") ? `(${activeTags.size + (typeFilter !== "all" ? 1 : 0)})` : ''}
           </button>
           {showTags && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowTags(false)} />
-              <div className="absolute right-0 top-full mt-2 z-50 w-[320px] p-3 bg-[#111827] border-2 border-[#00e676] rounded shadow-xl" style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 15px rgba(0, 230, 118, 0.15)'}}>
+              <div className="absolute right-0 top-full mt-2 z-50 w-[320px] p-3 bg-[#231a42] border-2 border-[#e8956a] rounded shadow-xl" style={{boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 15px rgba(232,149,106,0.15)'}}>
                 {/* Game type filter */}
-                <div className="flex gap-1.5 mb-2 pb-2 border-b border-[#1e3a5f]">
+                <div className="flex gap-1.5 mb-2 pb-2 border-b border-[rgba(184,169,232,0.10)]">
                   {([["all", "All"], ["server", "Multiplayer"], ["world", "Singleplayer"]] as const).map(([val, label]) => (
                     <button
                       key={val}
                       onClick={() => setTypeFilter(val)}
                       className={`px-2.5 py-1 rounded text-[11px] cursor-pointer transition-all border-2 ${
                         typeFilter === val
-                          ? 'bg-[#00e676] border-[#00e676] text-black font-bold'
-                          : 'bg-[#1a2235] border-[#1e3a5f] text-[#64748b] hover:border-[#00e676] hover:text-white'
+                          ? 'bg-[#e8956a] border-[#e8956a] text-white font-bold'
+                          : 'bg-[#2d2250] border-[rgba(184,169,232,0.10)] text-[#8b82a8] hover:border-[#e8956a] hover:text-white'
                       }`}
                     >
                       {label}
@@ -189,8 +186,8 @@ export default function Home({ session, onPlay, onStop }: Props) {
                       onClick={() => toggleTag(tag)}
                       className={`px-2.5 py-1 rounded text-[11px] cursor-pointer transition-all border-2 ${
                         activeTags.has(tag.toLowerCase())
-                          ? 'bg-[#00e676] border-[#00e676] text-black font-bold'
-                          : 'bg-[#1a2235] border-[#1e3a5f] text-[#64748b] hover:border-[#00e676] hover:text-white'
+                          ? 'bg-[#e8956a] border-[#e8956a] text-white font-bold'
+                          : 'bg-[#2d2250] border-[rgba(184,169,232,0.10)] text-[#8b82a8] hover:border-[#e8956a] hover:text-white'
                       }`}
                     >
                       {tag}
@@ -220,7 +217,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
         ) : search ? (
           /* Search results — flat list */
           <div className="px-6 pt-5 pb-8">
-            <h2 className="text-base font-bold mb-3" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+            <h2 className="text-base font-bold mb-3" style={{color: '#f0c35e'}}>
               Results for "{search}"
             </h2>
             {filtered.length > 0 ? (
@@ -232,7 +229,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
             ) : (
               <div className="text-center py-16">
                 <span className="text-4xl mb-3 block">⛏</span>
-                <p className="text-[#64748b]" style={{fontFamily: "'Silkscreen', monospace"}}>No games found</p>
+                <p className="text-[#8b82a8]">No games found</p>
               </div>
             )}
           </div>
@@ -248,7 +245,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
             ) : (
               <div className="text-center py-16">
                 <span className="text-4xl mb-3 block">⛏</span>
-                <p className="text-[#64748b]" style={{fontFamily: "'Silkscreen', monospace"}}>No games yet</p>
+                <p className="text-[#8b82a8]">No games yet</p>
               </div>
             )}
           </div>
@@ -257,8 +254,8 @@ export default function Home({ session, onPlay, onStop }: Props) {
             {/* Featured section */}
             {featured.length > 0 && (
               <div className="px-6 pt-5 pb-2">
-                <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
-                  ★ Featured
+                <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{color: '#f0c35e'}}>
+                  ⭐ Featured
                 </h2>
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
                   {featured.map((g) => (
@@ -271,7 +268,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
             {/* Popular section */}
             {popular.length > 0 && (
               <div className="px-6 pt-5 pb-2">
-                <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#00e676'}}>
+                <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{color: '#e8956a'}}>
                   🔥 Popular
                 </h2>
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
@@ -285,8 +282,8 @@ export default function Home({ session, onPlay, onStop }: Props) {
             {/* Discover section */}
             {discover.length > 0 && (
               <div className="px-6 pt-5 pb-8">
-                <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#94a3b8'}}>
-                  🎲 Discover
+                <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{color: '#c4bdd6'}}>
+                  🎮 Discover
                 </h2>
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
                   {discover.map((g) => (
@@ -299,7 +296,7 @@ export default function Home({ session, onPlay, onStop }: Props) {
             {filtered.length === 0 && (
               <div className="text-center py-16">
                 <span className="text-4xl mb-3 block">⛏</span>
-                <p className="text-[#64748b]" style={{fontFamily: "'Silkscreen', monospace"}}>No games found</p>
+                <p className="text-[#8b82a8]">No games found</p>
               </div>
             )}
           </>

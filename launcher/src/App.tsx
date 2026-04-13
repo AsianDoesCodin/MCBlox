@@ -155,6 +155,7 @@ function App() {
           server_address: game.server_address || null,
           world_name: game.world_name || null,
           auto_join: game.auto_join || false,
+          memory: localStorage.getItem("mcblox-ram") || "4G",
         }
       });
       if (supabase) {
@@ -238,7 +239,7 @@ function App() {
     <ToastProvider>
     <div className="flex h-screen flex-col">
       {updateAvailable && (
-        <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#00e676] text-black text-sm shrink-0">
+        <div className="flex items-center justify-center gap-3 px-4 py-2 text-white text-sm shrink-0" style={{background: 'linear-gradient(135deg, #e8956a, #d4709a)'}}>
           {updating ? (
             <span>{updateProgress}</span>
           ) : (
@@ -246,13 +247,13 @@ function App() {
               <span>McBlox v{updateAvailable.version} is available!</span>
               <button
                 onClick={installUpdate}
-                className="px-3 py-1 bg-black/20 rounded hover:bg-black/30 font-semibold cursor-pointer border-none text-black"
+                className="px-3 py-1 bg-white/20 rounded hover:bg-white/30 font-semibold cursor-pointer border-none text-white"
               >
                 Install Update
               </button>
               <button
                 onClick={() => setUpdateAvailable(null)}
-                className="ml-2 opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-none text-black"
+                className="ml-2 opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-none text-white"
               >✕</button>
             </>
           )}

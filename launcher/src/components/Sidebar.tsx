@@ -13,10 +13,11 @@ const nav: { page: Page; label: string; icon: string }[] = [
 
 export default function Sidebar({ current, onNavigate, mcUsername }: Props) {
   return (
-    <div className="w-[200px] min-w-[200px] bg-[#060a14] flex flex-col border-r-[3px] border-[#00e676]" style={{boxShadow: '3px 0 15px rgba(0, 230, 118, 0.15)'}}>
+    <div className="w-[200px] min-w-[200px] bg-[#150e28] flex flex-col border-r-2 border-[rgba(184,169,232,0.10)]">
       {/* Logo */}
       <div className="px-5 py-5 flex items-center gap-2.5">
-        <img src="/mcbloxlogo.png" alt="McBlox" className="h-10 w-auto" />
+        <img src="/mcbloxlogo2.png" alt="McBlox" className="h-10 w-auto rounded-full" />
+        <span className="text-base font-bold">McBlox</span>
       </div>
 
       {/* Nav */}
@@ -25,12 +26,12 @@ export default function Sidebar({ current, onNavigate, mcUsername }: Props) {
           <button
             key={n.page}
             onClick={() => onNavigate(n.page)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-[13px] font-medium mb-1 cursor-pointer transition-all border-2 ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold mb-1 cursor-pointer transition-all border-2 ${
               current === n.page
-                ? "bg-[#111827] text-[#00e676] border-[#00e676] shadow-sm"
-                : "text-[#94a3b8] hover:bg-[#111827] hover:text-white border-transparent"
+                ? "bg-[#231a42] text-[#e8956a] border-[rgba(232,149,106,0.2)]"
+                : "text-[#8b82a8] hover:bg-[#231a42] hover:text-[#f0edf7] border-transparent"
             }`}
-            style={current === n.page ? {boxShadow: '0 0 10px rgba(0, 230, 118, 0.2)'} : {}}
+            style={current === n.page ? {boxShadow: '0 0 12px rgba(232,149,106,0.08)'} : {}}
           >
             <span className="text-base w-5 text-center">{n.icon}</span>
             {n.label}
@@ -42,14 +43,14 @@ export default function Sidebar({ current, onNavigate, mcUsername }: Props) {
       <div className="px-3 pb-4">
         <button
           onClick={() => onNavigate("settings")}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded bg-[#111827] cursor-pointer hover:bg-[#1a2235] border-2 border-[#1e3a5f] text-left"
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#231a42] cursor-pointer hover:bg-[#2d2250] border border-[rgba(184,169,232,0.10)] text-left"
         >
-          <div className="w-8 h-8 rounded bg-[#1a2235] flex items-center justify-center text-xs text-[#64748b] shrink-0">
-            {mcUsername ? "⛏" : "?"}
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0" style={{background: 'linear-gradient(135deg, #e8956a, #d4709a)'}}>
+            <span style={{color: '#fff', fontWeight: 700}}>{mcUsername ? "⛏" : "?"}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium truncate">{mcUsername || "Not signed in"}</p>
-            <p className="text-[10px] text-[#00bcd4]">{mcUsername ? "Minecraft" : "Click to sign in"}</p>
+            <p className="text-xs font-semibold truncate">{mcUsername || "Not signed in"}</p>
+            <p className="text-[10px] text-[#b8a9e8]">{mcUsername ? "Minecraft" : "Click to sign in"}</p>
           </div>
         </button>
       </div>

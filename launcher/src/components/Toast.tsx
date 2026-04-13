@@ -32,10 +32,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const colors: Record<ToastType, string> = {
-    success: "bg-[#0a2618] border-[#00e676]",
-    error: "bg-[#1a0a0a] border-[#cc3333]",
-    warning: "bg-[#1a1500] border-[#ffd740]",
-    info: "bg-[#0a1a2e] border-[#00bcd4]",
+    success: "bg-[rgba(111,207,151,0.1)] border-[#6fcf97]",
+    error: "bg-[rgba(232,93,93,0.1)] border-[#e85d5d]",
+    warning: "bg-[rgba(240,195,94,0.1)] border-[#f0c35e]",
+    info: "bg-[rgba(184,169,232,0.1)] border-[#b8a9e8]",
   };
 
   const icons: Record<ToastType, string> = {
@@ -53,7 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={`pointer-events-auto px-4 py-2.5 rounded border-l-4 text-white text-sm shadow-lg animate-[slideIn_0.3s_ease-out] ${colors[t.type]}`}
-            style={{ fontFamily: "'Silkscreen', monospace", maxWidth: 360 }}
+            style={{ maxWidth: 360 }}
           >
             <span className="mr-2">{icons[t.type]}</span>
             {t.message}

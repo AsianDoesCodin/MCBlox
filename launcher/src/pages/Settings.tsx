@@ -257,14 +257,14 @@ export default function Settings() {
   return (
     <div className="h-full flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-[#060a14] border-b-[3px] border-[#00e676] shrink-0" style={{boxShadow: '0 3px 15px rgba(0, 230, 118, 0.1)'}}>
-        <h1 className="text-base font-bold" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>Settings</h1>
+      <div className="flex items-center gap-3 px-6 py-3 bg-[#150e28] border-b-2 border-[rgba(184,169,232,0.10)] shrink-0" >
+        <h1 className="text-base font-bold" style={{color: '#f0c35e'}}>Settings</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto space-y-5">
           {/* Minecraft Account */}
-          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+          <div className="bg-[#231a42] rounded p-5 border-2 border-[rgba(184,169,232,0.10)]" >
             <div className="flex items-center gap-4">
               {mcAccount ? (
                 <>
@@ -276,49 +276,49 @@ export default function Settings() {
                   />
                   <div className="flex-1">
                     <h2 className="font-bold text-sm text-white">{mcAccount.username}</h2>
-                    <p className="text-xs text-[#00e676] mt-0.5">Signed in</p>
+                    <p className="text-xs text-[#e8956a] mt-0.5">Signed in</p>
                   </div>
                   <button
                     onClick={logoutMc}
-                    className="px-5 py-2 bg-[#1a0a0a] hover:bg-[#2a1111] border-2 border-[#7a2e2e] rounded text-sm font-medium cursor-pointer text-[#ff5555]"
+                    className="px-5 py-2 bg-[rgba(232,93,93,0.08)] hover:bg-[rgba(232,93,93,0.12)] border-2 border-[rgba(232,93,93,0.3)] rounded text-sm font-medium cursor-pointer text-[#e85d5d]"
                   >
                     Sign Out
                   </button>
                 </>
               ) : authState === "polling" && deviceCode ? (
                 <>
-                  <div className="w-11 h-11 rounded bg-[#1a2235] flex items-center justify-center text-xl shrink-0 animate-pulse">
+                  <div className="w-11 h-11 rounded bg-[#2d2250] flex items-center justify-center text-xl shrink-0 animate-pulse">
                     ⛏
                   </div>
                   <div className="flex-1">
                     <h2 className="font-bold text-sm">Enter this code:</h2>
-                    <p className="text-lg font-mono font-bold text-[#00e676] mt-1 tracking-widest" style={{fontFamily: "'Silkscreen', monospace"}}>
+                    <p className="text-lg font-mono font-bold text-[#e8956a] mt-1 tracking-widest">
                       {deviceCode.user_code}
                     </p>
-                    <p className="text-xs text-[#64748b] mt-1">
+                    <p className="text-xs text-[#8b82a8] mt-1">
                       at <a
                         href={deviceCode.verification_uri}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[#00bcd4] underline hover:text-[#33e5ff] cursor-pointer"
+                        className="text-[#b8a9e8] underline hover:text-[#dab9ef] cursor-pointer"
                       >{deviceCode.verification_uri}</a>
                     </p>
                   </div>
-                  <div className="text-xs text-[#64748b] animate-pulse">Waiting...</div>
+                  <div className="text-xs text-[#8b82a8] animate-pulse">Waiting...</div>
                 </>
               ) : (
                 <>
-                  <div className="w-11 h-11 rounded bg-[#1a2235] flex items-center justify-center text-xl shrink-0">
+                  <div className="w-11 h-11 rounded bg-[#2d2250] flex items-center justify-center text-xl shrink-0">
                     ⛏
                   </div>
                   <div className="flex-1">
                     <h2 className="font-bold text-sm">Minecraft Account</h2>
-                    <p className="text-xs text-[#64748b] mt-0.5">Sign in with Microsoft to play online</p>
+                    <p className="text-xs text-[#8b82a8] mt-0.5">Sign in with Microsoft to play online</p>
                   </div>
                   <button
                     onClick={startMcAuth}
                     disabled={authState !== "idle"}
-                    className="px-5 py-2 bg-[#1a2235] hover:bg-[#1f2a40] border-2 border-[#1e3a5f] rounded text-sm font-medium cursor-pointer border-b-[3px] border-b-[rgba(0,0,0,0.3)]"
+                    className="px-5 py-2 bg-[#2d2250] hover:bg-[#352960] border-2 border-[rgba(184,169,232,0.10)] rounded text-sm font-medium cursor-pointer "
                   >
                     Sign in with Microsoft
                   </button>
@@ -329,24 +329,24 @@ export default function Settings() {
 
           {/* MC Auth Error */}
           {authError && (
-            <div className="bg-[#1a0a0a] border-2 border-[#7a2e2e] rounded p-3 text-sm text-[#ff5555]">
+            <div className="bg-[rgba(232,93,93,0.08)] border-2 border-[rgba(232,93,93,0.3)] rounded p-3 text-sm text-[#e85d5d]">
               MC Auth Error: {authError}
             </div>
           )}
 
           {/* McBlox Account */}
-          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+          <div className="bg-[#231a42] rounded p-5 border-2 border-[rgba(184,169,232,0.10)]" >
             <div className="flex items-center gap-4">
-              <img src="/mcbloxlogo.png" alt="McBlox" className="w-11 h-11 rounded shrink-0" />
+              <img src="/mcbloxlogo2.png" alt="McBlox" className="w-11 h-11 rounded-full shrink-0" />
               {mcbloxUser ? (
                 <>
                   <div className="flex-1">
                     <h2 className="font-bold text-sm">{mcbloxUser.user_metadata?.username || mcbloxUser.email?.split("@")[0]}</h2>
-                    <p className="text-xs text-[#00e676] mt-0.5">Signed in</p>
+                    <p className="text-xs text-[#e8956a] mt-0.5">Signed in</p>
                   </div>
                   <button
                     onClick={mcbloxSignOut}
-                    className="px-5 py-2 bg-[#1a0a0a] hover:bg-[#2a1111] border-2 border-[#7a2e2e] rounded text-sm font-medium cursor-pointer text-[#ff5555]"
+                    className="px-5 py-2 bg-[rgba(232,93,93,0.08)] hover:bg-[rgba(232,93,93,0.12)] border-2 border-[rgba(232,93,93,0.3)] rounded text-sm font-medium cursor-pointer text-[#e85d5d]"
                   >
                     Sign Out
                   </button>
@@ -355,12 +355,12 @@ export default function Settings() {
                 <>
                   <div className="flex-1">
                     <h2 className="font-bold text-sm">McBlox Account</h2>
-                    <p className="text-xs text-[#64748b] mt-0.5">Rate games and publish</p>
+                    <p className="text-xs text-[#8b82a8] mt-0.5">Rate games and publish</p>
                   </div>
                   <button
                     onClick={() => setShowAuthModal(true)}
-                    className="px-5 py-2 bg-[#00e676] hover:bg-[#33ff99] rounded text-black text-sm font-semibold cursor-pointer border-b-[3px] border-[rgba(0,0,0,0.3)]"
-                    style={{fontFamily: "'Silkscreen', monospace"}}
+                    className="px-5 py-2 bg-[#e8956a] hover:bg-[#f0a87e] rounded text-black text-sm font-semibold cursor-pointer "
+                   
                   >
                     Sign In
                   </button>
@@ -370,42 +370,41 @@ export default function Settings() {
           </div>
 
           {/* Performance */}
-          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h2 className="font-bold text-sm mb-4 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+          <div className="bg-[#231a42] rounded p-5 border-2 border-[rgba(184,169,232,0.10)]" >
+            <h2 className="font-bold text-sm mb-4 flex items-center gap-2" style={{color: '#f0c35e'}}>
               ⚡ Performance
             </h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">Java Memory</p>
-                  <p className="text-xs text-[#64748b]">Allocate RAM for Minecraft</p>
+                  <p className="text-xs text-[#8b82a8]">RAM allocated to Minecraft</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <select className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer">
-                    <option>2 GB</option>
-                    <option>4 GB</option>
-                  </select>
-                  <span className="text-[#64748b] text-xs">to</span>
-                  <select className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer">
-                    <option>4 GB</option>
-                    <option>6 GB</option>
-                    <option>8 GB</option>
-                    <option>12 GB</option>
-                    <option>16 GB</option>
-                  </select>
-                </div>
+                <select
+                  className="px-3 py-1.5 bg-[#1a1232] border-2 border-[rgba(184,169,232,0.10)] rounded text-xs text-white outline-none cursor-pointer"
+                  defaultValue={localStorage.getItem("mcblox-ram") || "4G"}
+                  onChange={(e) => localStorage.setItem("mcblox-ram", e.target.value)}
+                >
+                  <option value="2G">2 GB</option>
+                  <option value="3G">3 GB</option>
+                  <option value="4G">4 GB</option>
+                  <option value="6G">6 GB</option>
+                  <option value="8G">8 GB</option>
+                  <option value="12G">12 GB</option>
+                  <option value="16G">16 GB</option>
+                </select>
               </div>
             </div>
           </div>
 
           {/* Global Minecraft Settings */}
-          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
+          <div className="bg-[#231a42] rounded p-5 border-2 border-[rgba(184,169,232,0.10)]" >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-sm flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+              <h2 className="font-bold text-sm flex items-center gap-2" style={{color: '#f0c35e'}}>
                 🎮 Global Minecraft Settings
               </h2>
               <label className="flex items-center gap-2 cursor-pointer">
-                <span className="text-xs text-[#64748b]">{mcSettings.enabled ? "On" : "Off"}</span>
+                <span className="text-xs text-[#8b82a8]">{mcSettings.enabled ? "On" : "Off"}</span>
                 <div className="relative">
                   <input
                     type="checkbox"
@@ -413,27 +412,27 @@ export default function Settings() {
                     onChange={(e) => updateMcSetting("enabled", e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-10 h-5 bg-[#1a2235] rounded peer-checked:bg-[#00e676] transition-colors" />
+                  <div className="w-10 h-5 bg-[#2d2250] rounded peer-checked:bg-[#e8956a] transition-colors" />
                   <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded peer-checked:translate-x-5 transition-transform" />
                 </div>
               </label>
             </div>
             {!mcSettings.enabled ? (
-              <p className="text-xs text-[#64748b]">Enable to override in-game settings (FOV, graphics, sensitivity, etc.) for all games on launch.</p>
+              <p className="text-xs text-[#8b82a8]">Enable to override in-game settings (FOV, graphics, sensitivity, etc.) for all games on launch.</p>
             ) : (
               <div className="space-y-4">
                 {/* FOV */}
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">FOV</p>
-                    <p className="text-xs text-[#64748b]">Field of view (30-110, default 70)</p>
+                    <p className="text-xs text-[#8b82a8]">Field of view (30-110, default 70)</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="range" min="30" max="110" step="1"
                       value={mcSettings.fov ?? 70}
                       onChange={(e) => updateMcSetting("fov", Number(e.target.value))}
-                      className="w-28 accent-[#00e676]"
+                      className="w-28 accent-[#e8956a]"
                     />
                     <span className="text-xs text-white w-8 text-right">{mcSettings.fov ?? 70}</span>
                   </div>
@@ -442,14 +441,14 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">Render Distance</p>
-                    <p className="text-xs text-[#64748b]">Chunks (2-32, default 12)</p>
+                    <p className="text-xs text-[#8b82a8]">Chunks (2-32, default 12)</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="range" min="2" max="32" step="1"
                       value={mcSettings.render_distance ?? 12}
                       onChange={(e) => updateMcSetting("render_distance", Number(e.target.value))}
-                      className="w-28 accent-[#00e676]"
+                      className="w-28 accent-[#e8956a]"
                     />
                     <span className="text-xs text-white w-8 text-right">{mcSettings.render_distance ?? 12}</span>
                   </div>
@@ -458,14 +457,14 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">Simulation Distance</p>
-                    <p className="text-xs text-[#64748b]">Chunks (5-32, default 12)</p>
+                    <p className="text-xs text-[#8b82a8]">Chunks (5-32, default 12)</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="range" min="5" max="32" step="1"
                       value={mcSettings.simulation_distance ?? 12}
                       onChange={(e) => updateMcSetting("simulation_distance", Number(e.target.value))}
-                      className="w-28 accent-[#00e676]"
+                      className="w-28 accent-[#e8956a]"
                     />
                     <span className="text-xs text-white w-8 text-right">{mcSettings.simulation_distance ?? 12}</span>
                   </div>
@@ -474,14 +473,14 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">Entity Distance</p>
-                    <p className="text-xs text-[#64748b]">Scaling (50%-500%, default 100%)</p>
+                    <p className="text-xs text-[#8b82a8]">Scaling (50%-500%, default 100%)</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="range" min="0.5" max="5.0" step="0.25"
                       value={mcSettings.entity_distance ?? 1.0}
                       onChange={(e) => updateMcSetting("entity_distance", Number(e.target.value))}
-                      className="w-28 accent-[#00e676]"
+                      className="w-28 accent-[#e8956a]"
                     />
                     <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.entity_distance ?? 1.0) * 100)}%</span>
                   </div>
@@ -490,12 +489,12 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">Graphics</p>
-                    <p className="text-xs text-[#64748b]">Rendering quality</p>
+                    <p className="text-xs text-[#8b82a8]">Rendering quality</p>
                   </div>
                   <select
                     value={mcSettings.graphics ?? "fancy"}
                     onChange={(e) => updateMcSetting("graphics", e.target.value)}
-                    className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer"
+                    className="px-3 py-1.5 bg-[#1a1232] border-2 border-[rgba(184,169,232,0.10)] rounded text-xs text-white outline-none cursor-pointer"
                   >
                     <option value="fast">Fast</option>
                     <option value="fancy">Fancy</option>
@@ -506,12 +505,12 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">GUI Scale</p>
-                    <p className="text-xs text-[#64748b]">0=Auto, 1-4=fixed</p>
+                    <p className="text-xs text-[#8b82a8]">0=Auto, 1-4=fixed</p>
                   </div>
                   <select
                     value={mcSettings.gui_scale ?? 0}
                     onChange={(e) => updateMcSetting("gui_scale", Number(e.target.value))}
-                    className="px-3 py-1.5 bg-[#0a0e1a] border-2 border-[#1e3a5f] rounded text-xs text-white outline-none cursor-pointer"
+                    className="px-3 py-1.5 bg-[#1a1232] border-2 border-[rgba(184,169,232,0.10)] rounded text-xs text-white outline-none cursor-pointer"
                   >
                     <option value={0}>Auto</option>
                     <option value={1}>Small</option>
@@ -524,14 +523,14 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">Mouse Sensitivity</p>
-                    <p className="text-xs text-[#64748b]">0%-200% (default 100%)</p>
+                    <p className="text-xs text-[#8b82a8]">0%-200% (default 100%)</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="range" min="0" max="1" step="0.01"
                       value={mcSettings.sensitivity ?? 0.5}
                       onChange={(e) => updateMcSetting("sensitivity", Number(e.target.value))}
-                      className="w-28 accent-[#00e676]"
+                      className="w-28 accent-[#e8956a]"
                     />
                     <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.sensitivity ?? 0.5) * 200)}%</span>
                   </div>
@@ -544,7 +543,7 @@ export default function Settings() {
                     ["entity_shadows", "Entity Shadows", mcSettings.entity_shadows],
                     ["view_bobbing", "View Bobbing", mcSettings.view_bobbing],
                   ] as [keyof GlobalMcSettings, string, boolean | null][]).map(([key, label, val]) => (
-                    <label key={key} className="flex items-center justify-between cursor-pointer bg-[#0a0e1a] rounded px-3 py-2 border border-[#1e3a5f]">
+                    <label key={key} className="flex items-center justify-between cursor-pointer bg-[#1a1232] rounded px-3 py-2 border border-[rgba(184,169,232,0.10)]">
                       <span className="text-xs font-medium">{label}</span>
                       <div className="relative">
                         <input
@@ -553,7 +552,7 @@ export default function Settings() {
                           onChange={(e) => updateMcSetting(key, e.target.checked as any)}
                           className="sr-only peer"
                         />
-                        <div className="w-8 h-4 bg-[#1a2235] rounded peer-checked:bg-[#00e676] transition-colors" />
+                        <div className="w-8 h-4 bg-[#2d2250] rounded peer-checked:bg-[#e8956a] transition-colors" />
                         <div className="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded peer-checked:translate-x-4 transition-transform" />
                       </div>
                     </label>
@@ -563,14 +562,14 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">FOV Effects</p>
-                    <p className="text-xs text-[#64748b]">Speed/potion FOV change (0-1)</p>
+                    <p className="text-xs text-[#8b82a8]">Speed/potion FOV change (0-1)</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="range" min="0" max="1" step="0.05"
                       value={mcSettings.fov_effect ?? 1}
                       onChange={(e) => updateMcSetting("fov_effect", Number(e.target.value))}
-                      className="w-28 accent-[#00e676]"
+                      className="w-28 accent-[#e8956a]"
                     />
                     <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.fov_effect ?? 1) * 100)}%</span>
                   </div>
@@ -579,14 +578,14 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">Brightness</p>
-                    <p className="text-xs text-[#64748b]">0% = Moody, 100% = Bright</p>
+                    <p className="text-xs text-[#8b82a8]">0% = Moody, 100% = Bright</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="range" min="0" max="1" step="0.05"
                       value={mcSettings.brightness ?? 0.5}
                       onChange={(e) => updateMcSetting("brightness", Number(e.target.value))}
-                      className="w-28 accent-[#00e676]"
+                      className="w-28 accent-[#e8956a]"
                     />
                     <span className="text-xs text-white w-10 text-right">{Math.round((mcSettings.brightness ?? 0.5) * 100)}%</span>
                   </div>
@@ -594,8 +593,8 @@ export default function Settings() {
                 {/* Keybinds button */}
                 <button
                   onClick={() => setShowKeybinds(true)}
-                  className="w-full py-2.5 bg-[#1a2235] hover:bg-[#1f2a40] border-2 border-[#1e3a5f] rounded text-xs font-medium cursor-pointer text-white"
-                  style={{fontFamily: "'Silkscreen', monospace"}}
+                  className="w-full py-2.5 bg-[#2d2250] hover:bg-[#352960] border-2 border-[rgba(184,169,232,0.10)] rounded text-xs font-medium cursor-pointer text-white"
+                 
                 >
                   ⌨ Configure Keybinds
                 </button>
@@ -604,30 +603,30 @@ export default function Settings() {
           </div>
 
           {/* Behavior */}
-          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h2 className="font-bold text-sm mb-4 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+          <div className="bg-[#231a42] rounded p-5 border-2 border-[rgba(184,169,232,0.10)]" >
+            <h2 className="font-bold text-sm mb-4 flex items-center gap-2" style={{color: '#f0c35e'}}>
               🔧 Behavior
             </h2>
             <div className="space-y-3">
               <label className="flex items-center justify-between cursor-pointer">
                 <div>
                   <p className="text-sm font-medium">Auto-update games</p>
-                  <p className="text-xs text-[#64748b]">Download updates when you click Play</p>
+                  <p className="text-xs text-[#8b82a8]">Download updates when you click Play</p>
                 </div>
                 <div className="relative">
                   <input type="checkbox" defaultChecked className="sr-only peer" />
-                  <div className="w-10 h-5 bg-[#1a2235] rounded peer-checked:bg-[#00e676] transition-colors" />
+                  <div className="w-10 h-5 bg-[#2d2250] rounded peer-checked:bg-[#e8956a] transition-colors" />
                   <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded peer-checked:translate-x-5 transition-transform" />
                 </div>
               </label>
               <label className="flex items-center justify-between cursor-pointer">
                 <div>
                   <p className="text-sm font-medium">Close launcher on play</p>
-                  <p className="text-xs text-[#64748b]">Minimize McBlox when Minecraft opens</p>
+                  <p className="text-xs text-[#8b82a8]">Minimize McBlox when Minecraft opens</p>
                 </div>
                 <div className="relative">
                   <input type="checkbox" className="sr-only peer" />
-                  <div className="w-10 h-5 bg-[#1a2235] rounded peer-checked:bg-[#00e676] transition-colors" />
+                  <div className="w-10 h-5 bg-[#2d2250] rounded peer-checked:bg-[#e8956a] transition-colors" />
                   <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded peer-checked:translate-x-5 transition-transform" />
                 </div>
               </label>
@@ -635,45 +634,45 @@ export default function Settings() {
           </div>
 
           {/* Storage */}
-          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+          <div className="bg-[#231a42] rounded p-5 border-2 border-[rgba(184,169,232,0.10)]" >
+            <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{color: '#f0c35e'}}>
               📁 Storage
             </h2>
             {storageInfo && (
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#94a3b8]">Game instances</span>
+                  <span className="text-[#c4bdd6]">Game instances</span>
                   <span className="text-white font-medium">{formatBytes(storageInfo.instances)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#94a3b8]">Libraries</span>
+                  <span className="text-[#c4bdd6]">Libraries</span>
                   <span className="text-white font-medium">{formatBytes(storageInfo.libraries)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#94a3b8]">Assets</span>
+                  <span className="text-[#c4bdd6]">Assets</span>
                   <span className="text-white font-medium">{formatBytes(storageInfo.assets)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#94a3b8]">Java runtime</span>
+                  <span className="text-[#c4bdd6]">Java runtime</span>
                   <span className="text-white font-medium">{formatBytes(storageInfo.java)}</span>
                 </div>
-                <div className="flex justify-between text-xs border-t border-[#1e3a5f] pt-2 mt-2">
-                  <span className="text-[#94a3b8] font-bold">Total</span>
+                <div className="flex justify-between text-xs border-t border-[rgba(184,169,232,0.10)] pt-2 mt-2">
+                  <span className="text-[#c4bdd6] font-bold">Total</span>
                   <span className="text-white font-bold">{formatBytes(storageInfo.total)}</span>
                 </div>
               </div>
             )}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-[#94a3b8]">{storageInfo?.path || "Loading..."}</p>
-                <p className="text-xs text-[#64748b] mt-0.5">Game data location</p>
+                <p className="text-sm font-medium text-[#c4bdd6]">{storageInfo?.path || "Loading..."}</p>
+                <p className="text-xs text-[#8b82a8] mt-0.5">Game data location</p>
               </div>
             </div>
             <div className="flex gap-2 mt-4">
               <button
                 onClick={clearCache}
                 disabled={clearing}
-                className="px-4 py-2 bg-[#1a0a0a] hover:bg-[#2a1111] border-2 border-[#7a2e2e] rounded text-xs font-medium cursor-pointer text-[#ff5555] disabled:opacity-50"
+                className="px-4 py-2 bg-[rgba(232,93,93,0.08)] hover:bg-[rgba(232,93,93,0.12)] border-2 border-[rgba(232,93,93,0.3)] rounded text-xs font-medium cursor-pointer text-[#e85d5d] disabled:opacity-50"
               >
                 {clearing ? "Clearing..." : "🗑 Clear Game Cache"}
               </button>
@@ -681,24 +680,24 @@ export default function Settings() {
           </div>
 
           {/* About */}
-          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+          <div className="bg-[#231a42] rounded p-5 border-2 border-[rgba(184,169,232,0.10)]" >
+            <h2 className="font-bold text-sm mb-3 flex items-center gap-2" style={{color: '#f0c35e'}}>
               ℹ️ About
             </h2>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium" style={{fontFamily: "'Silkscreen', monospace"}}>McBlox v{__APP_VERSION__}</p>
-                <p className="text-xs text-[#64748b] mt-0.5">Minecraft game launcher</p>
+                <p className="text-sm font-medium">McBlox v{__APP_VERSION__}</p>
+                <p className="text-xs text-[#8b82a8] mt-0.5">Minecraft game launcher</p>
               </div>
               <div className="flex items-center gap-3">
                 {updateResult && (
-                  <span className="text-xs text-[#94a3b8]">{updateResult}</span>
+                  <span className="text-xs text-[#c4bdd6]">{updateResult}</span>
                 )}
                 <button
                   onClick={checkForUpdates}
                   disabled={checkingUpdate}
-                  className="px-4 py-2 bg-[#00e676] hover:bg-[#33ff99] border-2 border-[rgba(0,0,0,0.2)] rounded text-xs font-medium cursor-pointer text-black disabled:opacity-50"
-                  style={{fontFamily: "'Silkscreen', monospace"}}
+                  className="px-4 py-2 bg-[#e8956a] hover:bg-[#f0a87e] border-2 border-[rgba(0,0,0,0.2)] rounded text-xs font-medium cursor-pointer text-black disabled:opacity-50"
+                 
                 >
                   {checkingUpdate ? "Checking..." : "🔄 Check for Updates"}
                 </button>
@@ -725,8 +724,8 @@ export default function Settings() {
           className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
           onClick={(e) => { if (e.target === e.currentTarget) setShowAuthModal(false); }}
         >
-          <div className="bg-[#0a0e1a] border-2 border-[#00e676] rounded w-[380px] p-7" style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: '0 0 30px rgba(0, 230, 118, 0.15)'}}>
-            <h2 className="text-center text-lg font-bold mb-4" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+          <div className="bg-[#1a1232] border-2 border-[#e8956a] rounded w-[380px] p-7" style={{boxShadow: '0 0 30px rgba(232,149,106,0.15)'}}>
+            <h2 className="text-center text-lg font-bold mb-4" style={{color: '#f0c35e'}}>
               {isSignUp ? "Sign Up" : "Sign In"}
             </h2>
             <form onSubmit={handleMcbloxAuth} className="space-y-3">
@@ -736,7 +735,7 @@ export default function Settings() {
                   value={authUsername}
                   onChange={(e) => setAuthUsername(e.target.value)}
                   placeholder="Username"
-                  className="w-full px-3 py-2 bg-[#111827] border-2 border-[#1e3a5f] rounded text-sm text-white outline-none focus:border-[#00e676]"
+                  className="w-full px-3 py-2 bg-[#231a42] border-2 border-[rgba(184,169,232,0.10)] rounded text-sm text-white outline-none focus:border-[#e8956a]"
                 />
               )}
               <input
@@ -745,7 +744,7 @@ export default function Settings() {
                 onChange={(e) => setAuthEmail(e.target.value)}
                 placeholder="Email"
                 required
-                className="w-full px-3 py-2 bg-[#111827] border-2 border-[#1e3a5f] rounded text-sm text-white outline-none focus:border-[#00e676]"
+                className="w-full px-3 py-2 bg-[#231a42] border-2 border-[rgba(184,169,232,0.10)] rounded text-sm text-white outline-none focus:border-[#e8956a]"
               />
               <input
                 type="password"
@@ -754,25 +753,25 @@ export default function Settings() {
                 placeholder="Password"
                 required
                 minLength={6}
-                className="w-full px-3 py-2 bg-[#111827] border-2 border-[#1e3a5f] rounded text-sm text-white outline-none focus:border-[#00e676]"
+                className="w-full px-3 py-2 bg-[#231a42] border-2 border-[rgba(184,169,232,0.10)] rounded text-sm text-white outline-none focus:border-[#e8956a]"
               />
               {authModalError && (
-                <p className="text-[#ff5555] text-xs">{authModalError}</p>
+                <p className="text-[#e85d5d] text-xs">{authModalError}</p>
               )}
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full py-2.5 bg-[#00e676] hover:bg-[#33ff99] border-2 border-[rgba(0,0,0,0.1)] rounded text-black font-bold text-sm cursor-pointer disabled:opacity-50"
-                style={{fontFamily: "'Silkscreen', monospace", borderBottom: '4px solid rgba(0,0,0,0.3)'}}
+                className="w-full py-2.5 bg-[#e8956a] hover:bg-[#f0a87e] border-2 border-[rgba(0,0,0,0.1)] rounded text-black font-bold text-sm cursor-pointer disabled:opacity-50"
+               
               >
                 {authLoading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In"}
               </button>
             </form>
-            <p className="text-center text-xs text-[#64748b] mt-3">
+            <p className="text-center text-xs text-[#8b82a8] mt-3">
               {isSignUp ? "Already have an account?" : "Don't have an account?"}
               <button
                 onClick={() => { setIsSignUp(!isSignUp); setAuthModalError(""); }}
-                className="text-[#00bcd4] font-semibold ml-1 cursor-pointer bg-transparent border-none"
+                className="text-[#b8a9e8] font-semibold ml-1 cursor-pointer bg-transparent border-none"
               >
                 {isSignUp ? "Sign In" : "Sign Up"}
               </button>
@@ -888,23 +887,23 @@ function KeybindsModal({ keybinds, onSave, onClose, listeningKey, setListeningKe
       className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) { setListeningKey(null); onClose(); } }}
     >
-      <div className="bg-[#0a0e1a] border-2 border-[#00e676] rounded w-[520px] max-h-[80vh] flex flex-col" style={{borderBottom: '4px solid rgba(0,0,0,0.3)', boxShadow: '0 0 30px rgba(0, 230, 118, 0.15)'}}>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#1e3a5f]">
-          <h2 className="text-sm font-bold" style={{fontFamily: "'Silkscreen', monospace", color: '#ffd740'}}>
+      <div className="bg-[#1a1232] border-2 border-[#e8956a] rounded w-[520px] max-h-[80vh] flex flex-col" style={{boxShadow: '0 0 30px rgba(232,149,106,0.15)'}}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(184,169,232,0.10)]">
+          <h2 className="text-sm font-bold" style={{color: '#f0c35e'}}>
             ⌨ Keybinds
           </h2>
           <div className="flex gap-2">
             <button
               onClick={() => { setLocal({}); }}
-              className="px-3 py-1 bg-[#1a2235] hover:bg-[#1f2a40] border border-[#1e3a5f] rounded text-[10px] text-[#94a3b8] cursor-pointer"
-              style={{fontFamily: "'Silkscreen', monospace"}}
+              className="px-3 py-1 bg-[#2d2250] hover:bg-[#352960] border border-[rgba(184,169,232,0.10)] rounded text-[10px] text-[#c4bdd6] cursor-pointer"
+             
             >
               Reset All
             </button>
             <button
               onClick={() => onSave(local)}
-              className="px-3 py-1 bg-[#00e676] hover:bg-[#33ff99] rounded text-[10px] text-black font-bold cursor-pointer"
-              style={{fontFamily: "'Silkscreen', monospace"}}
+              className="px-3 py-1 bg-[#e8956a] hover:bg-[#f0a87e] rounded text-[10px] text-black font-bold cursor-pointer"
+             
             >
               Save
             </button>
@@ -913,13 +912,13 @@ function KeybindsModal({ keybinds, onSave, onClose, listeningKey, setListeningKe
         <div className="overflow-y-auto flex-1 px-5 py-3 space-y-4">
           {categories.map(cat => (
             <div key={cat}>
-              <h3 className="text-xs font-bold text-[#64748b] uppercase mb-2" style={{fontFamily: "'Silkscreen', monospace"}}>{cat}</h3>
+              <h3 className="text-xs font-bold text-[#8b82a8] uppercase mb-2">{cat}</h3>
               <div className="space-y-1">
                 {MC_KEYBINDS.filter(k => k.category === cat).map(kb => {
                   const current = local[kb.key];
                   const isListening = listeningKey === kb.key;
                   return (
-                    <div key={kb.key} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-[#111827]">
+                    <div key={kb.key} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-[#231a42]">
                       <span className="text-xs text-white">{kb.label}</span>
                       <div className="flex items-center gap-1.5">
                         <button
@@ -928,17 +927,17 @@ function KeybindsModal({ keybinds, onSave, onClose, listeningKey, setListeningKe
                             isListening
                               ? "bg-[#ff9800] border-[#ff9800] text-black animate-pulse"
                               : current
-                                ? "bg-[#1a2235] border-[#1e3a5f] text-[#00e676]"
-                                : "bg-[#1a2235] border-[#1e3a5f] text-[#64748b]"
+                                ? "bg-[#2d2250] border-[rgba(184,169,232,0.10)] text-[#e8956a]"
+                                : "bg-[#2d2250] border-[rgba(184,169,232,0.10)] text-[#8b82a8]"
                           }`}
-                          style={{fontFamily: "'Silkscreen', monospace", minWidth: '80px'}}
+                          style={{minWidth: '80px'}}
                         >
                           {isListening ? "Press a key..." : current ? mcKeyDisplayName(current) : "Not set"}
                         </button>
                         {current && (
                           <button
                             onClick={() => setLocal(prev => { const n = { ...prev }; delete n[kb.key]; return n; })}
-                            className="px-1.5 py-1 text-[10px] text-[#ff5555] hover:text-[#ff8888] cursor-pointer bg-transparent border-none"
+                            className="px-1.5 py-1 text-[10px] text-[#e85d5d] hover:text-[#ff8888] cursor-pointer bg-transparent border-none"
                             title="Let game decide"
                           >
                             ✕
@@ -952,7 +951,7 @@ function KeybindsModal({ keybinds, onSave, onClose, listeningKey, setListeningKe
             </div>
           ))}
         </div>
-        <div className="px-5 py-2 border-t border-[#1e3a5f] text-[10px] text-[#64748b]">
+        <div className="px-5 py-2 border-t border-[rgba(184,169,232,0.10)] text-[10px] text-[#8b82a8]">
           Click a keybind button then press a key to set it. ✕ = let game decide.
         </div>
       </div>

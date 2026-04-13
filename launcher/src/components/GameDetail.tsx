@@ -121,11 +121,10 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
   return (
     <div className="h-full flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-[#060a14] border-b-[3px] border-[#00e676] shrink-0" style={{boxShadow: '0 3px 15px rgba(0, 230, 118, 0.1)'}}>
+      <div className="flex items-center gap-3 px-6 py-3 bg-[#150e28] border-b-2 border-[rgba(184,169,232,0.10)] shrink-0">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-[#94a3b8] hover:text-white text-sm cursor-pointer"
-          style={{fontFamily: "'Silkscreen', monospace"}}
+          className="flex items-center gap-1.5 text-[#8b82a8] hover:text-white text-sm font-semibold cursor-pointer"
         >
           <span>←</span> Back
         </button>
@@ -137,22 +136,22 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
           {game.thumbnail_url ? (
             <img src={game.thumbnail_url} alt={game.title} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center" style={{background: 'linear-gradient(135deg, #0a1628 0%, #0f1f3a 50%, #061020 100%)'}}>
+            <div className="w-full h-full flex items-center justify-center" style={{background: 'linear-gradient(135deg, #231a42 0%, #2d2250 50%, #1a1232 100%)'}}>
               <span className="text-7xl opacity-20">⛏</span>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0e1a] via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1a1232] via-transparent to-transparent" />
         </div>
 
         <div className="px-8 -mt-16 relative pb-8 max-w-4xl">
           {/* Title + play */}
           <div className="flex items-end justify-between gap-6 mb-6">
             <div>
-              <h1 className="text-2xl font-black tracking-wide" style={{fontFamily: "'Silkscreen', monospace", textShadow: '2px 2px 0 #000'}}>{game.title}</h1>
-              <p className="text-sm text-[#64748b] mt-1">by {game.author || 'Unknown'}</p>
-              <div className="flex items-center gap-4 mt-2 text-sm text-[#b0b0b0]">
+              <h1 className="text-2xl font-bold">{game.title}</h1>
+              <p className="text-sm text-[#8b82a8] mt-1">{game.author || 'Unknown'}</p>
+              <div className="flex items-center gap-4 mt-2 text-sm text-[#c4bdd6]">
                 <span className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${(game.player_count || 0) > 0 ? 'bg-[#00e676]' : 'bg-[#64748b]'}`} />
+                  <span className={`w-2 h-2 rounded-full ${(game.player_count || 0) > 0 ? 'bg-[#6fcf97]' : 'bg-[#5c5478]'}`} />
                   {game.player_count || 0} active
                 </span>
                 <span>📥 {(game.total_plays || 0).toLocaleString()} plays</span>
@@ -163,14 +162,16 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
             <button
               onClick={isThisGame && gameRunning ? handleStop : handlePlay}
               disabled={launching}
-              className={`px-10 py-3.5 text-black font-bold rounded text-base cursor-pointer shrink-0 border-b-[4px] border-[rgba(0,0,0,0.3)] active:border-b-[2px] ${
-                launching ? "bg-[#00e676]/70 opacity-70 cursor-not-allowed" :
-                isThisGame && gameRunning ? "bg-[#cc3333] hover:bg-[#dd4444] text-white" :
-                "bg-[#00e676] hover:bg-[#33ff99]"
+              className={`px-10 py-3.5 text-white font-bold rounded-lg text-base cursor-pointer shrink-0 ${
+                launching ? "opacity-70 cursor-not-allowed" :
+                isThisGame && gameRunning ? "bg-[#e85d5d] hover:bg-[#f07070]" : ""
               }`}
-              style={{fontFamily: "'Silkscreen', monospace", boxShadow: launching ? 'none' : (isThisGame && gameRunning) ? 'none' : '0 0 15px rgba(0, 230, 118, 0.3)'}}
+              style={{
+                background: launching ? 'linear-gradient(135deg, #e8956a, #d4709a)' : (isThisGame && gameRunning) ? undefined : 'linear-gradient(135deg, #e8956a, #d4709a)',
+                boxShadow: launching ? 'none' : (isThisGame && gameRunning) ? 'none' : '0 4px 20px rgba(232,149,106,0.3)'
+              }}
             >
-              {launching ? "⏳ LAUNCHING..." : (isThisGame && gameRunning) ? "⏹ STOP" : "▶ PLAY"}
+              {launching ? "⏳ Launching..." : (isThisGame && gameRunning) ? "⏹ Stop" : "▶ Play"}
             </button>
           </div>
 
@@ -178,35 +179,35 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
           <div className="flex gap-3 mb-6">
             <button
               onClick={() => rate(true)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded border-2 cursor-pointer transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 cursor-pointer transition-colors ${
                 myRating === true
-                  ? "bg-[#0a2618] border-[#00e676] text-[#00e676]"
-                  : "bg-[#111827] border-[#1e3a5f] hover:border-[#00e676]"
+                  ? "bg-[rgba(111,207,151,0.1)] border-[#6fcf97] text-[#6fcf97]"
+                  : "bg-[#231a42] border-[rgba(184,169,232,0.10)] hover:border-[#e8956a]"
               }`}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill={myRating === true ? "#00e676" : "none"} stroke={myRating === true ? "#00e676" : "currentColor"} strokeWidth="2"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={myRating === true ? "#6fcf97" : "none"} stroke={myRating === true ? "#6fcf97" : "currentColor"} strokeWidth="2"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
               <span className="text-sm font-bold">{likes}</span>
             </button>
             <button
               onClick={() => rate(false)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded border-2 cursor-pointer transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 cursor-pointer transition-colors ${
                 myRating === false
-                  ? "bg-[#1a0a0a] border-[#7a2e2e] text-[#ff5555]"
-                  : "bg-[#111827] border-[#1e3a5f] hover:border-[#7a2e2e]"
+                  ? "bg-[rgba(232,93,93,0.1)] border-[#e85d5d] text-[#e85d5d]"
+                  : "bg-[#231a42] border-[rgba(184,169,232,0.10)] hover:border-[#e85d5d]"
               }`}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill={myRating === false ? "#ff5555" : "none"} stroke={myRating === false ? "#ff5555" : "currentColor"} strokeWidth="2"><path d="M12 20l8-8h-5V4H9v8H4z"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={myRating === false ? "#e85d5d" : "none"} stroke={myRating === false ? "#e85d5d" : "currentColor"} strokeWidth="2"><path d="M12 20l8-8h-5V4H9v8H4z"/></svg>
               <span className="text-sm font-bold">{dislikes}</span>
             </button>
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#111827] rounded border-2 border-[#1e3a5f]">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#231a42] rounded-lg border-2 border-[rgba(184,169,232,0.10)]">
               <span className="text-sm font-bold">{pct}%</span>
-              <span className="text-[10px] text-[#64748b]">positive</span>
+              <span className="text-[10px] text-[#8b82a8]">positive</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#111827] rounded border-2 border-[#1e3a5f]">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-[#231a42] rounded-lg border-2 border-[rgba(184,169,232,0.10)]">
               <span className="text-lg">{game.game_type === 'server' ? '🌐' : '🗺️'}</span>
               <div>
                 <p className="text-sm font-bold">{game.game_type === 'server' ? 'Multiplayer' : 'Singleplayer'}</p>
-                <p className="text-[10px] text-[#64748b]">
+                <p className="text-[10px] text-[#8b82a8]">
                   {game.game_type === 'server' ? game.server_address : game.world_name}
                 </p>
               </div>
@@ -219,7 +220,7 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
               {game.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs px-3 py-1 bg-[#1a2235] rounded text-[#94a3b8] border-2 border-[#1e3a5f] hover:border-[#00e676] cursor-pointer transition-colors"
+                  className="text-xs px-3 py-1.5 bg-[rgba(184,169,232,0.08)] rounded-full text-[#b8a9e8] border border-[rgba(184,169,232,0.15)] hover:border-[#e8956a] cursor-pointer transition-colors"
                 >
                   {tag}
                 </span>
@@ -228,9 +229,9 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
           )}
 
           {/* Description */}
-          <div className="bg-[#111827] rounded p-5 border-2 border-[#1e3a5f]" style={{borderBottom: '4px solid rgba(0,0,0,0.3)'}}>
-            <h3 className="text-sm font-bold mb-2 text-[#ffd740] uppercase tracking-wide" style={{fontFamily: "'Silkscreen', monospace"}}>About</h3>
-            <p className="text-sm text-[#e8e8e8] leading-relaxed">
+          <div className="bg-[#231a42] rounded-lg p-5 border border-[rgba(184,169,232,0.10)]">
+            <h3 className="text-sm font-bold mb-2 text-[#e8956a]">About</h3>
+            <p className="text-sm text-[#c4bdd6] leading-relaxed">
               {game.description}
             </p>
           </div>
@@ -240,20 +241,20 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
             <div className="mt-5 space-y-3">
               {/* Progress bar */}
               {progress && (
-                <div className="bg-[#111827] rounded p-4 border-2 border-[#1e3a5f]">
+                <div className="bg-[#231a42] rounded-lg p-4 border border-[rgba(184,169,232,0.10)]">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-[#94a3b8]" style={{fontFamily: "'Silkscreen', monospace"}}>
+                    <span className="text-xs text-[#c4bdd6]">
                       {progress.message}
                     </span>
-                    <span className="text-xs text-[#64748b]">
+                    <span className="text-xs text-[#8b82a8]">
                       {Math.round(progress.percent * 100)}%
                     </span>
                   </div>
-                  <div className="h-2 bg-[#0a0e1a] rounded-full overflow-hidden">
+                  <div className="h-2 bg-[#1a1232] rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all duration-300 rounded-full ${
-                        progress.stage === "error" ? "bg-[#cc3333]" :
-                        progress.stage === "running" ? "bg-[#00e676]" : "bg-[#00e676]"
+                        progress.stage === "error" ? "bg-[#e85d5d]" :
+                        progress.stage === "running" ? "bg-[#6fcf97]" : "bg-[#e8956a]"
                       }`}
                       style={{ width: `${Math.round(progress.percent * 100)}%` }}
                     />
@@ -262,32 +263,30 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
               )}
 
               {/* Logs area */}
-              <div className="bg-[#060a14] rounded border-2 border-[#1e3a5f]">
+              <div className="bg-[#231a42] rounded-lg border border-[rgba(184,169,232,0.10)]">
                 {/* Tab bar */}
-                <div className="flex items-center border-b border-[#1e3a5f]">
+                <div className="flex items-center border-b border-[rgba(184,169,232,0.10)]">
                   <button
                     onClick={() => { setActiveTab("launcher"); setShowLogs(true); }}
-                    className={`px-4 py-2 text-xs cursor-pointer transition-colors ${
-                      activeTab === "launcher" ? "text-[#00e676] border-b-2 border-[#00e676]" : "text-[#64748b] hover:text-[#94a3b8]"
+                    className={`px-4 py-2 text-xs font-semibold cursor-pointer transition-colors ${
+                      activeTab === "launcher" ? "text-[#e8956a] border-b-2 border-[#e8956a]" : "text-[#8b82a8] hover:text-[#c4bdd6]"
                     }`}
-                    style={{fontFamily: "'Silkscreen', monospace"}}
                   >
-                    LAUNCHER ({logs.length})
+                    Launcher ({logs.length})
                   </button>
                   <button
                     onClick={() => { setActiveTab("minecraft"); setShowLogs(true); }}
-                    className={`px-4 py-2 text-xs cursor-pointer transition-colors ${
-                      activeTab === "minecraft" ? "text-[#00e676] border-b-2 border-[#00e676]" : "text-[#64748b] hover:text-[#94a3b8]"
+                    className={`px-4 py-2 text-xs font-semibold cursor-pointer transition-colors ${
+                      activeTab === "minecraft" ? "text-[#e8956a] border-b-2 border-[#e8956a]" : "text-[#8b82a8] hover:text-[#c4bdd6]"
                     }`}
-                    style={{fontFamily: "'Silkscreen', monospace"}}
                   >
-                    MINECRAFT {isThisGame && gameRunning && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00e676] ml-1.5" />}
+                    Minecraft {isThisGame && gameRunning && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#6fcf97] ml-1.5" />}
                     {mcLogs.length > 0 && ` (${mcLogs.length})`}
                   </button>
                   <div className="flex-1" />
                   <button
                     onClick={() => setShowLogs(!showLogs)}
-                    className="px-3 py-2 text-xs text-[#64748b] hover:text-[#94a3b8] cursor-pointer"
+                    className="px-3 py-2 text-xs text-[#8b82a8] hover:text-[#c4bdd6] cursor-pointer"
                   >
                     {showLogs ? "▼" : "▶"}
                   </button>
@@ -295,14 +294,14 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
                 {showLogs && activeTab === "launcher" && (
                   <div className="px-4 pb-3 max-h-[300px] overflow-y-auto font-mono text-xs leading-5">
                     {logs.length === 0 && (
-                      <p className="text-[#1e3a5f] mt-2">Waiting for output...</p>
+                      <p className="text-[#5c5478] mt-2">Waiting for output...</p>
                     )}
                     {logs.map((log, i) => (
                       <p key={i} className={
-                        log.startsWith("✗") ? "text-[#ff5555]" :
-                        log.startsWith("✓") ? "text-[#00e676]" :
-                        log.startsWith("⚠") ? "text-[#ffd740]" :
-                        log.startsWith("⏹") ? "text-[#64748b]" : "text-[#94a3b8]"
+                        log.startsWith("✗") ? "text-[#e85d5d]" :
+                        log.startsWith("✓") ? "text-[#6fcf97]" :
+                        log.startsWith("⚠") ? "text-[#f0c35e]" :
+                        log.startsWith("⏹") ? "text-[#8b82a8]" : "text-[#c4bdd6]"
                       }>
                         {log}
                       </p>
@@ -313,13 +312,13 @@ export default function GameDetail({ game, onBack, onPlay, onStop, session }: Pr
                 {showLogs && activeTab === "minecraft" && (
                   <div className="px-4 pb-3 max-h-[300px] overflow-y-auto font-mono text-xs leading-5">
                     {mcLogs.length === 0 && (
-                      <p className="text-[#1e3a5f] mt-2">{isThisGame && gameRunning ? "Waiting for Minecraft output..." : "No Minecraft output yet. Press Play to start."}</p>
+                      <p className="text-[#5c5478] mt-2">{isThisGame && gameRunning ? "Waiting for Minecraft output..." : "No Minecraft output yet. Press Play to start."}</p>
                     )}
                     {mcLogs.map((log, i) => (
                       <p key={i} className={
-                        log.includes("ERROR") || log.includes("Exception") ? "text-[#ff5555]" :
-                        log.includes("WARN") ? "text-[#ffd740]" :
-                        log.includes("[INFO]") ? "text-[#94a3b8]" : "text-[#64748b]"
+                        log.includes("ERROR") || log.includes("Exception") ? "text-[#e85d5d]" :
+                        log.includes("WARN") ? "text-[#f0c35e]" :
+                        log.includes("[INFO]") ? "text-[#c4bdd6]" : "text-[#8b82a8]"
                       }>
                         {log}
                       </p>

@@ -33,6 +33,7 @@ pub struct LaunchRequest {
     pub server_address: Option<String>,
     pub world_name: Option<String>,
     pub auto_join: Option<bool>,
+    pub memory: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -426,6 +427,7 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     } else {
         request.server_address.as_deref()
     };
+    let memory = request.memory.as_deref().unwrap_or("4G");
     let args = mc_launcher::build_launch_args(
         &version_json,
         &main_class,
@@ -440,8 +442,8 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
         server_for_args,
         &loader_jvm_args,
         &loader_game_args,
-        "2G",
-        "4G",
+        memory,
+        memory,
     );
 
     // Save instance metadata

@@ -6,16 +6,16 @@ export function SkeletonGrid({ count }: { count: number }) {
           key={i}
           className="rounded overflow-hidden"
           style={{
-            background: "#0a0e1a",
+            background: "#1a1232",
             animation: "skeleton-pulse 1.5s ease-in-out infinite",
           }}
         >
-          <div style={{ height: 100, background: "#111827" }} />
+          <div style={{ height: 100, background: "#231a42" }} />
           <div style={{ padding: 10 }}>
             <div
               style={{
                 height: 12,
-                background: "#111827",
+                background: "#231a42",
                 borderRadius: 3,
                 width: "75%",
                 marginBottom: 8,
@@ -24,7 +24,7 @@ export function SkeletonGrid({ count }: { count: number }) {
             <div
               style={{
                 height: 10,
-                background: "#111827",
+                background: "#231a42",
                 borderRadius: 3,
                 width: "50%",
                 marginBottom: 10,
@@ -34,7 +34,7 @@ export function SkeletonGrid({ count }: { count: number }) {
               <div
                 style={{
                   height: 16,
-                  background: "#111827",
+                  background: "#231a42",
                   borderRadius: 3,
                   width: 40,
                 }}
@@ -42,7 +42,7 @@ export function SkeletonGrid({ count }: { count: number }) {
               <div
                 style={{
                   height: 16,
-                  background: "#111827",
+                  background: "#231a42",
                   borderRadius: 3,
                   width: 56,
                 }}
