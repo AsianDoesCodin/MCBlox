@@ -97,7 +97,7 @@ function renderDashboard() {
         </div>
       </div>
       <div class="dash-actions">
-        <button class="btn btn-sm btn-ghost edit-btn">Edit</button>
+        <button class="btn btn-sm edit-btn">Edit</button>
       </div>
     `;
 
@@ -119,6 +119,7 @@ const editAutoJoinRow = document.querySelector('.edit-toggle-row');
 const editTagPicker = document.getElementById('edit-tag-picker');
 
 // Check if we have an auto-join mod for this MC version + loader combo
+// Forge/NeoForge: 1.7+ | Fabric: 1.21.x only
 function isAutoJoinSupported(mc, loader) {
   if (!mc || !loader) return false;
   const parts = mc.split('.').map(Number);
@@ -258,6 +259,7 @@ async function fetchWithCorsProxy(url) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     return await resp.json();
   } catch {
+    // CORS blocked — try proxies in order
     const proxies = [
       `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
       `https://corsproxy.io/?${encodeURIComponent(url)}`

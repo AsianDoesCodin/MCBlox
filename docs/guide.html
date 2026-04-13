@@ -11,187 +11,422 @@
   <script src="toast.js"></script>
   <style>
     .guide { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
-    .guide h1 { font-family: 'Silkscreen', monospace; font-size: 28px; margin-bottom: 8px; }
-    .guide .subtitle { color: var(--text-dim); margin-bottom: 40px; }
-    .guide h2 { font-family: 'Silkscreen', monospace; font-size: 18px; margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
-    .guide h3 { font-size: 15px; margin: 24px 0 8px; color: var(--accent); font-family: 'Silkscreen', monospace; }
-    .guide p, .guide li { line-height: 1.7; color: var(--text); font-size: 14px; }
+    .guide h1 { font-family: 'Quicksand', sans-serif; font-size: 28px; font-weight: 700; margin-bottom: 8px; color: var(--text1); }
+    .guide .subtitle { color: var(--text3); margin-bottom: 40px; }
+    .guide h2 { font-family: 'Quicksand', sans-serif; font-size: 18px; font-weight: 700; margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); color: var(--text1); }
+    .guide h3 { font-size: 15px; margin: 24px 0 8px; color: var(--warm); font-family: 'Quicksand', sans-serif; font-weight: 700; }
+    .guide p, .guide li { line-height: 1.7; color: var(--text2); font-size: 14px; }
     .guide ul, .guide ol { padding-left: 24px; margin: 8px 0 16px; }
     .guide li { margin: 6px 0; }
-    .guide code { background: var(--card); padding: 2px 6px; border-radius: 3px; font-size: 13px; color: var(--accent); }
+    .guide code { background: var(--bg3); padding: 2px 6px; border-radius: var(--r-sm); font-size: 13px; color: var(--warm); }
+    .guide a { color: var(--warm); }
     .guide .img-box {
-      border: 2px solid var(--border); border-radius: 6px;
-      overflow: hidden; margin: 16px 0 24px; background: var(--surface);
+      border: 2px solid var(--border); border-radius: var(--r);
+      overflow: hidden; margin: 16px 0 24px; background: var(--bg2);
     }
     .guide .img-box img { width: 100%; display: block; }
     .guide .img-box .caption {
-      padding: 8px 12px; font-size: 12px; color: var(--text-dim);
-      border-top: 1px solid var(--border); background: var(--card);
+      padding: 8px 12px; font-size: 12px; color: var(--text3);
+      border-top: 1px solid var(--border); background: var(--bg3);
     }
     .guide .step-num {
       display: inline-flex; align-items: center; justify-content: center;
       width: 28px; height: 28px; border-radius: 50%;
-      background: var(--accent); color: #000; font-weight: bold;
+      background: var(--warm); color: #fff; font-weight: bold;
       font-size: 14px; margin-right: 8px; flex-shrink: 0;
-      font-family: 'Silkscreen', monospace;
+      font-family: 'Quicksand', sans-serif;
     }
     .guide .step { display: flex; align-items: flex-start; margin: 16px 0; }
     .guide .step p { margin: 0; }
     .guide .warn-box {
       display: flex; align-items: flex-start; gap: 12px;
-      background: rgba(255, 152, 0, 0.1); border: 1px solid rgba(255, 152, 0, 0.3);
-      border-radius: 6px; padding: 12px 16px; margin: 16px 0;
+      background: rgba(255, 152, 0, 0.08); border: 1px solid rgba(255, 152, 0, 0.25);
+      border-radius: var(--r); padding: 12px 16px; margin: 16px 0;
     }
     .guide .warn-box .warn-icon { font-size: 20px; flex-shrink: 0; }
     .guide .warn-box p { margin: 0; font-size: 13px; color: #ffb74d; }
     .guide .info-box {
       display: flex; align-items: flex-start; gap: 12px;
-      background: rgba(0, 188, 212, 0.08); border: 1px solid rgba(0, 188, 212, 0.25);
-      border-radius: 6px; padding: 12px 16px; margin: 16px 0;
+      background: rgba(111, 207, 151, 0.06); border: 1px solid rgba(111, 207, 151, 0.2);
+      border-radius: var(--r); padding: 12px 16px; margin: 16px 0;
     }
     .guide .info-box .info-icon { font-size: 20px; flex-shrink: 0; }
-    .guide .info-box p { margin: 0; font-size: 13px; color: #4dd0e1; }
+    .guide .info-box p { margin: 0; font-size: 13px; color: var(--mint); }
     .guide .host-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 12px; margin: 16px 0;
     }
     .guide .host-card {
-      background: var(--card); border: 2px solid var(--border);
-      border-radius: 6px; padding: 16px; text-align: center;
+      background: var(--bg2); border: 2px solid var(--border);
+      border-radius: var(--r); padding: 16px; text-align: center;
     }
-    .guide .host-card.supported { border-color: var(--accent); }
-    .guide .host-card.broken { border-color: #ff5555; opacity: 0.6; }
+    .guide .host-card.supported { border-color: var(--warm); }
+    .guide .host-card.broken { border-color: var(--red); opacity: 0.6; }
     .guide .host-card .host-icon { font-size: 24px; margin-bottom: 6px; }
-    .guide .host-card .host-name { font-weight: bold; font-size: 14px; font-family: 'Silkscreen', monospace; }
+    .guide .host-card .host-name { font-weight: bold; font-size: 14px; font-family: 'Quicksand', sans-serif; color: var(--text1); }
     .guide .host-card .host-status { font-size: 11px; margin-top: 4px; }
-    .guide .host-card.supported .host-status { color: var(--accent); }
-    .guide .host-card.broken .host-status { color: #ff5555; }
+    .guide .host-card.supported .host-status { color: var(--warm); }
+    .guide .host-card.broken .host-status { color: var(--red); }
     .file-tree {
-      background: var(--card); border: 2px solid var(--border); border-radius: 6px;
+      background: var(--bg2); border: 2px solid var(--border); border-radius: var(--r);
       padding: 16px 20px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px;
       line-height: 1.8; margin: 16px 0;
     }
-    .file-tree .folder { color: #ffd740; }
-    .file-tree .file { color: var(--text-dim); }
-    .file-tree .highlight { color: var(--accent); font-weight: bold; }
+    .file-tree .folder { color: var(--yellow); }
+    .file-tree .file { color: var(--text3); }
+    .file-tree .highlight { color: var(--warm); font-weight: bold; }
   </style>
 </head>
 <body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <a class="logo" href="index.html">
+    <img src="mcbloxlogo2.png" alt="McBlox">
+  </a>
   <nav>
-    <div class="nav-left">
-      <a href="index.html" class="logo"><img src="mcbloxlogo.png" alt="McBlox" class="nav-logo"></a>
-    </div>
-    <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="games.html">Games</a>
-      <a href="publish.html">Publish</a>
-      <a href="guide.html" class="active">Guide</a>
-      <a href="dashboard.html">Dashboard</a>
-      <a href="https://discord.gg/utRqFy3ptE" target="_blank" rel="noopener" class="nav-discord"><svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg> Discord</a>
-    </div>
-    <div class="nav-right">
-      <button class="btn btn-sm" id="auth-btn">Sign In</button>
-    </div>
+    <a href="index.html">Home</a>
+    <a href="games.html">Games</a>
+    <a href="guide.html" class="active">Guide</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="https://discord.gg/utRqFy3ptE" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:4px;">
+      <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      Discord
+    </a>
   </nav>
+  <div class="right">
+    <div style="position:relative;display:flex;align-items:center;gap:8px;" id="auth-wrap">
+      <a class="btn btn-sm btn-warm" id="publish-nav-btn" href="publish.html">+ Publish</a>
+      <button class="btn btn-sm btn-ghost" id="auth-btn" onclick="showAuthModal()">Sign In</button>
+      <div class="avatar" id="nav-avatar" style="display:none;"></div>
+      <div class="user-dropdown" id="user-dropdown"></div>
+    </div>
+  </div>
+</div>
 
-  <main class="guide">
+<main class="guide">
+  <h1>Publishing Guide</h1>
+  <p class="subtitle">How to create and publish your Minecraft game on McBlox</p>
+
+  <!-- ===== MODPACK STRUCTURE ===== -->
+  <h2>📦 Modpack Structure</h2>
+  <p>Your modpack must be a <code>.zip</code> file with a specific structure. Inside the zip, there should be <strong>one folder</strong> (name doesn't matter) containing your instance files:</p>
+
+  <div class="file-tree">
+    <span class="folder">📁 yourmodpack.zip</span><br>
+    &nbsp;&nbsp;└── <span class="folder">📁 yourmodpack/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder highlight">📁 mods/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">← your mod JARs</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 config/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">← mod configs</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 resourcepacks/</span> <span class="file">← optional resource packs</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 shaderpacks/</span> &nbsp;&nbsp;<span class="file">← optional shaders</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 saves/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">← world saves (for world-type games)</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">options.txt</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">← optional MC settings</span>
+  </div>
+
+  <div class="info-box">
+    <span class="info-icon">ℹ️</span>
+    <p>Think of it like zipping up your <code>.minecraft</code> folder contents — just the mods, config, saves, etc. Don't include the Minecraft JAR, libraries, or Java. McBlox handles all of that automatically.</p>
+  </div>
+
+  <p>Here's what it looks like in practice:</p>
+  <div class="img-box">
+    <div style="padding:12px 16px;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.8">
+      <div style="color:var(--yellow);font-weight:bold;margin-bottom:4px">📁 rainmire.zip</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;color:var(--text2)">
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:4px 8px">📁 ..</td>
+          <td></td><td></td><td style="color:var(--text3)">File folder</td><td></td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px">📁 <span style="color:var(--warm)">rainmire</span></td>
+          <td style="color:var(--text3)">1,346,459,926</td>
+          <td style="color:var(--text3)">802,116,860</td>
+          <td style="color:var(--text3)">File folder</td>
+          <td style="color:var(--text3)">18/02/2026</td>
+        </tr>
+      </table>
+    </div>
+    <div class="caption">Step 1: Your .zip contains one folder</div>
+  </div>
+  <div class="img-box">
+    <div style="padding:12px 16px;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.8">
+      <div style="color:var(--yellow);font-weight:bold;margin-bottom:4px">📁 rainmire.zip\rainmire</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;color:var(--text2)">
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:4px 8px">📁 ..</td>
+          <td></td><td></td><td style="color:var(--text3)">File folder</td><td></td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:4px 8px">📁 <span style="color:var(--warm)">saves</span></td>
+          <td style="color:var(--text3)">816,466,362</td>
+          <td style="color:var(--text3)">300,591,146</td>
+          <td style="color:var(--text3)">File folder</td>
+          <td style="color:var(--text3)">18/02/2026</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:4px 8px">📁 <span style="color:var(--warm)">resourcepacks</span></td>
+          <td style="color:var(--text3)">201,375,299</td>
+          <td style="color:var(--text3)">189,302,075</td>
+          <td style="color:var(--text3)">File folder</td>
+          <td style="color:var(--text3)">18/02/2026</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:4px 8px">📁 <span style="color:var(--warm)">mods</span></td>
+          <td style="color:var(--text3)">257,911,437</td>
+          <td style="color:var(--text3)">244,212,341</td>
+          <td style="color:var(--text3)">File folder</td>
+          <td style="color:var(--text3)">18/02/2026</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:4px 8px">📁 <span style="color:var(--warm)">config</span></td>
+          <td style="color:var(--text3)">70,699,116</td>
+          <td style="color:var(--text3)">68,009,008</td>
+          <td style="color:var(--text3)">File folder</td>
+          <td style="color:var(--text3)">18/02/2026</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px">📄 options.txt</td>
+          <td style="color:var(--text3)">7,712</td>
+          <td style="color:var(--text3)">2,290</td>
+          <td style="color:var(--text3)">Text Document</td>
+          <td style="color:var(--text3)">17/02/2026</td>
+        </tr>
+      </table>
+    </div>
+    <div class="caption">Step 2: Inside that folder — mods, config, resourcepacks, saves, options.txt</div>
+  </div>
+
+  <div class="warn-box">
+    <span class="warn-icon">⚠️</span>
+    <p><strong>Common mistakes:</strong> Don't put files directly in the zip root (must be inside one folder). Don't include the <code>versions/</code>, <code>libraries/</code>, or <code>assets/</code> folders — McBlox downloads those automatically.</p>
+  </div>
+
+  <!-- ===== HOSTING YOUR MODPACK ===== -->
+  <h2>☁️ Hosting Your Modpack</h2>
+  <p>Upload your modpack zip to one of these supported file hosts. Then paste the share/download link into the publish form.</p>
+
+  <div class="host-grid">
+    <div class="host-card supported">
+      <div class="host-icon">📁</div>
+      <div class="host-name">Google Drive</div>
+      <div class="host-status">✓ Supported</div>
+    </div>
+    <div class="host-card supported">
+      <div class="host-icon">🔥</div>
+      <div class="host-name">MediaFire</div>
+      <div class="host-status">✓ Supported</div>
+    </div>
+    <div class="host-card supported">
+      <div class="host-icon">📦</div>
+      <div class="host-name">Dropbox</div>
+      <div class="host-status">✓ Supported</div>
+    </div>
+    <div class="host-card supported">
+      <div class="host-icon">🔗</div>
+      <div class="host-name">Direct Link</div>
+      <div class="host-status">✓ Any direct .zip URL</div>
+    </div>
+    <div class="host-card broken">
+      <div class="host-icon">🔶</div>
+      <div class="host-name">CurseForge</div>
+      <div class="host-status">⚠ Temporarily broken</div>
+    </div>
+    <div class="host-card broken">
+      <div class="host-icon">🟢</div>
+      <div class="host-name">Modrinth</div>
+      <div class="host-status">⚠ Temporarily broken</div>
+    </div>
+  </div>
+
+  <h3>Google Drive</h3>
+  <ol>
+    <li>Upload your .zip to Google Drive</li>
+    <li>Right-click → <strong>Share</strong> → set to <strong>"Anyone with the link"</strong></li>
+    <li>Copy the share link (looks like <code>https://drive.google.com/file/d/...</code>)</li>
+    <li>Paste it in the Modpack Download Link field</li>
+  </ol>
+
+  <h3>MediaFire</h3>
+  <ol>
+    <li>Upload your .zip to MediaFire</li>
+    <li>Copy the file page link (looks like <code>https://www.mediafire.com/file/...</code>)</li>
+    <li>Paste it in the Modpack Download Link field</li>
+  </ol>
+
+  <h3>Dropbox</h3>
+  <ol>
+    <li>Upload your .zip to Dropbox</li>
+    <li>Click <strong>Share</strong> → <strong>Copy link</strong></li>
+    <li>The link will look like <code>https://www.dropbox.com/scl/fi/.../...?dl=0</code></li>
+    <li>Paste it as-is — McBlox converts it to a direct download automatically</li>
+  </ol>
+
+  <div class="warn-box">
+    <span class="warn-icon">⚠️</span>
+    <p><strong>CurseForge &amp; Modrinth:</strong> Download resolution for these platforms is temporarily broken due to API changes. Please use Google Drive, MediaFire, or Dropbox instead. We're working on fixing it.</p>
+  </div>
+
+  <!-- ===== STEP-BY-STEP PUBLISHING ===== -->
+  <h2>🚀 How to Publish</h2>
+
+  <div class="step">
+    <span class="step-num">1</span>
+    <div>
+      <p><strong>Create your modpack zip</strong> following the structure above. Include your mods, configs, resource packs, and optionally saves/options.txt.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-num">2</span>
+    <div>
+      <p><strong>Upload it</strong> to Google Drive, MediaFire, or Dropbox. Make sure the link is publicly accessible.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-num">3</span>
+    <div>
+      <p><strong>Sign in</strong> to McBlox on the website and go to the <a href="publish.html">Publish</a> page.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-num">4</span>
+    <div>
+      <p><strong>Fill out the form:</strong></p>
+      <ul>
+        <li><strong>Title &amp; Description</strong> — name your game and describe it</li>
+        <li><strong>Tags</strong> — select up to 5 tags (RPG, PvP, Adventure, etc.)</li>
+        <li><strong>Modpack URL</strong> — paste your upload link</li>
+        <li><strong>Minecraft Version</strong> — the MC version your mods target</li>
+        <li><strong>Mod Loader &amp; Version</strong> — Fabric, Forge, or NeoForge + specific version</li>
+        <li><strong>Game Type</strong> — Server (multiplayer) or World (singleplayer)</li>
+        <li><strong>Server Address</strong> (if server type) — your server IP</li>
+        <li><strong>Thumbnail</strong> — 16:9 image, drag to position</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-num">5</span>
+    <div>
+      <p><strong>Submit for review.</strong> Your game will be reviewed by the McBlox team and approved within 24 hours.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-num">6</span>
+    <div>
+      <p><strong>That's it!</strong> Once approved, your game appears in the launcher for everyone to play. Track plays and ratings from your <a href="dashboard.html">Dashboard</a>.</p>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <span class="info-icon">💡</span>
+    <p><strong>Tip:</strong> Enable <strong>Auto-Join</strong> for server games — it will automatically connect players to your server when they launch, and replace the Disconnect button with an Exit button. The McBlox mod is injected into the modpack automatically.</p>
+  </div>
+
+  <!-- ===== FAQ ===== -->
+  <h2>❓ FAQ</h2>
+
+  <h3>What mod loaders are supported?</h3>
+  <p>Fabric, Forge, and NeoForge. McBlox downloads and installs the loader automatically — you just need to include the mods that match it.</p>
+
+  <h3>Can I update my modpack after publishing?</h3>
+  <p>Yes! Go to your <a href="dashboard.html">Dashboard</a>, click Edit on your game, and update the modpack URL. Players will re-download the modpack on their next launch (clear cache from launcher settings if needed).</p>
+
+  <h3>How big can my modpack be?</h3>
+  <p>There's no hard limit from McBlox — it depends on your file host. Google Drive has a 5 TB limit, MediaFire 10 GB free, Dropbox 2 GB free. Most modpacks are 200MB-1GB.</p>
+
+  <h3>Do I need to include Java?</h3>
+  <p>No. McBlox downloads and manages Java automatically for each Minecraft version.</p>
+
+  <h3>Can I include world saves?</h3>
+  <p>Yes! Put them in a <code>saves/</code> folder inside your modpack. Great for adventure maps and singleplayer games. Set game type to "World" and enter the world folder name.</p>
+</main>
+
+<footer>&copy; 2026 McBlox</footer>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publishing Guide — McBlox</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="toast.js"></script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <a class="logo" href="index.html">
+    <img src="mcbloxlogo2.png" alt="McBlox">
+  </a>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="games.html">Games</a>
+    <a href="guide.html" class="active">Guide</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="https://discord.gg/utRqFy3ptE" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:4px;">
+      <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      Discord
+    </a>
+  </nav>
+  <div class="right">
+    <div style="position:relative;display:flex;align-items:center;gap:8px;" id="auth-wrap">
+      <a class="btn btn-sm btn-warm" id="publish-nav-btn" href="publish.html">+ Publish</a>
+      <button class="btn btn-sm btn-ghost" id="auth-btn" onclick="showAuthModal()">Sign In</button>
+      <div class="avatar" id="nav-avatar" style="display:none;"></div>
+      <div class="user-dropdown" id="user-dropdown"></div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="guide-content">
     <h1>Publishing Guide</h1>
-    <p class="subtitle">How to create and publish your Minecraft game on McBlox</p>
+    <p class="guide-subtitle">How to create and publish your Minecraft game on McBlox</p>
 
-    <!-- ===== MODPACK STRUCTURE ===== -->
+    <!-- MODPACK STRUCTURE -->
     <h2>📦 Modpack Structure</h2>
     <p>Your modpack must be a <code>.zip</code> file with a specific structure. Inside the zip, there should be <strong>one folder</strong> (name doesn't matter) containing your instance files:</p>
 
     <div class="file-tree">
       <span class="folder">📁 yourmodpack.zip</span><br>
       &nbsp;&nbsp;└── <span class="folder">📁 yourmodpack/</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder highlight">📁 mods/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">← your mod JARs</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 config/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">← mod configs</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 resourcepacks/</span> <span class="file">← optional resource packs</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 shaderpacks/</span> &nbsp;&nbsp;<span class="file">← optional shaders</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 saves/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">← world saves (for world-type games)</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">options.txt</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">← optional MC settings</span>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder highlight">📁 mods/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dim">← your mod JARs</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 config/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dim">← mod configs</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 resourcepacks/</span> <span class="dim">← optional resource packs</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 shaderpacks/</span> &nbsp;&nbsp;<span class="dim">← optional shaders</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="folder">📁 saves/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dim">← world saves (for world-type games)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="dim">options.txt</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dim">← optional MC settings</span>
     </div>
 
     <div class="info-box">
-      <span class="info-icon">ℹ️</span>
+      <span>ℹ️</span>
       <p>Think of it like zipping up your <code>.minecraft</code> folder contents — just the mods, config, saves, etc. Don't include the Minecraft JAR, libraries, or Java. McBlox handles all of that automatically.</p>
     </div>
 
     <p>Here's what it looks like in practice:</p>
-    <div class="img-box">
-      <div style="padding:12px 16px;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.8">
-        <div style="color:#ffd740;font-weight:bold;margin-bottom:4px">📁 rainmire.zip</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px;color:var(--text)">
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:4px 8px">📁 ..</td>
-            <td></td><td></td><td style="color:var(--text-dim)">File folder</td><td></td>
-          </tr>
-          <tr>
-            <td style="padding:4px 8px">📁 <span style="color:var(--accent)">rainmire</span></td>
-            <td style="color:var(--text-dim)">1,346,459,926</td>
-            <td style="color:var(--text-dim)">802,116,860</td>
-            <td style="color:var(--text-dim)">File folder</td>
-            <td style="color:var(--text-dim)">18/02/2026</td>
-          </tr>
-        </table>
+    <div class="example-box">
+      <div class="example-inner">
+        <div style="color:var(--warm);font-weight:bold;margin-bottom:8px">📁 rainmire.zip</div>
+        <div class="dim">└── 📁 <span style="color:var(--warm)">rainmire</span> — contains mods/, config/, resourcepacks/, saves/, options.txt</div>
       </div>
-      <div class="caption">Step 1: Your .zip contains one folder</div>
-    </div>
-    <div class="img-box">
-      <div style="padding:12px 16px;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.8">
-        <div style="color:#ffd740;font-weight:bold;margin-bottom:4px">📁 rainmire.zip\rainmire</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px;color:var(--text)">
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:4px 8px">📁 ..</td>
-            <td></td><td></td><td style="color:var(--text-dim)">File folder</td><td></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:4px 8px">📁 <span style="color:var(--accent)">saves</span></td>
-            <td style="color:var(--text-dim)">816,466,362</td>
-            <td style="color:var(--text-dim)">300,591,146</td>
-            <td style="color:var(--text-dim)">File folder</td>
-            <td style="color:var(--text-dim)">18/02/2026</td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:4px 8px">📁 <span style="color:var(--accent)">resourcepacks</span></td>
-            <td style="color:var(--text-dim)">201,375,299</td>
-            <td style="color:var(--text-dim)">189,302,075</td>
-            <td style="color:var(--text-dim)">File folder</td>
-            <td style="color:var(--text-dim)">18/02/2026</td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:4px 8px">📁 <span style="color:var(--accent)">mods</span></td>
-            <td style="color:var(--text-dim)">257,911,437</td>
-            <td style="color:var(--text-dim)">244,212,341</td>
-            <td style="color:var(--text-dim)">File folder</td>
-            <td style="color:var(--text-dim)">18/02/2026</td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:4px 8px">📁 <span style="color:var(--accent)">config</span></td>
-            <td style="color:var(--text-dim)">70,699,116</td>
-            <td style="color:var(--text-dim)">68,009,008</td>
-            <td style="color:var(--text-dim)">File folder</td>
-            <td style="color:var(--text-dim)">18/02/2026</td>
-          </tr>
-          <tr>
-            <td style="padding:4px 8px">📄 options.txt</td>
-            <td style="color:var(--text-dim)">7,712</td>
-            <td style="color:var(--text-dim)">2,290</td>
-            <td style="color:var(--text-dim)">Text Document</td>
-            <td style="color:var(--text-dim)">17/02/2026</td>
-          </tr>
-        </table>
-      </div>
-      <div class="caption">Step 2: Inside that folder — mods, config, resourcepacks, saves, options.txt</div>
+      <div class="example-caption">Your .zip contains one folder with all the instance files</div>
     </div>
 
     <div class="warn-box">
-      <span class="warn-icon">⚠️</span>
+      <span>⚠️</span>
       <p><strong>Common mistakes:</strong> Don't put files directly in the zip root (must be inside one folder). Don't include the <code>versions/</code>, <code>libraries/</code>, or <code>assets/</code> folders — McBlox downloads those automatically.</p>
     </div>
 
-    <!-- ===== HOSTING YOUR MODPACK ===== -->
+    <!-- HOSTING -->
     <h2>☁️ Hosting Your Modpack</h2>
     <p>Upload your modpack zip to one of these supported file hosts. Then paste the share/download link into the publish form.</p>
 
@@ -199,32 +434,32 @@
       <div class="host-card supported">
         <div class="host-icon">📁</div>
         <div class="host-name">Google Drive</div>
-        <div class="host-status">✓ Supported</div>
+        <div class="host-status good">✓ Supported</div>
       </div>
       <div class="host-card supported">
         <div class="host-icon">🔥</div>
         <div class="host-name">MediaFire</div>
-        <div class="host-status">✓ Supported</div>
+        <div class="host-status good">✓ Supported</div>
       </div>
       <div class="host-card supported">
         <div class="host-icon">📦</div>
         <div class="host-name">Dropbox</div>
-        <div class="host-status">✓ Supported</div>
+        <div class="host-status good">✓ Supported</div>
       </div>
       <div class="host-card supported">
         <div class="host-icon">🔗</div>
         <div class="host-name">Direct Link</div>
-        <div class="host-status">✓ Any direct .zip URL</div>
+        <div class="host-status good">✓ Any direct .zip URL</div>
       </div>
       <div class="host-card broken">
         <div class="host-icon">🔶</div>
         <div class="host-name">CurseForge</div>
-        <div class="host-status">⚠ Temporarily broken</div>
+        <div class="host-status bad">⚠ Temporarily broken</div>
       </div>
       <div class="host-card broken">
         <div class="host-icon">🟢</div>
         <div class="host-name">Modrinth</div>
-        <div class="host-status">⚠ Temporarily broken</div>
+        <div class="host-status bad">⚠ Temporarily broken</div>
       </div>
     </div>
 
@@ -247,83 +482,49 @@
     <ol>
       <li>Upload your .zip to Dropbox</li>
       <li>Click <strong>Share</strong> → <strong>Copy link</strong></li>
-      <li>The link will look like <code>https://www.dropbox.com/scl/fi/.../...?dl=0</code></li>
       <li>Paste it as-is — McBlox converts it to a direct download automatically</li>
     </ol>
 
     <div class="warn-box">
-      <span class="warn-icon">⚠️</span>
-      <p><strong>CurseForge &amp; Modrinth:</strong> Download resolution for these platforms is temporarily broken due to API changes. Please use Google Drive, MediaFire, or Dropbox instead. We're working on fixing it.</p>
+      <span>⚠️</span>
+      <p><strong>CurseForge &amp; Modrinth:</strong> Download resolution for these platforms is temporarily broken due to API changes. Please use Google Drive, MediaFire, or Dropbox instead.</p>
     </div>
 
-    <!-- ===== STEP-BY-STEP PUBLISHING ===== -->
+    <!-- HOW TO PUBLISH -->
     <h2>🚀 How to Publish</h2>
 
-    <div class="step">
-      <span class="step-num">1</span>
-      <div>
-        <p><strong>Create your modpack zip</strong> following the structure above. Include your mods, configs, resource packs, and optionally saves/options.txt.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <span class="step-num">2</span>
-      <div>
-        <p><strong>Upload it</strong> to Google Drive, MediaFire, or Dropbox. Make sure the link is publicly accessible.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <span class="step-num">3</span>
-      <div>
-        <p><strong>Sign in</strong> to McBlox on the website and go to the <a href="publish.html" style="color: var(--accent)">Publish</a> page.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <span class="step-num">4</span>
-      <div>
-        <p><strong>Fill out the form:</strong></p>
-        <ul>
-          <li><strong>Title &amp; Description</strong> — name your game and describe it</li>
-          <li><strong>Tags</strong> — select up to 5 tags (RPG, PvP, Adventure, etc.)</li>
-          <li><strong>Modpack URL</strong> — paste your upload link</li>
-          <li><strong>Minecraft Version</strong> — the MC version your mods target</li>
-          <li><strong>Mod Loader &amp; Version</strong> — Fabric, Forge, or NeoForge + specific version</li>
-          <li><strong>Game Type</strong> — Server (multiplayer) or World (singleplayer)</li>
-          <li><strong>Server Address</strong> (if server type) — your server IP</li>
-          <li><strong>Thumbnail</strong> — 16:9 image, drag to position</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="step">
-      <span class="step-num">5</span>
-      <div>
-        <p><strong>Submit for review.</strong> Your game will be reviewed by the McBlox team and approved within 24 hours.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <span class="step-num">6</span>
-      <div>
-        <p><strong>That's it!</strong> Once approved, your game appears in the launcher for everyone to play. Track plays and ratings from your <a href="dashboard.html" style="color: var(--accent)">Dashboard</a>.</p>
-      </div>
-    </div>
+    <div class="step"><span class="step-num">1</span><div><p><strong>Create your modpack zip</strong> following the structure above. Include your mods, configs, resource packs, and optionally saves/options.txt.</p></div></div>
+    <div class="step"><span class="step-num">2</span><div><p><strong>Upload it</strong> to Google Drive, MediaFire, or Dropbox. Make sure the link is publicly accessible.</p></div></div>
+    <div class="step"><span class="step-num">3</span><div><p><strong>Sign in</strong> to McBlox on the website and go to the <a href="publish.html">Publish</a> page.</p></div></div>
+    <div class="step"><span class="step-num">4</span><div>
+      <p><strong>Fill out the form:</strong></p>
+      <ul>
+        <li><strong>Title &amp; Description</strong> — name your game and describe it</li>
+        <li><strong>Tags</strong> — select up to 5 tags (RPG, PvP, Adventure, etc.)</li>
+        <li><strong>Modpack URL</strong> — paste your upload link</li>
+        <li><strong>Minecraft Version</strong> — the MC version your mods target</li>
+        <li><strong>Mod Loader &amp; Version</strong> — Fabric, Forge, or NeoForge + specific version</li>
+        <li><strong>Game Type</strong> — Server (multiplayer) or World (singleplayer)</li>
+        <li><strong>Server Address</strong> (if server type) — your server IP</li>
+        <li><strong>Thumbnail</strong> — 16:9 image, drag to position</li>
+      </ul>
+    </div></div>
+    <div class="step"><span class="step-num">5</span><div><p><strong>Submit for review.</strong> Your game will be reviewed by the McBlox team and approved within 24 hours.</p></div></div>
+    <div class="step"><span class="step-num">6</span><div><p><strong>That's it!</strong> Once approved, your game appears in the launcher for everyone to play. Track plays and ratings from your <a href="dashboard.html">Dashboard</a>.</p></div></div>
 
     <div class="info-box">
-      <span class="info-icon">💡</span>
-      <p><strong>Tip:</strong> Enable <strong>Auto-Join</strong> for server games — it will automatically connect players to your server when they launch, and replace the Disconnect button with an Exit button. The McBlox mod is injected into the modpack automatically.</p>
+      <span>💡</span>
+      <p><strong>Tip:</strong> Enable <strong>Auto-Join</strong> for server games — it will automatically connect players to your server when they launch, and replace the Disconnect button with an Exit button.</p>
     </div>
 
-    <!-- ===== FAQ ===== -->
+    <!-- FAQ -->
     <h2>❓ FAQ</h2>
 
     <h3>What mod loaders are supported?</h3>
     <p>Fabric, Forge, and NeoForge. McBlox downloads and installs the loader automatically — you just need to include the mods that match it.</p>
 
     <h3>Can I update my modpack after publishing?</h3>
-    <p>Yes! Go to your <a href="dashboard.html" style="color: var(--accent)">Dashboard</a>, click Edit on your game, and update the modpack URL. Players will re-download the modpack on their next launch (clear cache from launcher settings if needed).</p>
+    <p>Yes! Go to your <a href="dashboard.html">Dashboard</a>, click Edit on your game, and update the modpack URL. Players will re-download the modpack on their next launch.</p>
 
     <h3>How big can my modpack be?</h3>
     <p>There's no hard limit from McBlox — it depends on your file host. Google Drive has a 5 TB limit, MediaFire 10 GB free, Dropbox 2 GB free. Most modpacks are 200MB-1GB.</p>
@@ -333,23 +534,9 @@
 
     <h3>Can I include world saves?</h3>
     <p>Yes! Put them in a <code>saves/</code> folder inside your modpack. Great for adventure maps and singleplayer games. Set game type to "World" and enter the world folder name.</p>
-  </main>
+  </div>
+</div>
 
-  <footer>
-    <p>&copy; 2026 McBlox</p>
-  </footer>
-
-  <script>
-    // Auth button
-    if (window.SB) {
-      window.SB.auth.onAuthStateChange((_, session) => {
-        document.getElementById('auth-btn').textContent = session ? 'My Profile' : 'Sign In';
-        document.getElementById('auth-btn').onclick = () => {
-          if (session) window.location.href = 'profile.html';
-          else window.SB.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.href } });
-        };
-      });
-    }
-  </script>
+<footer>&copy; 2026 McBlox</footer>
 </body>
 </html>

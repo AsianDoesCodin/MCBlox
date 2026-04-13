@@ -146,7 +146,7 @@ function buildReviewSummary() {
   html += row('Title', title, !title);
   html += row('Description', desc.length > 100 ? desc.slice(0, 100) + '...' : desc, !desc);
   html += row('Tags', tags.length ? tags.join(', ') : '', !tags.length);
-  html += row('Modpack URL', `<a href="${url}" target="_blank" style="color:var(--warm);word-break:break-all">${url.length > 50 ? url.slice(0, 50) + '...' : url}</a>`, !url);
+  html += row('Modpack URL', `<a href="${url}" target="_blank" style="color:var(--accent);word-break:break-all">${url.length > 50 ? url.slice(0, 50) + '...' : url}</a>`, !url);
   html += row('MC Version', mc, !mc);
   html += row('Mod Loader', loader, !loader);
   html += row('Loader Version', loaderVer, !loaderVer);
@@ -355,6 +355,9 @@ const worldField = document.getElementById('world-field');
 const autoJoinRow = document.getElementById('auto-join-row');
 
 // Check if we have an auto-join mod for this MC version + loader combo
+// Forge/NeoForge: 1.7.10+ (covered by 4 JARs: 1.12, 1.16, 1.18, 1.20)
+// Fabric: 1.20+ (two JARs: 1.20 and 1.21)
+// Quilt: not supported yet
 function isAutoJoinSupported(mc, loader) {
   if (!mc || !loader) return false;
   const parts = mc.split('.').map(Number);

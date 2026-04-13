@@ -6,6 +6,9 @@ const notFoundEl = document.getElementById('game-not-found');
 const detailEl = document.getElementById('game-detail');
 
 let gameData = null;
+let currentVote = null;
+let lbImages = [];
+let lbIndex = 0;
 
 function escapeHtml(str) {
   const d = document.createElement('div');
@@ -27,40 +30,25 @@ function timeAgo(dateStr) {
   return `${Math.floor(months / 12)}y ago`;
 }
 
-// --- Fetch and render game ---
+// --- Load game ---
 async function loadGame() {
-  if (!gameId) {
-    showNotFound();
-    return;
-  }
+  if (!gameId) { showNotFound(); return; }
 
   const sb = getSupabase();
   if (!sb) { showNotFound(); return; }
 
   try {
-    const { data, error } = await sb
-      .from('games')
-      .select('*, profiles:creator_id(username, avatar_url)')
-      .eq('id', gameId)
-      .single();
+    const { data: game, error } = await sb.from('games').select('*, profiles:creator_id(username, avatar_url, id)').eq('id', gameId).single();
+    if (error || !game || game.status !== 'approved') { showNotFound(); return; }
 
-    if (error || !data || data.status !== 'approved') {
-      showNotFound();
-      return;
-    }
-
-    gameData = data;
+    gameData = game;
 
     // Active players
     const twoMinAgo = new Date(Date.now() - 120000).toISOString();
-    const { data: activity } = await sb
-      .from('player_activity')
-      .select('id')
-      .eq('game_id', gameId)
-      .gte('last_heartbeat', twoMinAgo);
+    const { data: activity } = await sb.from('player_activity').select('id').eq('game_id', gameId).gte('last_heartbeat', twoMinAgo);
     const playerCount = activity ? activity.length : 0;
 
-    renderGame(data, playerCount);
+    renderGame(game, playerCount);
     loadComments();
   } catch (e) {
     console.error('Failed to load game:', e);
@@ -80,341 +68,238 @@ function renderGame(game, playerCount) {
   document.title = `${game.title} — McBlox`;
 
   // Banner
-  const bannerImg = document.getElementById('banner-img');
-  if (game.thumbnail_url) {
-    bannerImg.src = game.thumbnail_url;
-    bannerImg.alt = game.title;
-  } else {
-    document.getElementById('game-banner').style.display = 'none';
-  }
+  const banner = document.getElementById('game-banner');
+  if (game.banner_url) banner.innerHTML = `<img src="${encodeURI(game.banner_url)}" alt="">`;
+  else if (game.thumbnail_url) banner.innerHTML = `<img src="${encodeURI(game.thumbnail_url)}" alt="">`;
+  else banner.innerHTML = '<span class="placeholder">⛏</span>';
 
-  // Title
   document.getElementById('game-title').textContent = game.title;
+  document.getElementById('game-description').textContent = game.description || '';
 
   // Creator
-  const profile = game.profiles;
+  const creatorName = game.profiles?.username || 'Unknown';
+  document.getElementById('creator-name').textContent = creatorName;
+  document.getElementById('creator-name').href = `profile.html?id=${game.creator_id}`;
+  document.getElementById('game-date').textContent = game.created_at ? 'Published ' + new Date(game.created_at).toLocaleDateString() : '';
+
+  // Creator avatar
   const avatarEl = document.getElementById('creator-avatar');
-  const nameEl = document.getElementById('creator-name');
-  if (profile?.avatar_url) {
-    avatarEl.src = profile.avatar_url;
-  } else {
-    avatarEl.style.display = 'none';
+  if (game.profiles?.avatar_url) {
+    avatarEl.innerHTML = `<img src="${encodeURI(game.profiles.avatar_url)}" alt="">`;
   }
-  nameEl.textContent = profile?.username || 'Unknown';
-  nameEl.href = `profile.html?id=${game.creator_id}`;
-
-  document.getElementById('game-date').textContent =
-    'Published ' + new Date(game.created_at).toLocaleDateString();
-
-  // Description
-  document.getElementById('game-description').textContent = game.description || '';
 
   // Tags
   const tagsEl = document.getElementById('game-tags');
-  (game.tags || []).forEach(t => {
-    const span = document.createElement('span');
-    span.className = 'tag';
-    span.textContent = t;
-    tagsEl.appendChild(span);
-  });
+  tagsEl.innerHTML = (game.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
 
   // Screenshots
   const screenshots = game.screenshots || [];
   if (screenshots.length > 0) {
-    const section = document.getElementById('screenshots-section');
-    section.style.display = '';
-    const gallery = document.getElementById('screenshot-gallery');
-    screenshots.forEach((url, i) => {
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = `Screenshot ${i + 1}`;
-      img.addEventListener('click', () => openLightbox(i));
-      gallery.appendChild(img);
-    });
-    setupLightbox(screenshots);
+    document.getElementById('screenshots-section').style.display = '';
+    lbImages = screenshots;
+    document.getElementById('screenshot-gallery').innerHTML = screenshots.map((url, i) =>
+      `<img src="${encodeURI(url)}" alt="Screenshot" onclick="openLightbox(${i})">`
+    ).join('');
   }
 
   // Sidebar stats
   const likes = game.thumbs_up || 0;
   const dislikes = game.thumbs_down || 0;
   const total = likes + dislikes;
-  const pct = total > 0 ? Math.round((likes / total) * 100) : 100;
+  const pct = total > 0 ? Math.round((likes / total) * 100) : 0;
 
   document.getElementById('rating-up').textContent = `👍 ${likes}`;
   document.getElementById('rating-down').textContent = `👎 ${dislikes}`;
-  document.getElementById('rating-pct-fill').style.width = `${pct}%`;
-
+  document.getElementById('rating-pct-fill').style.width = total > 0 ? `${pct}%` : '0%';
   document.getElementById('stat-players').textContent = `${playerCount} active`;
   document.getElementById('stat-plays').textContent = (game.total_plays || 0).toLocaleString();
-  document.getElementById('stat-type').textContent =
-    game.game_type === 'server' ? 'Multiplayer' : 'Singleplayer';
+  document.getElementById('stat-type').textContent = game.game_type === 'server' ? 'Multiplayer' : 'Singleplayer';
   document.getElementById('stat-mc').textContent = game.mc_version || '—';
-  document.getElementById('stat-loader').textContent =
-    (game.mod_loader || '—') + (game.loader_version ? ` ${game.loader_version}` : '');
+  document.getElementById('stat-loader').textContent = game.loader || '—';
 
-  // Vote buttons
-  setupVoting(game);
-}
+  // Voting
+  loadVoteState(game.id);
 
-// --- Lightbox ---
-let lightboxIdx = 0;
-let lightboxUrls = [];
-
-function setupLightbox(urls) {
-  lightboxUrls = urls;
-  const lightbox = document.getElementById('lightbox');
-  const backdrop = lightbox.querySelector('.lightbox-backdrop');
-  const closeBtn = lightbox.querySelector('.lightbox-close');
-  const prevBtn = lightbox.querySelector('.lightbox-prev');
-  const nextBtn = lightbox.querySelector('.lightbox-next');
-
-  backdrop.addEventListener('click', closeLightbox);
-  closeBtn.addEventListener('click', closeLightbox);
-  prevBtn.addEventListener('click', () => {
-    lightboxIdx = (lightboxIdx - 1 + lightboxUrls.length) % lightboxUrls.length;
-    updateLightbox();
-  });
-  nextBtn.addEventListener('click', () => {
-    lightboxIdx = (lightboxIdx + 1) % lightboxUrls.length;
-    updateLightbox();
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (lightbox.style.display === 'none') return;
-    if (e.key === 'Escape') closeLightbox();
-    if (e.key === 'ArrowLeft') prevBtn.click();
-    if (e.key === 'ArrowRight') nextBtn.click();
-  });
-}
-
-function openLightbox(idx) {
-  lightboxIdx = idx;
-  document.getElementById('lightbox').style.display = '';
-  updateLightbox();
-}
-
-function closeLightbox() {
-  document.getElementById('lightbox').style.display = 'none';
-}
-
-function updateLightbox() {
-  document.getElementById('lightbox-img').src = lightboxUrls[lightboxIdx];
+  // Vote button handlers
+  document.getElementById('vote-up-btn').onclick = () => vote('up');
+  document.getElementById('vote-down-btn').onclick = () => vote('down');
 }
 
 // --- Voting ---
-function setupVoting(game) {
+async function loadVoteState(gid) {
   const upBtn = document.getElementById('vote-up-btn');
   const downBtn = document.getElementById('vote-down-btn');
-
-  // Check if user already voted (stored in localStorage)
-  const voteKey = `vote_${game.id}`;
-  const existingVote = localStorage.getItem(voteKey);
-  if (existingVote) {
-    if (existingVote === 'up') upBtn.classList.add('voted');
-    else downBtn.classList.add('voted');
-  }
-
-  upBtn.addEventListener('click', async () => {
-    await submitVote(game.id, 'up', voteKey, upBtn, downBtn);
-  });
-  downBtn.addEventListener('click', async () => {
-    await submitVote(game.id, 'down', voteKey, upBtn, downBtn);
-  });
-}
-
-async function submitVote(id, direction, voteKey, upBtn, downBtn) {
-  const user = getUser();
-  if (!user) { showToast('Sign in to vote.', 'warning'); return; }
-
-  if (localStorage.getItem(voteKey)) {
-    showToast('You already voted on this game.', 'warning');
-    return;
-  }
-
-  const sb = getSupabase();
-  if (!sb) return;
-
-  const col = direction === 'up' ? 'thumbs_up' : 'thumbs_down';
-  const current = direction === 'up' ? (gameData.thumbs_up || 0) : (gameData.thumbs_down || 0);
-
-  const { error } = await sb
-    .from('games')
-    .update({ [col]: current + 1 })
-    .eq('id', id);
-
-  if (error) {
-    showToast('Failed to vote.', 'error');
-    return;
-  }
-
-  localStorage.setItem(voteKey, direction);
-  if (direction === 'up') {
-    gameData.thumbs_up = (gameData.thumbs_up || 0) + 1;
-    upBtn.classList.add('voted');
-    document.getElementById('rating-up').textContent = `👍 ${gameData.thumbs_up}`;
-  } else {
-    gameData.thumbs_down = (gameData.thumbs_down || 0) + 1;
-    downBtn.classList.add('voted');
-    document.getElementById('rating-down').textContent = `👎 ${gameData.thumbs_down}`;
-  }
-
-  // Update bar
-  const total = (gameData.thumbs_up || 0) + (gameData.thumbs_down || 0);
-  const pct = total > 0 ? Math.round(((gameData.thumbs_up || 0) / total) * 100) : 100;
-  document.getElementById('rating-pct-fill').style.width = `${pct}%`;
-
-  showToast('Vote recorded!', 'success');
-}
-
-// --- Comments ---
-const commentInput = document.getElementById('comment-input');
-const commentCharCount = document.getElementById('comment-char-count');
-const commentSubmitBtn = document.getElementById('comment-submit');
-const commentForm = document.getElementById('comment-form');
-const commentSignin = document.getElementById('comment-signin');
-const commentsList = document.getElementById('comments-list');
-const commentsEmpty = document.getElementById('comments-empty');
-
-// Show/hide comment form based on auth
-onAuthChange((session) => {
-  if (session) {
-    commentForm.style.display = '';
-    commentSignin.style.display = 'none';
-  } else {
-    commentForm.style.display = 'none';
-    commentSignin.style.display = '';
-  }
-});
-
-commentInput.addEventListener('input', () => {
-  commentCharCount.textContent = `${commentInput.value.length} / 1000`;
-});
-
-commentSubmitBtn.addEventListener('click', async () => {
-  const content = commentInput.value.trim();
-  if (!content) { showToast('Comment cannot be empty.', 'warning'); return; }
+  currentVote = null;
+  upBtn.classList.remove('vote-active');
+  downBtn.classList.remove('vote-active');
 
   const user = getUser();
-  if (!user) { showToast('Sign in to comment.', 'warning'); return; }
+  const sb = getSupabase();
+  if (user && sb) {
+    const { data } = await sb.from('game_ratings').select('vote').eq('game_id', gid).eq('user_id', user.id).maybeSingle();
+    if (data) {
+      currentVote = data.vote;
+      if (data.vote === 'up') upBtn.classList.add('vote-active');
+      else downBtn.classList.add('vote-active');
+    }
+  }
+}
+
+async function vote(dir) {
+  const user = getUser();
+  if (!user) { showAuthModal(); return; }
 
   const sb = getSupabase();
-  if (!sb) return;
-
-  commentSubmitBtn.disabled = true;
-  commentSubmitBtn.textContent = 'Posting...';
+  if (!sb || !gameData) return;
 
   try {
-    const { error } = await sb.from('comments').insert({
-      game_id: gameId,
-      user_id: user.id,
-      content: content
-    });
-    if (error) throw error;
+    if (currentVote === dir) {
+      await sb.from('game_ratings').delete().eq('game_id', gameData.id).eq('user_id', user.id);
+      currentVote = null;
+    } else {
+      await sb.from('game_ratings').upsert({ game_id: gameData.id, user_id: user.id, vote: dir }, { onConflict: 'game_id,user_id' });
+      currentVote = dir;
+    }
 
-    commentInput.value = '';
-    commentCharCount.textContent = '0 / 1000';
-    showToast('Comment posted!', 'success');
-    loadComments();
-  } catch (e) {
-    showToast('Failed to post comment: ' + (e.message || 'Unknown error'), 'error');
-  } finally {
-    commentSubmitBtn.disabled = false;
-    commentSubmitBtn.textContent = 'Comment';
+    // Refresh counts
+    const { data: counts } = await sb.from('game_ratings').select('vote').eq('game_id', gameData.id);
+    const ups = (counts || []).filter(r => r.vote === 'up').length;
+    const downs = (counts || []).filter(r => r.vote === 'down').length;
+    const total = ups + downs;
+    const pct = total > 0 ? Math.round((ups / total) * 100) : 0;
+    document.getElementById('rating-up').textContent = `👍 ${ups}`;
+    document.getElementById('rating-down').textContent = `👎 ${downs}`;
+    document.getElementById('rating-pct-fill').style.width = `${pct}%`;
+    document.getElementById('vote-up-btn').classList.toggle('vote-active', currentVote === 'up');
+    document.getElementById('vote-down-btn').classList.toggle('vote-active', currentVote === 'down');
+  } catch (err) {
+    showToast('Failed to vote: ' + err.message, 'error');
+  }
+}
+
+// --- Lightbox ---
+function openLightbox(idx) {
+  lbIndex = idx;
+  document.getElementById('lb-img').src = lbImages[idx];
+  document.getElementById('lightbox').style.display = 'flex';
+}
+function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+function lbNav(dir) {
+  lbIndex = (lbIndex + dir + lbImages.length) % lbImages.length;
+  document.getElementById('lb-img').src = lbImages[lbIndex];
+}
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('lightbox').style.display === 'flex') {
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') lbNav(-1);
+    if (e.key === 'ArrowRight') lbNav(1);
   }
 });
+
+// --- Comments ---
+function setupCommentForm() {
+  const formWrap = document.getElementById('comment-form-wrap');
+  const user = getUser();
+  if (user) {
+    formWrap.innerHTML = `
+      <div class="comment-form">
+        <textarea id="comment-input" placeholder="Leave a comment..." maxlength="1000" rows="3"></textarea>
+        <div class="comment-form-actions">
+          <span class="comment-char-count" id="comment-char-count">0 / 1000</span>
+          <button class="btn btn-sm btn-warm" id="comment-submit">Comment</button>
+        </div>
+      </div>`;
+    document.getElementById('comment-input').addEventListener('input', (e) => {
+      document.getElementById('comment-char-count').textContent = `${e.target.value.length} / 1000`;
+    });
+    document.getElementById('comment-submit').addEventListener('click', submitComment);
+  } else {
+    formWrap.innerHTML = `<div class="comment-signin">Sign in to leave a comment.</div>`;
+  }
+}
+
+async function submitComment() {
+  const user = getUser();
+  if (!user) return;
+  const sb = getSupabase();
+  if (!sb) return;
+  const input = document.getElementById('comment-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('comment-submit');
+  btn.disabled = true;
+  btn.textContent = 'Posting...';
+
+  try {
+    const { error } = await sb.from('comments').insert({ game_id: gameId, user_id: user.id, content: text });
+    if (error) throw error;
+    input.value = '';
+    document.getElementById('comment-char-count').textContent = '0 / 1000';
+    showToast('Comment posted!', 'success');
+    await loadComments();
+  } catch (err) {
+    showToast('Failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Comment';
+  }
+}
 
 async function loadComments() {
   const sb = getSupabase();
   if (!sb) return;
 
-  try {
-    const { data, error } = await sb
-      .from('comments')
-      .select('*')
-      .eq('game_id', gameId)
-      .order('created_at', { ascending: false });
+  setupCommentForm();
 
-    if (error) throw error;
+  const list = document.getElementById('comments-list');
+  const emptyMsg = document.getElementById('comments-empty');
 
-    // Fetch profiles for comment authors
-    const userIds = [...new Set((data || []).map(c => c.user_id))];
-    let profilesMap = {};
-    if (userIds.length > 0) {
-      const { data: profiles } = await sb
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .in('id', userIds);
-      if (profiles) {
-        profiles.forEach(p => { profilesMap[p.id] = p; });
-      }
-    }
+  const { data: comments } = await sb.from('comments').select('*, profiles:user_id(username, avatar_url)').eq('game_id', gameId).order('created_at', { ascending: false });
 
-    const enriched = (data || []).map(c => ({
-      ...c,
-      profiles: profilesMap[c.user_id] || null
-    }));
-
-    renderComments(enriched);
-  } catch (e) {
-    console.error('Failed to load comments:', e);
-  }
-}
-
-function renderComments(comments) {
-  commentsList.innerHTML = '';
-
-  if (comments.length === 0) {
-    commentsList.innerHTML = '<p class="comments-empty">No comments yet. Be the first!</p>';
+  list.innerHTML = '';
+  if (!comments || comments.length === 0) {
+    emptyMsg.style.display = '';
+    list.appendChild(emptyMsg);
     return;
   }
 
   const currentUser = getUser();
 
   comments.forEach(c => {
-    const item = document.createElement('div');
-    item.className = 'comment-item';
-
-    const avatarHtml = c.profiles?.avatar_url
-      ? `<img class="comment-avatar" src="${escapeHtml(c.profiles.avatar_url)}" alt="">`
-      : `<div class="comment-avatar"></div>`;
-
+    const div = document.createElement('div');
+    div.className = 'comment';
     const isOwn = currentUser && currentUser.id === c.user_id;
-    const deleteHtml = isOwn
-      ? `<div class="comment-actions"><button class="comment-delete-btn" data-id="${c.id}">Delete</button></div>`
-      : '';
-
-    item.innerHTML = `
-      ${avatarHtml}
-      <div class="comment-body">
-        <div class="comment-header">
-          <span class="comment-author">${escapeHtml(c.profiles?.username || 'Unknown')}</span>
-          <span class="comment-time">${timeAgo(c.created_at)}</span>
-        </div>
-        <div class="comment-text">${escapeHtml(c.content)}</div>
-        ${deleteHtml}
+    div.innerHTML = `
+      <div class="comment-head">
+        <div class="comment-avatar"></div>
+        <span class="comment-name">${escapeHtml(c.profiles?.username || 'Anon')}</span>
+        <span class="comment-date">${timeAgo(c.created_at)}</span>
+        ${isOwn ? `<button style="margin-left:auto;background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;" class="del-comment" data-id="${c.id}">Delete</button>` : ''}
       </div>
-    `;
+      <div class="comment-text">${escapeHtml(c.content)}</div>`;
 
-    // Delete handler
-    const delBtn = item.querySelector('.comment-delete-btn');
+    const delBtn = div.querySelector('.del-comment');
     if (delBtn) {
       delBtn.addEventListener('click', async () => {
         if (!confirm('Delete this comment?')) return;
-        const sb = getSupabase();
         try {
           const { error } = await sb.from('comments').delete().eq('id', c.id);
           if (error) throw error;
           showToast('Comment deleted.', 'success');
           loadComments();
         } catch (e) {
-          showToast('Failed to delete comment.', 'error');
+          showToast('Failed to delete.', 'error');
         }
       });
     }
 
-    commentsList.appendChild(item);
+    list.appendChild(div);
   });
 }
+
+// Update comment form on auth change
+onAuthChange(() => { setupCommentForm(); });
 
 // --- Init ---
 loadGame();

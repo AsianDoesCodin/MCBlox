@@ -28,7 +28,7 @@ function updateAdminAuth() {
     adminPanel.style.display = '';
     loadAllGames();
   } else if (user && !isAdmin) {
-    adminGate.innerHTML = '<h2>Access Denied</h2><p style="color:var(--text3)">You are not an admin.</p>';
+    adminGate.innerHTML = '<h2>Access Denied</h2><p class="auth-gate-sub">You are not an admin.</p>';
     adminGate.style.display = '';
     adminPanel.style.display = 'none';
   } else {
@@ -74,6 +74,9 @@ async function loadAllGames() {
   if (!sb) { _gamesLoaded = false; return; }
 
   try {
+    // Admin needs to read ALL games regardless of status
+    // This requires a special RLS policy or service role key
+    // For now, fetch all statuses separately
     const statuses = ['pending_review', 'approved', 'rejected', 'unlisted'];
     const results = [];
 
@@ -96,7 +99,7 @@ async function loadAllGames() {
     renderQueue();
   } catch (e) {
     console.error('Failed to load games:', e);
-    _gamesLoaded = false;
+    _gamesLoaded = false; // Allow retry on error
   }
 }
 
@@ -147,7 +150,7 @@ function renderQueue() {
     card.innerHTML = `
       <div class="thumb">${thumbUrl ? `<img src="${encodeURI(thumbUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '⛏'}</div>
       <div class="info">
-        <h3>${escapeHtml(game.title)}${game.is_promoted ? ' <span style="color:var(--yellow);font-size:12px;">★ Featured</span>' : ''}</h3>
+        <h3>${escapeHtml(game.title)}${game.is_promoted ? ' <span style="color:#ffaa00;font-size:12px;">★ Featured</span>' : ''}</h3>
         <div class="desc">${escapeHtml(game.description || '')}</div>
         <div class="meta">
           ${tags}
@@ -168,19 +171,19 @@ function renderQueue() {
 function openReview(game) {
   reviewingGame = game;
 
-  const tags = (game.tags || []).map(t => `<span style="display:inline-block;padding:2px 8px;background:var(--warm-glow);border:1px solid rgba(255,155,106,0.3);border-radius:var(--r-xs);color:var(--warm);font-size:12px;margin-right:4px;">${escapeHtml(t)}</span>`).join('');
+  const tags = (game.tags || []).map(t => `<span class="tag" style="display:inline-block;padding:2px 8px;background:rgba(91,135,49,0.2);border:1px solid rgba(91,135,49,0.3);border-radius:4px;color:#5b8731;font-size:12px;margin-right:4px;">${escapeHtml(t)}</span>`).join('');
 
   reviewContent.innerHTML = `
     <div class="review-detail-field">
       <label>Thumbnail</label>
       <div class="value">
         <div style="display:flex;align-items:flex-start;gap:12px;">
-          <div id="review-thumb-preview" style="width:160px;height:90px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--bg3);flex-shrink:0;">
-            ${game.thumbnail_url ? `<img src="${encodeURI(game.thumbnail_url)}" style="width:100%;height:100%;object-fit:cover;" id="review-thumb-img">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text4);">No image</div>'}
+          <div id="review-thumb-preview" style="width:160px;height:90px;border-radius:4px;overflow:hidden;border:2px solid #1e3a5f;background:#0a0e1a;flex-shrink:0;">
+            ${game.thumbnail_url ? `<img src="${encodeURI(game.thumbnail_url)}" style="width:100%;height:100%;object-fit:cover;" id="review-thumb-img">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#64748b;">No image</div>'}
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            <label class="btn btn-sm btn-ghost" style="cursor:pointer;">
-              Replace Image
+            <label style="padding:6px 14px;background:#1e3a5f;border-radius:4px;color:#e8eaf0;font-size:12px;cursor:pointer;text-align:center;transition:background 0.15s;" onmouseover="this.style.background='#2a4a7f'" onmouseout="this.style.background='#1e3a5f'">
+              📷 Replace Image
               <input type="file" id="review-thumb-upload" accept="image/*" style="display:none">
             </label>
           </div>
@@ -213,17 +216,17 @@ function openReview(game) {
     </div>
     <div class="review-detail-field">
       <label>Current Status</label>
-      <div class="value"><span class="status-badge ${game.status}" style="display:inline-block;">${(game.status || '').replace('_', ' ')}</span></div>
+      <div class="value"><span class="status-badge ${game.status}" style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;">${(game.status || '').replace('_', ' ')}</span></div>
     </div>
     <div class="review-detail-field">
       <label>Creator</label>
-      <div class="value">${escapeHtml(game.author || 'Unknown')} <span style="font-size:10px;color:var(--text4);">(${game.creator_id || '?'})</span></div>
+      <div class="value">${escapeHtml(game.author || 'Unknown')} <span style="font-size:10px;color:#555;">(${game.creator_id || '?'})</span></div>
     </div>
     <div class="review-detail-field">
       <label>Featured / Promoted</label>
       <div class="value">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-          <input type="checkbox" id="review-promote-check" ${game.is_promoted ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--warm);">
+          <input type="checkbox" id="review-promote-check" ${game.is_promoted ? 'checked' : ''} style="width:16px;height:16px;accent-color:#5b8731;">
           <span style="font-size:13px;">${game.is_promoted ? 'Promoted — appears in Featured section' : 'Not promoted'}</span>
         </label>
       </div>
@@ -358,7 +361,7 @@ function openAdminEdit() {
     TAGS.forEach(tag => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'tag-btn' + (selectedTags.has(tag) ? ' selected' : '');
+      btn.style.cssText = `display:inline-block;padding:4px 10px;margin:2px 4px 2px 0;border-radius:4px;font-size:12px;cursor:pointer;border:1px solid ${selectedTags.has(tag) ? '#00e676' : '#1e3a5f'};background:${selectedTags.has(tag) ? 'rgba(0,230,118,0.15)' : '#111827'};color:${selectedTags.has(tag) ? '#00e676' : '#94a3b8'};transition:all 0.15s;`;
       btn.textContent = tag;
       btn.addEventListener('click', () => {
         if (selectedTags.has(tag)) selectedTags.delete(tag);
@@ -369,46 +372,49 @@ function openAdminEdit() {
     });
   }
 
+  const inputStyle = 'width:100%;padding:8px 12px;background:#0a0e1a;border:2px solid #1e3a5f;border-radius:4px;color:#e8eaf0;font-size:14px;outline:none;';
+  const selectStyle = inputStyle;
+
   reviewContent.innerHTML = `
     <form id="admin-edit-form">
       <div class="review-detail-field">
         <label>Title</label>
-        <input type="text" id="admin-edit-title" value="${escapeHtml(game.title)}" required maxlength="60">
+        <input type="text" id="admin-edit-title" value="${escapeHtml(game.title)}" required maxlength="60" style="${inputStyle}">
       </div>
       <div class="review-detail-field">
         <label>Description</label>
-        <textarea id="admin-edit-desc" required rows="3" maxlength="500">${escapeHtml(game.description || '')}</textarea>
+        <textarea id="admin-edit-desc" required rows="3" maxlength="500" style="${inputStyle}resize:vertical;">${escapeHtml(game.description || '')}</textarea>
       </div>
       <div class="review-detail-field">
         <label>Thumbnail</label>
         <div style="display:flex;align-items:flex-start;gap:12px;">
-          <div id="admin-edit-thumb-preview" style="width:160px;height:90px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--bg3);flex-shrink:0;">
-            ${game.thumbnail_url ? `<img src="${encodeURI(game.thumbnail_url)}" style="width:100%;height:100%;object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text4);">No image</div>'}
+          <div id="admin-edit-thumb-preview" style="width:160px;height:90px;border-radius:4px;overflow:hidden;border:2px solid #1e3a5f;background:#0a0e1a;flex-shrink:0;">
+            ${game.thumbnail_url ? `<img src="${encodeURI(game.thumbnail_url)}" style="width:100%;height:100%;object-fit:cover;">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#64748b;">No image</div>'}
           </div>
-          <label class="btn btn-sm btn-ghost" style="cursor:pointer;">
-            Replace
+          <label style="padding:6px 14px;background:#1e3a5f;border-radius:4px;color:#e8eaf0;font-size:12px;cursor:pointer;">
+            📷 Replace
             <input type="file" id="admin-edit-thumb-input" accept="image/*" style="display:none">
           </label>
         </div>
       </div>
       <div class="review-detail-field">
         <label>Tags</label>
-        <div id="admin-edit-tags" class="tag-picker"></div>
+        <div id="admin-edit-tags"></div>
       </div>
       <div class="review-detail-field">
         <label>Modpack URL</label>
-        <input type="url" id="admin-edit-modpack" value="${escapeHtml(game.modpack_url || '')}" required>
+        <input type="url" id="admin-edit-modpack" value="${escapeHtml(game.modpack_url || '')}" required style="${inputStyle}">
       </div>
       <div class="review-detail-field" style="display:flex;gap:12px;">
         <div style="flex:1;">
           <label>MC Version</label>
-          <select id="admin-edit-mc-version">
+          <select id="admin-edit-mc-version" style="${selectStyle}">
             <option value="">Loading...</option>
           </select>
         </div>
         <div style="flex:1;">
           <label>Mod Loader</label>
-          <select id="admin-edit-mod-loader">
+          <select id="admin-edit-mod-loader" style="${selectStyle}">
             <option value="fabric" ${game.mod_loader === 'fabric' ? 'selected' : ''}>Fabric</option>
             <option value="forge" ${game.mod_loader === 'forge' ? 'selected' : ''}>Forge</option>
             <option value="neoforge" ${game.mod_loader === 'neoforge' ? 'selected' : ''}>NeoForge</option>
@@ -417,7 +423,7 @@ function openAdminEdit() {
         </div>
         <div style="flex:1;">
           <label>Loader Version</label>
-          <select id="admin-edit-loader-version">
+          <select id="admin-edit-loader-version" style="${selectStyle}">
             <option value="">Loading...</option>
           </select>
         </div>
@@ -425,22 +431,19 @@ function openAdminEdit() {
       <div class="review-detail-field" style="display:flex;gap:12px;">
         <div style="flex:1;">
           <label>Game Type</label>
-          <select id="admin-edit-game-type">
+          <select id="admin-edit-game-type" style="${selectStyle}">
             <option value="server" ${game.game_type === 'server' ? 'selected' : ''}>Server</option>
             <option value="world" ${game.game_type === 'world' ? 'selected' : ''}>World</option>
           </select>
         </div>
         <div style="flex:1;">
           <label>Server Address / World Name</label>
-          <input type="text" id="admin-edit-address" value="${escapeHtml(game.server_address || game.world_name || '')}">
+          <input type="text" id="admin-edit-address" value="${escapeHtml(game.server_address || game.world_name || '')}" style="${inputStyle}">
         </div>
       </div>
       <div class="review-detail-field">
-        <label class="toggle-label" style="cursor:pointer;">
-          <span class="toggle-switch">
-            <input type="checkbox" id="admin-edit-auto-join" ${game.auto_join ? 'checked' : ''}>
-            <span class="toggle-slider"></span>
-          </span>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="admin-edit-auto-join" ${game.auto_join ? 'checked' : ''} style="width:18px;height:18px;accent-color:#00e676;">
           <span>Auto-Join (McBlox mod auto-connects to server/world on launch)</span>
         </label>
       </div>
@@ -552,7 +555,7 @@ function openAdminEdit() {
 
   const saveBtn = document.createElement('button');
   saveBtn.className = 'btn btn-approve';
-  saveBtn.textContent = 'Save';
+  saveBtn.textContent = '💾 Save';
   saveBtn.id = 'admin-edit-save';
   reviewEdit.parentElement.insertBefore(saveBtn, reviewCancel);
 
@@ -612,7 +615,7 @@ function openAdminEdit() {
     } catch (err) {
       showToast('Error: ' + (err.message || 'Unknown'), 'error');
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Save';
+      saveBtn.textContent = '💾 Save';
     }
   });
 }

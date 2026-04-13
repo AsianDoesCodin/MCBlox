@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>McBlox — Concept A: Dark Modern</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: #0f0f13;
+    --bg-secondary: #16161d;
+    --bg-card: #1c1c27;
+    --bg-card-hover: #232330;
+    --accent: #7c5cff;
+    --accent-glow: rgba(124, 92, 255, 0.3);
+    --accent-light: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --text-primary: #e8e8ed;
+    --text-secondary: #8b8b9e;
+    --text-muted: #55556a;
+    --border: #2a2a3a;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 240px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 20px; font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .sidebar-logo .cube {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), #5b3fd4);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 16px;
+  }
+  .sidebar nav { flex: 1; padding: 8px 12px; }
+  .sidebar nav a {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .sidebar nav a:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+  .sidebar nav a.active { color: var(--accent-light); background: rgba(124,92,255,0.1); }
+  .sidebar nav a .icon { width: 20px; text-align: center; font-size: 16px; }
+  .sidebar nav .section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    color: var(--text-muted); padding: 20px 12px 6px;
+    letter-spacing: 0.8px;
+  }
+  .sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-footer .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--green), #059669);
+  }
+  .sidebar-footer .user-name { font-size: 13px; font-weight: 600; }
+  .sidebar-footer .user-tag { font-size: 11px; color: var(--text-muted); }
+
+  /* ── MAIN AREA ── */
+  .main { margin-left: 240px; min-height: 100vh; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    padding: 16px 32px;
+    display: flex; align-items: center; gap: 16px;
+    background: rgba(15,15,19,0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .search-box {
+    flex: 1; max-width: 400px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 14px;
+  }
+  .search-box input {
+    background: none; border: none; outline: none;
+    color: var(--text-primary); font-size: 14px;
+    width: 100%;
+  }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .search-box .search-icon { color: var(--text-muted); font-size: 14px; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+  .btn {
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+  .btn-primary:hover { background: #6a4ae8; }
+  .btn-ghost {
+    background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text-primary); border-color: #444; }
+
+  /* ── HERO / FEATURED ── */
+  .hero {
+    margin: 24px 32px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: relative;
+    height: 280px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  }
+  .hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to right, rgba(15,15,19,0.95) 0%, rgba(15,15,19,0.3) 60%, transparent 100%);
+  }
+  .hero-content {
+    position: relative; z-index: 2;
+    padding: 40px;
+    height: 100%;
+    display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .hero-badge {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    color: var(--accent-light); letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .hero-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+  .hero-desc { color: var(--text-secondary); font-size: 14px; max-width: 450px; margin-bottom: 16px; }
+  .hero-meta { display: flex; gap: 16px; align-items: center; }
+  .hero-meta .tag {
+    background: rgba(255,255,255,0.08);
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 12px; color: var(--text-secondary);
+  }
+  .hero-meta .players {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 13px; color: var(--green);
+  }
+  .hero-meta .players .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  /* ── SECTION ── */
+  .section { padding: 0 32px; margin-bottom: 32px; }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title { font-size: 18px; font-weight: 700; }
+  .section-link {
+    font-size: 13px; color: var(--accent-light);
+    text-decoration: none; font-weight: 500;
+  }
+  .section-link:hover { text-decoration: underline; }
+
+  /* ── GAME GRID ── */
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .game-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .game-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 30px rgba(124,92,255,0.15);
+  }
+  .game-card .thumb {
+    width: 100%; height: 140px;
+    object-fit: cover;
+    background: linear-gradient(135deg, #2a2a3a, #1a1a28);
+    display: grid; place-items: center;
+    color: var(--text-muted); font-size: 40px;
+  }
+  .game-card .info { padding: 12px 14px; }
+  .game-card .info .title {
+    font-size: 14px; font-weight: 600;
+    margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .game-card .info .meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: var(--text-secondary);
+  }
+  .game-card .info .meta .players {
+    display: flex; align-items: center; gap: 4px;
+    color: var(--green);
+  }
+  .game-card .info .meta .players .dot {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--green);
+  }
+  .game-card .info .meta .rating {
+    display: flex; align-items: center; gap: 3px;
+  }
+  .game-card .info .tags {
+    display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap;
+  }
+  .game-card .info .tags span {
+    font-size: 10px; padding: 2px 7px;
+    background: rgba(124,92,255,0.1);
+    color: var(--accent-light);
+    border-radius: 10px;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+    padding: 0 32px;
+  }
+  .filter-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-chip:hover { border-color: #444; color: var(--text-primary); }
+  .filter-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* ── DETAIL PAGE MOCK ── */
+  .detail-section {
+    display: none;
+    padding: 32px;
+  }
+  .detail-section.visible { display: block; }
+  .detail-banner {
+    width: 100%; height: 300px;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, #1e1e3a, #2d1b69);
+    position: relative; overflow: hidden;
+  }
+  .detail-banner::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 120px;
+    background: linear-gradient(to top, var(--bg-primary), transparent);
+  }
+  .detail-info { margin-top: -40px; position: relative; z-index: 2; }
+  .detail-info h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .detail-info .creator {
+    font-size: 14px; color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+  .detail-info .creator span { color: var(--accent-light); }
+  .detail-stats {
+    display: flex; gap: 24px; margin-bottom: 24px;
+  }
+  .detail-stats .stat {
+    display: flex; flex-direction: column;
+  }
+  .detail-stats .stat .value {
+    font-size: 20px; font-weight: 700;
+  }
+  .detail-stats .stat .label {
+    font-size: 12px; color: var(--text-muted);
+  }
+  .detail-actions { display: flex; gap: 12px; margin-bottom: 32px; }
+  .btn-play {
+    padding: 12px 32px;
+    background: linear-gradient(135deg, var(--accent), #5b3fd4);
+    color: #fff; font-size: 15px; font-weight: 700;
+    border: none; border-radius: var(--radius-sm);
+    cursor: pointer;
+    box-shadow: 0 0 30px var(--accent-glow);
+    transition: all 0.2s;
+  }
+  .btn-play:hover { transform: scale(1.03); }
+  .screenshots {
+    display: flex; gap: 12px; overflow-x: auto;
+    padding-bottom: 16px;
+  }
+  .screenshots .shot {
+    min-width: 280px; height: 160px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    display: grid; place-items: center;
+    color: var(--text-muted); font-size: 14px;
+  }
+  .detail-description {
+    margin-top: 24px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    font-size: 14px;
+    max-width: 700px;
+  }
+
+  /* ── PROFILE PAGE MOCK ── */
+  .profile-section { display: none; padding: 32px; }
+  .profile-section.visible { display: block; }
+  .profile-header {
+    display: flex; align-items: center; gap: 20px;
+    margin-bottom: 32px;
+  }
+  .profile-avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #e040fb);
+  }
+  .profile-info h2 { font-size: 24px; font-weight: 700; }
+  .profile-info .joined {
+    font-size: 13px; color: var(--text-muted);
+  }
+  .profile-games-label {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+  }
+
+  /* ── TAB SWITCHER ── */
+  .page-tabs {
+    display: flex; gap: 4px;
+    padding: 8px 32px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .page-tab {
+    padding: 8px 16px;
+    font-size: 13px; font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .page-tab:hover { color: var(--text-secondary); }
+  .page-tab.active { color: var(--accent-light); border-color: var(--accent); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #444; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="cube">⬛</div>
+    McBlox
+  </div>
+  <nav>
+    <a href="#" class="active" onclick="showPage('home')">
+      <span class="icon">🏠</span> Home
+    </a>
+    <a href="#" onclick="showPage('home')">
+      <span class="icon">🔥</span> Trending
+    </a>
+    <a href="#" onclick="showPage('home')">
+      <span class="icon">⭐</span> Top Rated
+    </a>
+    <a href="#" onclick="showPage('home')">
+      <span class="icon">🆕</span> New
+    </a>
+    <div class="section-label">You</div>
+    <a href="#" onclick="showPage('profile')">
+      <span class="icon">👤</span> My Profile
+    </a>
+    <a href="#">
+      <span class="icon">📚</span> My Library
+    </a>
+    <div class="section-label">Create</div>
+    <a href="#">
+      <span class="icon">🎮</span> Dashboard
+    </a>
+    <a href="#">
+      <span class="icon">📤</span> Publish
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="avatar"></div>
+    <div>
+      <div class="user-name">Steve_MC</div>
+      <div class="user-tag">Online</div>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search games...">
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost">🔔</button>
+      <button class="btn btn-primary">+ Publish Game</button>
+    </div>
+  </header>
+
+  <!-- PAGE TABS (demo) -->
+  <div class="page-tabs">
+    <div class="page-tab active" onclick="showPage('home')">Browse</div>
+    <div class="page-tab" onclick="showPage('detail')">Game Detail</div>
+    <div class="page-tab" onclick="showPage('profile')">Profile</div>
+  </div>
+
+  <!-- HOME PAGE -->
+  <div id="page-home" class="home-content" style="display:block;">
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-content">
+        <div class="hero-badge">⚡ Featured</div>
+        <div class="hero-title">Kingdoms of Aetheria</div>
+        <div class="hero-desc">An epic medieval RPG modpack with 200+ mods, custom quests, and a thriving multiplayer kingdom.</div>
+        <div class="hero-meta">
+          <div class="players"><span class="dot"></span> 247 playing</div>
+          <span class="tag">RPG</span>
+          <span class="tag">1.20.1 Forge</span>
+          <span class="tag">Multiplayer</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="filter-chip active">All</div>
+      <div class="filter-chip">Multiplayer</div>
+      <div class="filter-chip">Singleplayer</div>
+      <div class="filter-chip">RPG</div>
+      <div class="filter-chip">Survival</div>
+      <div class="filter-chip">Adventure</div>
+      <div class="filter-chip">PvP</div>
+      <div class="filter-chip">Tech</div>
+      <div class="filter-chip">Creative</div>
+    </div>
+
+    <!-- Popular -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">🔥 Popular Right Now</div>
+        <a href="#" class="section-link">See all →</a>
+      </div>
+      <div class="game-grid">
+        <div class="game-card" onclick="showPage('detail')">
+          <div class="thumb">⚔️</div>
+          <div class="info">
+            <div class="title">Kingdoms of Aetheria</div>
+            <div class="meta">
+              <div class="players"><span class="dot"></span> 247</div>
+              <div class="rating">👍 94%</div>
+            </div>
+            <div class="tags"><span>RPG</span><span>1.20.1</span></div>
+          </div>
+        </div>
+        <div class="game-card">
+          <div class="thumb">🏗️</div>
+          <div class="info">
+            <div class="title">Create: Above & Beyond</div>
+            <div class="meta">
+              <div class="players"><span class="dot"></span> 183</div>
+              <div class="rating">👍 91%</div>
+            </div>
+            <div class="tags"><span>Tech</span><span>1.18.2</span></div>
+          </div>
+        </div>
+        <div class="game-card">
+          <div class="thumb">🐉</div>
+          <div class="info">
+            <div class="title">RLCraft Reloaded</div>
+            <div class="meta">
+              <div class="players"><span class="dot"></span> 156</div>
+              <div class="rating">👍 88%</div>
+            </div>
+            <div class="tags"><span>Survival</span><span>1.12.2</span></div>
+          </div>
+        </div>
+        <div class="game-card">
+          <div class="thumb">🌌</div>
+          <div class="info">
+            <div class="title">Cosmic Odyssey</div>
+            <div class="meta">
+              <div class="players"><span class="dot"></span> 98</div>
+              <div class="rating">👍 96%</div>
+            </div>
+            <div class="tags"><span>Adventure</span><span>1.21</span></div>
+          </div>
+        </div>
+        <div class="game-card">
+          <div class="thumb">🏰</div>
+          <div class="info">
+            <div class="title">SkyFactory 5</div>
+            <div class="meta">
+              <div class="players"><span class="dot"></span> 72</div>
+              <div class="rating">👍 90%</div>
+            </div>
+            <div class="tags"><span>Skyblock</span><span>1.20.1</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- New Releases -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">🆕 New Releases</div>
+        <a href="#" class="section-link">See all →</a>
+      </div>
+      <div class="game-grid">
+        <div class="game-card">
+          <div class="thumb">🧙</div>
+          <div class="info">
+            <div class="title">Arcane Academy</div>
+            <div class="meta">
+              <div class="players"><span class="dot"></span> 34</div>
+              <div class="rating">👍 100%</div>
+            </div>
+            <div class="tags"><span>Magic</span><span>1.21</span></div>
+          </div>
+        </div>
+        <div class="game-card">
+          <div class="thumb">🏝️</div>
+          <div class="info">
+            <div class="title">Stranded Isles</div>
+            <div class="meta">
+              <div class="players"><span class="dot"></span> 18</div>
+              <div class="rating">👍 85%</div>
+            </div>
+            <div class="tags"><span>Survival</span><span>1.20.1</span></div>
+          </div>
+        </div>
+        <div class="game-card">
+          <div class="thumb">⚡</div>
+          <div class="info">
+            <div class="title">Voltage</div>
+            <div class="meta">
+              <div class="players"><span class="dot"></span> 45</div>
+              <div class="rating">👍 92%</div>
+            </div>
+            <div class="tags"><span>Tech</span><span>1.20.1</span></div>
+          </div>
+        </div>
+        <div class="game-card">
+          <div class="thumb">🎭</div>
+          <div class="info">
+            <div class="title">Masquerade SMP</div>
+            <div class="meta">
+              <div class="players"><span class="dot"></span> 60</div>
+              <div class="rating">👍 87%</div>
+            </div>
+            <div class="tags"><span>PvP</span><span>1.20.1</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL PAGE -->
+  <div id="page-detail" class="detail-section">
+    <div class="detail-banner"></div>
+    <div class="detail-info">
+      <h1>Kingdoms of Aetheria</h1>
+      <div class="creator">by <span>KingBuilder</span> · Forge 1.20.1 · Multiplayer</div>
+      <div class="detail-stats">
+        <div class="stat">
+          <span class="value" style="color:var(--green)">247</span>
+          <span class="label">Playing Now</span>
+        </div>
+        <div class="stat">
+          <span class="value">12.4K</span>
+          <span class="label">Total Plays</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--accent-light)">94%</span>
+          <span class="label">Positive</span>
+        </div>
+        <div class="stat">
+          <span class="value">238</span>
+          <span class="label">Ratings</span>
+        </div>
+      </div>
+      <div class="detail-actions">
+        <button class="btn-play">▶ Play Now</button>
+        <button class="btn btn-ghost">👍 Rate</button>
+        <button class="btn btn-ghost">🔗 Share</button>
+      </div>
+      <div class="screenshots">
+        <div class="shot">Screenshot 1</div>
+        <div class="shot">Screenshot 2</div>
+        <div class="shot">Screenshot 3</div>
+        <div class="shot">Screenshot 4</div>
+      </div>
+      <div class="detail-description">
+        <h3 style="margin-bottom:8px;">About</h3>
+        <p>Kingdoms of Aetheria is a medieval RPG modpack featuring over 200 carefully curated mods. Build your kingdom, embark on epic quests, forge alliances, and battle fearsome dragons. Features custom NPCs, a player-driven economy, and weekly events.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div id="page-profile" class="profile-section">
+    <div class="profile-header">
+      <div class="profile-avatar"></div>
+      <div class="profile-info">
+        <h2>Steve_MC</h2>
+        <div class="joined">Joined April 2026 · 3 games published</div>
+      </div>
+    </div>
+    <div class="profile-games-label">Published Games</div>
+    <div class="game-grid">
+      <div class="game-card">
+        <div class="thumb">⚔️</div>
+        <div class="info">
+          <div class="title">Kingdoms of Aetheria</div>
+          <div class="meta">
+            <div class="players"><span class="dot"></span> 247</div>
+            <div class="rating">👍 94%</div>
+          </div>
+        </div>
+      </div>
+      <div class="game-card">
+        <div class="thumb">🏗️</div>
+        <div class="info">
+          <div class="title">BuildCraft Arena</div>
+          <div class="meta">
+            <div class="players"><span class="dot"></span> 52</div>
+            <div class="rating">👍 88%</div>
+          </div>
+        </div>
+      </div>
+      <div class="game-card">
+        <div class="thumb">🎯</div>
+        <div class="info">
+          <div class="title">Minigame Mayhem</div>
+          <div class="meta">
+            <div class="players"><span class="dot"></span> 15</div>
+            <div class="rating">👍 79%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showPage(name) {
+  document.getElementById('page-home').style.display = name === 'home' ? 'block' : 'none';
+  document.getElementById('page-detail').className = name === 'detail' ? 'detail-section visible' : 'detail-section';
+  document.getElementById('page-profile').className = name === 'profile' ? 'profile-section visible' : 'profile-section';
+  document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page-tab')[{home:0,detail:1,profile:2}[name]].classList.add('active');
+  document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+}
+</script>
+</body>
+</html>

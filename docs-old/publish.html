@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publish — McBlox</title>
+  <link rel="stylesheet" href="style.css?v=20260411">
+  <link rel="stylesheet" href="publish.css?v=20260411">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="toast.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="logo"><img src="mcbloxlogo.png" alt="McBlox" class="nav-logo"></a>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="games.html">Games</a>
+      <a href="publish.html" class="active">Publish</a>
+      <a href="guide.html">Guide</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="https://discord.gg/utRqFy3ptE" target="_blank" rel="noopener" class="nav-discord"><svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg> Discord</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-sm" id="auth-btn">Sign In</button>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Auth gate -->
+    <div id="auth-gate" class="auth-gate">
+      <h2>Sign in to publish</h2>
+      <p>You need a McBlox account to publish games.</p>
+      <button class="btn btn-lg" id="signin-btn">Sign In</button>
+    </div>
+
+    <!-- Publish form -->
+    <div id="publish-form" style="display:none">
+      <div class="page-header">
+        <h1>Publish a Game</h1>
+      </div>
+
+      <!-- Step indicator -->
+      <div class="wizard-stepper">
+        <div class="step-item active" data-step="1"><span class="step-num"><span class="step-num-text">1</span></span><span class="step-label">Details</span></div>
+        <div class="step-line"></div>
+        <div class="step-item" data-step="2"><span class="step-num"><span class="step-num-text">2</span></span><span class="step-label">Modpack</span></div>
+        <div class="step-line"></div>
+        <div class="step-item" data-step="3"><span class="step-num"><span class="step-num-text">3</span></span><span class="step-label">Game Type</span></div>
+        <div class="step-line"></div>
+        <div class="step-item" data-step="4"><span class="step-num"><span class="step-num-text">4</span></span><span class="step-label">Images</span></div>
+        <div class="step-line"></div>
+        <div class="step-item" data-step="5"><span class="step-num"><span class="step-num-text">5</span></span><span class="step-label">Review</span></div>
+      </div>
+
+      <form id="game-form" class="form">
+        <!-- Step 1: Basic Info -->
+        <div class="wizard-step" data-step="1">
+          <div class="form-section">
+            <h2>Basic Info</h2>
+
+            <label>Title</label>
+            <input type="text" id="title" placeholder="My Awesome Game" maxlength="60">
+
+            <label>Description</label>
+            <textarea id="description" placeholder="What's your game about?" rows="4" maxlength="500"></textarea>
+
+            <label>Tags <span class="req">*</span></label>
+            <p class="hint">Select up to 5 tags that describe your game.</p>
+            <div class="tag-picker" id="tag-picker"></div>
+            <input type="hidden" id="tags">
+          </div>
+        </div>
+
+        <!-- Step 2: Modpack -->
+        <div class="wizard-step" data-step="2" style="display:none">
+          <div class="form-section">
+            <h2>Modpack</h2>
+
+            <label>Modpack Download Link</label>
+            <p class="hint">Google Drive, MediaFire, or Dropbox link. <a href="guide.html" style="color: #00e676">See the guide</a> for help.</p>
+            <input type="url" id="modpack-url" placeholder="https://drive.google.com/file/d/... or https://www.mediafire.com/file/...">
+            <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,152,0,0.1);border:1px solid rgba(255,152,0,0.3);border-radius:6px;padding:8px 12px;margin-top:6px">
+              <span style="font-size:16px;flex-shrink:0">⚠️</span>
+              <span style="font-size:12px;color:#ffb74d">CurseForge &amp; Modrinth links are temporarily broken. Please use <strong>Google Drive</strong>, <strong>MediaFire</strong>, or <strong>Dropbox</strong> instead.</span>
+            </div>
+
+            <label>Minecraft Version</label>
+            <select id="mc-version">
+              <option value="">Loading versions...</option>
+            </select>
+
+            <label>Mod Loader</label>
+            <select id="mod-loader">
+              <option value="">Select mod loader</option>
+              <option value="fabric">Fabric</option>
+              <option value="forge">Forge</option>
+              <option value="neoforge">NeoForge</option>
+            </select>
+
+            <label>Loader Version</label>
+            <p class="hint">Select your MC version and mod loader first, then pick the loader version</p>
+            <select id="loader-version">
+              <option value="">Select MC version & mod loader first</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Step 3: Game Type -->
+        <div class="wizard-step" data-step="3" style="display:none">
+          <div class="form-section">
+            <h2>Game Type</h2>
+
+            <label>Type</label>
+            <select id="game-type">
+              <option value="">Select type</option>
+              <option value="server">Server (Multiplayer)</option>
+              <option value="world">World (Singleplayer)</option>
+            </select>
+
+            <div id="server-field" style="display:none">
+              <label>Server Address</label>
+              <input type="text" id="server-address" placeholder="play.example.com:25565">
+            </div>
+
+            <div id="world-field" style="display:none">
+              <label>World Name</label>
+              <input type="text" id="world-name" placeholder="e.g. My Adventure Map">
+            </div>
+
+            <div class="edit-toggle-row" id="auto-join-row" style="display:none">
+              <label class="toggle-label">
+                <span class="toggle-switch">
+                  <input type="checkbox" id="auto-join">
+                  <span class="toggle-slider"></span>
+                </span>
+                <span>Auto-Join</span>
+                <span class="tooltip-trigger" title="When enabled, the McBlox mod will automatically send players to your server/world on launch and replace the Disconnect button with an Exit button that closes Minecraft. The mod is pre-installed into the modpack automatically.">?</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Images -->
+        <div class="wizard-step" data-step="4" style="display:none">
+          <div class="form-section">
+            <h2>Images</h2>
+
+            <label>Thumbnail / Banner <span class="req">*</span></label>
+            <p class="hint">Will be cropped to 16:9. Click the area below to upload.</p>
+            <div class="crop-area" id="thumb-crop">
+              <input type="file" accept="image/*" id="thumb-input" hidden>
+              <canvas id="thumb-canvas" width="640" height="360"></canvas>
+              <div class="crop-placeholder" id="thumb-placeholder">Click to upload</div>
+              <div class="crop-controls" id="thumb-controls" style="display:none">
+                <input type="range" id="thumb-zoom" min="1" max="3" step="0.01" value="1">
+                <span class="hint">Drag to reposition, slider to zoom</span>
+              </div>
+            </div>
+
+            <label>Screenshots <span class="optional">(up to 4)</span></label>
+            <div class="screenshot-row" id="screenshot-row">
+              <div class="screenshot-slot" data-index="0">
+                <input type="file" accept="image/*" hidden>
+                <canvas width="320" height="180"></canvas>
+                <div class="crop-placeholder">+</div>
+              </div>
+              <div class="screenshot-slot" data-index="1">
+                <input type="file" accept="image/*" hidden>
+                <canvas width="320" height="180"></canvas>
+                <div class="crop-placeholder">+</div>
+              </div>
+              <div class="screenshot-slot" data-index="2">
+                <input type="file" accept="image/*" hidden>
+                <canvas width="320" height="180"></canvas>
+                <div class="crop-placeholder">+</div>
+              </div>
+              <div class="screenshot-slot" data-index="3">
+                <input type="file" accept="image/*" hidden>
+                <canvas width="320" height="180"></canvas>
+                <div class="crop-placeholder">+</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: Review -->
+        <div class="wizard-step" data-step="5" style="display:none">
+          <div class="form-section">
+            <h2>Review &amp; Submit</h2>
+            <p class="hint" style="margin-bottom:20px">Double-check everything before submitting. Click any step above to go back and edit.</p>
+
+            <div class="review-grid" id="review-summary">
+              <!-- Filled by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation buttons -->
+        <div class="wizard-nav">
+          <button type="button" class="btn btn-sm wizard-back" id="wizard-back" style="display:none">Back</button>
+          <div style="flex:1"></div>
+          <button type="button" class="btn btn-sm wizard-next" id="wizard-next">Next</button>
+          <button type="submit" class="btn btn-lg submit-btn" id="wizard-submit" style="display:none">Submit for Review</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 McBlox</p>
+  </footer>
+
+  <script src="publish.js"></script>
+</body>
+</html>

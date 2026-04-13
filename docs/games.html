@@ -5,73 +5,76 @@
   <link rel="icon" href="favicon.ico">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Games — McBlox</title>
-  <link rel="stylesheet" href="style.css?v=20260411">
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="supabase-client.js"></script>
   <script src="toast.js"></script>
 </head>
 <body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <a class="logo" href="index.html">
+    <img src="mcbloxlogo2.png" alt="McBlox">
+  </a>
   <nav>
-    <div class="nav-left">
-      <a href="index.html" class="logo"><img src="mcbloxlogo.png" alt="McBlox" class="nav-logo"></a>
-    </div>
-    <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="games.html" class="active">Games</a>
-      <a href="publish.html">Publish</a>
-      <a href="guide.html">Guide</a>
-      <a href="dashboard.html">Dashboard</a>
-      <a href="https://discord.gg/utRqFy3ptE" target="_blank" rel="noopener" class="nav-discord"><svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg> Discord</a>
-    </div>
-    <div class="nav-right">
-      <button class="btn btn-sm" id="auth-btn">Sign In</button>
-    </div>
+    <a href="index.html">Home</a>
+    <a href="games.html" class="active">Games</a>
+    <a href="guide.html">Guide</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="https://discord.gg/utRqFy3ptE" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:4px;">
+      <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      Discord
+    </a>
   </nav>
-
-  <main>
-    <div class="page-header">
-      <h1>Games</h1>
+  <div class="right">
+    <div style="position:relative;display:flex;align-items:center;gap:8px;" id="auth-wrap">
+      <a class="btn btn-sm btn-warm" id="publish-nav-btn" href="publish.html">+ Publish</a>
+      <button class="btn btn-sm btn-ghost" id="auth-btn" onclick="showAuthModal()">Sign In</button>
+      <div class="avatar" id="nav-avatar" style="display:none;"></div>
+      <div class="user-dropdown" id="user-dropdown"></div>
     </div>
+  </div>
+</div>
 
-    <div class="catalog-bar">
-      <input type="text" class="search-input" id="search" placeholder="Search games...">
-      <select class="filter-select" id="sort">
-        <option value="popular">Most Popular</option>
-        <option value="active">Current Players</option>
-        <option value="top-rated">Top Rated</option>
-        <option value="newest">Newest</option>
-        <option value="featured">Featured</option>
-      </select>
-      <div class="tag-dropdown-wrap" id="tag-dropdown-wrap">
-        <button class="filter-select tag-toggle-btn" id="tag-toggle-btn">Tags</button>
-        <div class="tag-dropdown" id="tag-dropdown" style="display:none">
-          <div class="type-filter-bar" id="type-filter-bar">
-            <button class="tag-filter-btn active" data-type="all">All</button>
-            <button class="tag-filter-btn" data-type="server">Multiplayer</button>
-            <button class="tag-filter-btn" data-type="world">Singleplayer</button>
-          </div>
-          <div class="tag-filter-bar" id="tag-filter-bar"></div>
-          <button class="tag-clear-btn" id="tag-clear-btn" style="display:none">Clear all</button>
+<div class="content">
+  <h1 style="font-size:24px;font-weight:700;margin-bottom:16px;">Games</h1>
+
+  <div class="catalog-bar">
+    <input type="text" class="search-input" id="search" placeholder="Search games...">
+    <select class="sort-select" id="sort">
+      <option value="popular">Most Popular</option>
+      <option value="active">Current Players</option>
+      <option value="top-rated">Top Rated</option>
+      <option value="newest">Newest</option>
+    </select>
+    <div class="tag-filter-wrap">
+      <button class="btn btn-sm btn-ghost tag-toggle" id="tag-toggle-btn">Tags</button>
+      <div class="tag-dropdown" id="tag-dropdown">
+        <div class="type-btns" id="type-btns">
+          <button class="tag-pill active" data-type="all">All</button>
+          <button class="tag-pill" data-type="server">Multiplayer</button>
+          <button class="tag-pill" data-type="world">Singleplayer</button>
         </div>
+        <div class="tag-pills" id="tag-pills"></div>
+        <button class="tag-clear-btn" id="tag-clear-btn" style="display:none">Clear all</button>
       </div>
     </div>
+  </div>
 
-    <section class="featured" id="featured-section">
-      <h2>Featured</h2>
-      <div class="featured-grid" id="featured-grid"></div>
-    </section>
+  <!-- Featured carousel -->
+  <div id="featured-section" style="display:none">
+    <div class="section-head"><div class="section-title">⭐ Featured</div></div>
+    <div class="featured-carousel" id="featured-carousel"></div>
+    <div class="featured-dots" id="featured-dots"></div>
+  </div>
 
-    <div class="game-grid" id="game-grid"></div>
+  <div class="game-grid" id="game-grid"></div>
+  <div class="empty-state" id="empty" style="display:none">No games found.</div>
+</div>
 
-    <div class="empty-state" id="empty" style="display:none">
-      <p>No games yet. Be the first to publish one!</p>
-    </div>
-  </main>
+<footer>&copy; 2026 McBlox</footer>
 
-  <footer>
-    <p>&copy; 2026 McBlox</p>
-  </footer>
-
-  <script src="games.js?v=20260411"></script>
+<script src="games.js"></script>
 </body>
 </html>

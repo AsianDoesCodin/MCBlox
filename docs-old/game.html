@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game — McBlox</title>
+  <link rel="stylesheet" href="style.css?v=20260411b">
+  <link rel="stylesheet" href="game.css?v=20260411b">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="toast.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="logo"><img src="mcbloxlogo.png" alt="McBlox" class="nav-logo"></a>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="games.html">Games</a>
+      <a href="publish.html">Publish</a>
+      <a href="guide.html">Guide</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="https://discord.gg/utRqFy3ptE" target="_blank" rel="noopener" class="nav-discord"><svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg> Discord</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-sm" id="auth-btn">Sign In</button>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Loading state -->
+    <div id="game-loading" class="game-loading">
+      <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Not found state -->
+    <div id="game-not-found" style="display:none" class="game-not-found">
+      <h2>Game not found</h2>
+      <p>This game may have been removed or doesn't exist.</p>
+      <a href="games.html" class="btn btn-sm">Browse Games</a>
+    </div>
+
+    <!-- Game detail -->
+    <div id="game-detail" style="display:none">
+      <!-- Hero / Banner -->
+      <div class="game-banner" id="game-banner">
+        <img id="banner-img" alt="">
+      </div>
+
+      <div class="game-content">
+        <!-- Left: Main content -->
+        <div class="game-main">
+          <h1 id="game-title"></h1>
+
+          <div class="game-creator">
+            <img id="creator-avatar" class="creator-avatar" alt="" src="">
+            <div>
+              <a id="creator-name" class="creator-name" href="#"></a>
+              <span id="game-date" class="game-date"></span>
+            </div>
+          </div>
+
+          <div class="game-description" id="game-description"></div>
+
+          <div class="game-tags" id="game-tags"></div>
+
+          <!-- Screenshots -->
+          <div class="screenshots-section" id="screenshots-section" style="display:none">
+            <h2>Screenshots</h2>
+            <div class="screenshot-gallery" id="screenshot-gallery"></div>
+          </div>
+
+          <!-- Lightbox -->
+          <div class="lightbox" id="lightbox" style="display:none">
+            <div class="lightbox-backdrop"></div>
+            <button class="lightbox-close">&times;</button>
+            <button class="lightbox-prev">&lsaquo;</button>
+            <img class="lightbox-img" id="lightbox-img" alt="">
+            <button class="lightbox-next">&rsaquo;</button>
+          </div>
+
+          <!-- Comments -->
+          <div class="comments-section">
+            <h2>Comments</h2>
+            <div class="comment-form" id="comment-form">
+              <textarea id="comment-input" placeholder="Leave a comment..." maxlength="1000" rows="3"></textarea>
+              <div class="comment-form-actions">
+                <span class="comment-char-count" id="comment-char-count">0 / 1000</span>
+                <button class="btn btn-sm" id="comment-submit">Comment</button>
+              </div>
+            </div>
+            <div class="comment-signin" id="comment-signin" style="display:none">
+              <p>Sign in to leave a comment.</p>
+            </div>
+            <div class="comments-list" id="comments-list">
+              <p class="comments-empty" id="comments-empty">No comments yet. Be the first!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Sidebar info -->
+        <div class="game-sidebar">
+          <div class="sidebar-card">
+            <div class="sidebar-stat">
+              <span class="stat-label">Rating</span>
+              <div class="rating-bar" id="rating-bar">
+                <span class="rating-up" id="rating-up">👍 0</span>
+                <span class="rating-down" id="rating-down">👎 0</span>
+              </div>
+              <div class="rating-pct-bar" id="rating-pct-bar">
+                <div class="rating-pct-fill" id="rating-pct-fill"></div>
+              </div>
+            </div>
+            <div class="sidebar-stat">
+              <span class="stat-label">Players</span>
+              <span class="stat-value" id="stat-players">0 active</span>
+            </div>
+            <div class="sidebar-stat">
+              <span class="stat-label">Total Plays</span>
+              <span class="stat-value" id="stat-plays">0</span>
+            </div>
+            <div class="sidebar-stat">
+              <span class="stat-label">Type</span>
+              <span class="stat-value" id="stat-type">—</span>
+            </div>
+            <div class="sidebar-stat">
+              <span class="stat-label">MC Version</span>
+              <span class="stat-value" id="stat-mc">—</span>
+            </div>
+            <div class="sidebar-stat">
+              <span class="stat-label">Mod Loader</span>
+              <span class="stat-value" id="stat-loader">—</span>
+            </div>
+          </div>
+
+          <div class="sidebar-actions">
+            <button class="btn btn-sm vote-btn" id="vote-up-btn">👍 Like</button>
+            <button class="btn btn-sm vote-btn vote-down" id="vote-down-btn">👎 Dislike</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 McBlox</p>
+  </footer>
+
+  <script src="game.js?v=20260411b"></script>
+</body>
+</html>
