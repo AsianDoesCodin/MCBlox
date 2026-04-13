@@ -696,10 +696,14 @@ function renderUsers(filter = '') {
     const initial = (u.username || '?')[0].toUpperCase();
     const joined = u.created_at ? new Date(u.created_at).toLocaleDateString() : '?';
 
+    const avatarHtml = u.avatar_url
+      ? `<div class="user-avatar"><img src="${encodeURI(u.avatar_url)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`
+      : `<div class="user-avatar">${escapeHtml(initial)}</div>`;
+
     const card = document.createElement('div');
     card.className = 'user-card';
     card.innerHTML = `
-      <div class="user-avatar">${escapeHtml(initial)}</div>
+      ${avatarHtml}
       <div class="user-info">
         <div class="username">${escapeHtml(u.username || 'Anonymous')}</div>
         <div class="user-meta">

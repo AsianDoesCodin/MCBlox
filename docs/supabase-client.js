@@ -127,7 +127,8 @@ function setupNavAuth() {
         if (avatarUrl) {
           navAvatar.innerHTML = `<img src="${encodeURI(avatarUrl)}" alt="">`;
         } else {
-          navAvatar.innerHTML = '';
+          const initial = (name || '?')[0].toUpperCase();
+          navAvatar.innerHTML = `<span style="font-size:14px;font-weight:700;color:#fff;line-height:30px;">${initial}</span>`;
         }
       }
 
