@@ -74,7 +74,10 @@ function renderGame(game, playerCount) {
   else banner.innerHTML = '<span class="placeholder">⛏</span>';
 
   document.getElementById('game-title').textContent = game.title;
-  document.getElementById('game-description').textContent = game.description || '';
+  const descEl = document.getElementById('game-description');
+  const rawDesc = game.description || '';
+  const escaped = rawDesc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  descEl.innerHTML = escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:var(--warm)">$1</a>');
 
   // Creator
   const creatorName = game.profiles?.username || 'Unknown';
