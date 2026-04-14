@@ -993,10 +993,15 @@ function updatePromoControls() {
       document.getElementById('promo-sim-range').style.display = game.fake_players_enabled ? 'flex' : 'none';
       document.getElementById('promo-sim-min').value = game.fake_players_min || 0;
       document.getElementById('promo-sim-max').value = game.fake_players_max || 0;
-      document.getElementById('promo-total-plays').value = game.total_plays || 0;
+      document.getElementById('promo-total-plays').value = 0;
+      document.getElementById('promo-current-plays').textContent = `Current: ${(game.total_plays || 0).toLocaleString()}`;
     }
   } else {
-    // Multi-select: reset to defaults
+    // Multi-select: show combined total
+    const totalCombined = [...promoSelected].reduce((sum, id) => {
+      const g = promoGames.find(x => x.id === id);
+      return sum + (g?.total_plays || 0);
+    }, 0);
     document.getElementById('promo-featured-check').checked = false;
     document.getElementById('promo-featured-status').textContent = 'Off';
     document.getElementById('promo-sim-check').checked = false;
@@ -1005,6 +1010,7 @@ function updatePromoControls() {
     document.getElementById('promo-sim-min').value = 0;
     document.getElementById('promo-sim-max').value = 0;
     document.getElementById('promo-total-plays').value = 0;
+    document.getElementById('promo-current-plays').textContent = `Combined: ${totalCombined.toLocaleString()} across ${count} games`;
   }
 }
 
@@ -1068,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('promo-sim-range').style.display = e.target.checked ? 'flex' : 'none';
   });
 
-  // Apply button
+  // Apply button — updates featured + simulated players (NOT total_plays)
   document.getElementById('promo-apply').addEventListener('click', async () => {
     if (promoSelected.size === 0) return;
 
@@ -1079,7 +1085,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const simEnabled = document.getElementById('promo-sim-check').checked;
     const simMin = parseInt(document.getElementById('promo-sim-min').value) || 0;
     const simMax = parseInt(document.getElementById('promo-sim-max').value) || 0;
-    const totalPlays = parseInt(document.getElementById('promo-total-plays').value);
 
     if (simEnabled && simMin > simMax) {
       showToast('Min must be ≤ Max', 'error');
@@ -1095,10 +1100,6 @@ document.addEventListener('DOMContentLoaded', () => {
       fake_players_min: simMin,
       fake_players_max: simMax,
     };
-    // Only set total_plays if it's not 0 (avoid accidentally zeroing out multi-select)
-    if (totalPlays > 0 || promoSelected.size === 1) {
-      update.total_plays = totalPlays;
-    }
 
     let success = 0;
     let fail = 0;
@@ -1107,7 +1108,6 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const { error } = await sb.from('games').update(update).eq('id', id);
         if (error) throw error;
-        // Update local cache
         const g = promoGames.find(x => x.id === id);
         if (g) Object.assign(g, update);
         success++;
@@ -1126,8 +1126,77 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = ''; }, 3000);
 
-    // Refresh display
     renderPromoGames(document.getElementById('promo-search').value);
     renderPromoActive();
+    updatePromoControls();
+  });
+
+  // Add plays — adds the entered amount to each selected game's current total
+  document.getElementById('promo-plays-add').addEventListener('click', async () => {
+    if (promoSelected.size === 0) return;
+    const sb = getSupabase();
+    if (!sb) return;
+
+    const amount = parseInt(document.getElementById('promo-total-plays').value) || 0;
+    if (amount <= 0) { showToast('Enter an amount to add', 'error'); return; }
+
+    const statusEl = document.getElementById('promo-apply-status');
+    statusEl.textContent = 'Adding plays...';
+    let success = 0, fail = 0;
+
+    for (const id of promoSelected) {
+      try {
+        const g = promoGames.find(x => x.id === id);
+        const newTotal = (g?.total_plays || 0) + amount;
+        const { error } = await sb.from('games').update({ total_plays: newTotal }).eq('id', id);
+        if (error) throw error;
+        if (g) g.total_plays = newTotal;
+        success++;
+      } catch (e) {
+        console.error('Failed to add plays', id, e);
+        fail++;
+      }
+    }
+
+    statusEl.textContent = fail > 0 ? `+${amount} to ${success}, ${fail} failed` : `+${amount} plays to ${success} game${success > 1 ? 's' : ''}`;
+    statusEl.style.color = fail > 0 ? 'var(--red)' : 'var(--mint)';
+    setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = ''; }, 3000);
+    renderPromoGames(document.getElementById('promo-search').value);
+    renderPromoActive();
+    updatePromoControls();
+  });
+
+  // Set exact plays — overrides total_plays to the entered value
+  document.getElementById('promo-plays-set').addEventListener('click', async () => {
+    if (promoSelected.size === 0) return;
+    const sb = getSupabase();
+    if (!sb) return;
+
+    const value = parseInt(document.getElementById('promo-total-plays').value);
+    if (isNaN(value) || value < 0) { showToast('Enter a valid number', 'error'); return; }
+
+    const statusEl = document.getElementById('promo-apply-status');
+    statusEl.textContent = 'Setting plays...';
+    let success = 0, fail = 0;
+
+    for (const id of promoSelected) {
+      try {
+        const { error } = await sb.from('games').update({ total_plays: value }).eq('id', id);
+        if (error) throw error;
+        const g = promoGames.find(x => x.id === id);
+        if (g) g.total_plays = value;
+        success++;
+      } catch (e) {
+        console.error('Failed to set plays', id, e);
+        fail++;
+      }
+    }
+
+    statusEl.textContent = fail > 0 ? `Set ${success}, ${fail} failed` : `Set to ${value} on ${success} game${success > 1 ? 's' : ''}`;
+    statusEl.style.color = fail > 0 ? 'var(--red)' : 'var(--mint)';
+    setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = ''; }, 3000);
+    renderPromoGames(document.getElementById('promo-search').value);
+    renderPromoActive();
+    updatePromoControls();
   });
 });

@@ -182,8 +182,12 @@
               <div class="promo-field">
                 <label class="promo-label">📊 Total Plays</label>
                 <div style="display:flex;gap:8px;align-items:center;">
+                  <span style="font-size:13px;color:var(--text3);" id="promo-current-plays">Current: 0</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+                  <button class="btn btn-sm btn-ghost" id="promo-plays-add" style="font-size:11px;">+ Add</button>
                   <input type="number" id="promo-total-plays" value="0" min="0" class="promo-number-input" style="width:100px;">
-                  <span style="font-size:12px;color:var(--text4);">Set for all selected games</span>
+                  <button class="btn btn-sm btn-ghost" id="promo-plays-set" style="font-size:11px;">Set exact</button>
                 </div>
               </div>
 
