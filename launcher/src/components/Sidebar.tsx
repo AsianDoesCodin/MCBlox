@@ -1,4 +1,4 @@
-type Page = "home" | "settings";
+type Page = "home" | "library" | "settings";
 
 interface Props {
   current: Page;
@@ -8,6 +8,7 @@ interface Props {
 
 const nav: { page: Page; label: string; icon: string }[] = [
   { page: "home", label: "Discover", icon: "⛏" },
+  { page: "library", label: "Library", icon: "📚" },
   { page: "settings", label: "Settings", icon: "⚙" },
 ];
 

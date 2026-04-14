@@ -6,6 +6,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import Sidebar from "./components/Sidebar";
 import { ToastProvider } from "./components/Toast";
 import Home from "./pages/Home";
+import Library from "./pages/Library";
 import Settings from "./pages/Settings";
 import type { Game } from "./types";
 import { supabase } from "./lib/supabase";
@@ -24,7 +25,7 @@ export interface GameSession {
   sessionGameId: string | null;
 }
 
-type Page = "home" | "settings";
+type Page = "home" | "library" | "settings";
 
 function App() {
   const [page, setPage] = useState<Page>("home");
@@ -263,6 +264,7 @@ function App() {
         <Sidebar current={page} onNavigate={setPage} mcUsername={mcUsername} />
         <main className="flex-1 overflow-y-auto">
           {page === "home" && <Home session={gameSession} onPlay={handlePlay} onStop={handleStop} />}
+          {page === "library" && <Library session={gameSession} onPlay={handlePlay} onStop={handleStop} />}
           {page === "settings" && <Settings />}
         </main>
       </div>
