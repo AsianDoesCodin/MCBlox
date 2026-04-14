@@ -51,6 +51,7 @@ document.querySelectorAll('.admin-nav-item').forEach(item => {
     // Lazy-load section data
     if (section === 'users' && !_usersLoaded) loadUsers();
     if (section === 'stats' && !_statsLoaded) loadStats();
+    if (section === 'promotion' && !_promoLoaded) loadPromotion();
   });
 });
 
@@ -228,6 +229,30 @@ function openReview(game) {
         </label>
       </div>
     </div>
+    <div class="review-detail-field">
+      <label>Simulated Players</label>
+      <div class="value">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="review-fake-players-check" ${game.fake_players_enabled ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--warm);">
+          <span id="fake-players-status" style="font-size:13px;">${game.fake_players_enabled ? 'Enabled — random player count shown' : 'Disabled'}</span>
+        </label>
+        <div id="fake-players-range" style="margin-top:8px;display:${game.fake_players_enabled ? 'flex' : 'none'};gap:10px;align-items:center;">
+          <label style="font-size:12px;color:var(--text3);">Min</label>
+          <input type="number" id="review-fake-min" value="${game.fake_players_min || 0}" min="0" max="999" style="width:60px;padding:4px 8px;border-radius:6px;border:1px solid rgba(184,169,232,0.15);background:var(--surface2);color:var(--text1);font-size:13px;">
+          <label style="font-size:12px;color:var(--text3);">Max</label>
+          <input type="number" id="review-fake-max" value="${game.fake_players_max || 0}" min="0" max="999" style="width:60px;padding:4px 8px;border-radius:6px;border:1px solid rgba(184,169,232,0.15);background:var(--surface2);color:var(--text1);font-size:13px;">
+          <button id="review-fake-save" style="padding:4px 12px;border-radius:6px;border:none;background:var(--warm);color:#fff;font-size:12px;cursor:pointer;">Save</button>
+        </div>
+      </div>
+    </div>
+    <div class="review-detail-field">
+      <label>Total Plays</label>
+      <div class="value" style="display:flex;align-items:center;gap:10px;">
+        <input type="number" id="review-total-plays" value="${game.total_plays || 0}" min="0" style="width:90px;padding:4px 8px;border-radius:6px;border:1px solid rgba(184,169,232,0.15);background:var(--surface2);color:var(--text1);font-size:13px;">
+        <button id="review-plays-save" style="padding:4px 12px;border-radius:6px;border:none;background:var(--warm);color:#fff;font-size:12px;cursor:pointer;">Save</button>
+        <span id="plays-save-status" style="font-size:11px;color:var(--text4);"></span>
+      </div>
+    </div>
   `;
 
   document.getElementById('review-promote-check').addEventListener('change', async (ev) => {
@@ -241,6 +266,57 @@ function openReview(game) {
       ev.target.nextElementSibling.textContent = promoted ? 'Promoted — appears in Featured section' : 'Not promoted';
     } catch (err) {
       ev.target.checked = !promoted;
+      showToast('Error: ' + (err.message || 'Unknown'), 'error');
+    }
+  });
+
+  // Fake players toggle
+  document.getElementById('review-fake-players-check').addEventListener('change', async (ev) => {
+    const enabled = ev.target.checked;
+    const sb = getSupabase();
+    if (!sb || !reviewingGame) return;
+    try {
+      const { error } = await sb.from('games').update({ fake_players_enabled: enabled }).eq('id', reviewingGame.id);
+      if (error) throw error;
+      reviewingGame.fake_players_enabled = enabled;
+      document.getElementById('fake-players-status').textContent = enabled ? 'Enabled — random player count shown' : 'Disabled';
+      document.getElementById('fake-players-range').style.display = enabled ? 'flex' : 'none';
+    } catch (err) {
+      ev.target.checked = !enabled;
+      showToast('Error: ' + (err.message || 'Unknown'), 'error');
+    }
+  });
+
+  // Fake players min/max save
+  document.getElementById('review-fake-save').addEventListener('click', async () => {
+    const sb = getSupabase();
+    if (!sb || !reviewingGame) return;
+    const min = parseInt(document.getElementById('review-fake-min').value) || 0;
+    const max = parseInt(document.getElementById('review-fake-max').value) || 0;
+    if (min > max) { showToast('Min must be ≤ Max', 'error'); return; }
+    try {
+      const { error } = await sb.from('games').update({ fake_players_min: min, fake_players_max: max }).eq('id', reviewingGame.id);
+      if (error) throw error;
+      reviewingGame.fake_players_min = min;
+      reviewingGame.fake_players_max = max;
+      showToast('Simulated player range saved', 'success');
+    } catch (err) {
+      showToast('Error: ' + (err.message || 'Unknown'), 'error');
+    }
+  });
+
+  // Total plays save
+  document.getElementById('review-plays-save').addEventListener('click', async () => {
+    const sb = getSupabase();
+    if (!sb || !reviewingGame) return;
+    const plays = parseInt(document.getElementById('review-total-plays').value) || 0;
+    try {
+      const { error } = await sb.from('games').update({ total_plays: plays }).eq('id', reviewingGame.id);
+      if (error) throw error;
+      reviewingGame.total_plays = plays;
+      document.getElementById('plays-save-status').textContent = '✓ Saved';
+      setTimeout(() => { const el = document.getElementById('plays-save-status'); if (el) el.textContent = ''; }, 2000);
+    } catch (err) {
       showToast('Error: ' + (err.message || 'Unknown'), 'error');
     }
   });
@@ -806,3 +882,252 @@ async function loadStats() {
     _statsLoaded = false;
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// PROMOTION TAB
+// ═══════════════════════════════════════════════════════
+
+let _promoLoaded = false;
+let promoGames = [];
+let promoSelected = new Set();
+
+async function loadPromotion() {
+  if (_promoLoaded) return;
+  _promoLoaded = true;
+
+  const sb = getSupabase();
+  if (!sb) { _promoLoaded = false; return; }
+
+  try {
+    const { data, error } = await sb.from('games')
+      .select('id, title, thumbnail_url, status, is_promoted, fake_players_enabled, fake_players_min, fake_players_max, total_plays, creator_id')
+      .order('title');
+    if (error) throw error;
+    promoGames = data || [];
+    renderPromoGames();
+    renderPromoActive();
+  } catch (e) {
+    console.error('Failed to load promotion data:', e);
+    _promoLoaded = false;
+  }
+}
+
+function renderPromoGames(filter = '') {
+  const container = document.getElementById('promo-games');
+  const term = filter.toLowerCase().trim();
+  const filtered = term ? promoGames.filter(g => g.title.toLowerCase().includes(term)) : promoGames;
+
+  container.innerHTML = filtered.map(g => {
+    const checked = promoSelected.has(g.id) ? 'checked' : '';
+    const selectedClass = promoSelected.has(g.id) ? 'selected' : '';
+    const thumb = g.thumbnail_url ? `<img class="promo-game-thumb" src="${encodeURI(g.thumbnail_url)}" alt="">` : `<div class="promo-game-thumb" style="display:flex;align-items:center;justify-content:center;font-size:16px;">⛏</div>`;
+    const badges = [];
+    if (g.is_promoted) badges.push('<span style="color:var(--yellow);font-size:10px;">★</span>');
+    if (g.fake_players_enabled) badges.push('<span style="color:var(--lavender);font-size:10px;">🎭</span>');
+    return `
+      <div class="promo-game-row ${selectedClass}" data-id="${g.id}">
+        <input type="checkbox" ${checked} data-id="${g.id}">
+        ${thumb}
+        <div class="promo-game-info">
+          <div class="promo-game-name">${escapeHtml(g.title)} ${badges.join(' ')}</div>
+          <div class="promo-game-meta">
+            <span>${g.status}</span>
+            <span>${g.total_plays || 0} plays</span>
+            ${g.fake_players_enabled ? `<span>${g.fake_players_min}-${g.fake_players_max} sim</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Click handlers
+  container.querySelectorAll('.promo-game-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.tagName === 'INPUT') return; // let checkbox handle itself
+      const id = row.dataset.id;
+      const cb = row.querySelector('input[type="checkbox"]');
+      cb.checked = !cb.checked;
+      togglePromoSelect(id, cb.checked);
+    });
+    row.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
+      togglePromoSelect(row.dataset.id, e.target.checked);
+    });
+  });
+}
+
+function togglePromoSelect(id, selected) {
+  if (selected) promoSelected.add(id); else promoSelected.delete(id);
+  // Update row styling
+  document.querySelectorAll('.promo-game-row').forEach(r => {
+    r.classList.toggle('selected', promoSelected.has(r.dataset.id));
+  });
+  updatePromoControls();
+}
+
+function updatePromoControls() {
+  const noSel = document.getElementById('promo-no-selection');
+  const settings = document.getElementById('promo-settings');
+
+  if (promoSelected.size === 0) {
+    noSel.style.display = '';
+    settings.style.display = 'none';
+    return;
+  }
+
+  noSel.style.display = 'none';
+  settings.style.display = '';
+
+  const count = promoSelected.size;
+  document.getElementById('promo-title').textContent = count === 1
+    ? promoGames.find(g => g.id === [...promoSelected][0])?.title || '1 game selected'
+    : `${count} games selected`;
+
+  // If single game selected, populate fields with its current values
+  if (count === 1) {
+    const game = promoGames.find(g => g.id === [...promoSelected][0]);
+    if (game) {
+      document.getElementById('promo-featured-check').checked = !!game.is_promoted;
+      document.getElementById('promo-featured-status').textContent = game.is_promoted ? 'On' : 'Off';
+      document.getElementById('promo-sim-check').checked = !!game.fake_players_enabled;
+      document.getElementById('promo-sim-status').textContent = game.fake_players_enabled ? 'On' : 'Off';
+      document.getElementById('promo-sim-range').style.display = game.fake_players_enabled ? 'flex' : 'none';
+      document.getElementById('promo-sim-min').value = game.fake_players_min || 0;
+      document.getElementById('promo-sim-max').value = game.fake_players_max || 0;
+      document.getElementById('promo-total-plays').value = game.total_plays || 0;
+    }
+  } else {
+    // Multi-select: reset to defaults
+    document.getElementById('promo-featured-check').checked = false;
+    document.getElementById('promo-featured-status').textContent = 'Off';
+    document.getElementById('promo-sim-check').checked = false;
+    document.getElementById('promo-sim-status').textContent = 'Off';
+    document.getElementById('promo-sim-range').style.display = 'none';
+    document.getElementById('promo-sim-min').value = 0;
+    document.getElementById('promo-sim-max').value = 0;
+    document.getElementById('promo-total-plays').value = 0;
+  }
+}
+
+function renderPromoActive() {
+  const container = document.getElementById('promo-active-list');
+  const promoted = promoGames.filter(g => g.is_promoted || g.fake_players_enabled);
+
+  if (promoted.length === 0) {
+    container.innerHTML = '<p style="color:var(--text4);font-size:12px;text-align:center;padding:16px 0;">No active promotions.</p>';
+    return;
+  }
+
+  container.innerHTML = promoted.map(g => {
+    const badges = [];
+    if (g.is_promoted) badges.push('<span class="pa-badge featured">★ Featured</span>');
+    if (g.fake_players_enabled) badges.push(`<span class="pa-badge sim">🎭 ${g.fake_players_min}-${g.fake_players_max}</span>`);
+    return `
+      <div class="promo-active-row">
+        <span class="pa-name">${escapeHtml(g.title)}</span>
+        ${badges.join(' ')}
+        <span style="color:var(--text4);">${(g.total_plays || 0).toLocaleString()} plays</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Promotion event handlers (after DOM load)
+document.addEventListener('DOMContentLoaded', () => {
+  // Search
+  document.getElementById('promo-search').addEventListener('input', (e) => {
+    renderPromoGames(e.target.value);
+  });
+
+  // Select all / clear
+  document.getElementById('promo-select-all').addEventListener('click', () => {
+    const visible = document.querySelectorAll('#promo-games .promo-game-row');
+    visible.forEach(r => {
+      promoSelected.add(r.dataset.id);
+      r.querySelector('input[type="checkbox"]').checked = true;
+      r.classList.add('selected');
+    });
+    updatePromoControls();
+  });
+
+  document.getElementById('promo-deselect-all').addEventListener('click', () => {
+    promoSelected.clear();
+    document.querySelectorAll('#promo-games .promo-game-row').forEach(r => {
+      r.querySelector('input[type="checkbox"]').checked = false;
+      r.classList.remove('selected');
+    });
+    updatePromoControls();
+  });
+
+  // Toggle listeners for the toggle switches
+  document.getElementById('promo-featured-check').addEventListener('change', (e) => {
+    document.getElementById('promo-featured-status').textContent = e.target.checked ? 'On' : 'Off';
+  });
+
+  document.getElementById('promo-sim-check').addEventListener('change', (e) => {
+    document.getElementById('promo-sim-status').textContent = e.target.checked ? 'On' : 'Off';
+    document.getElementById('promo-sim-range').style.display = e.target.checked ? 'flex' : 'none';
+  });
+
+  // Apply button
+  document.getElementById('promo-apply').addEventListener('click', async () => {
+    if (promoSelected.size === 0) return;
+
+    const sb = getSupabase();
+    if (!sb) return;
+
+    const featured = document.getElementById('promo-featured-check').checked;
+    const simEnabled = document.getElementById('promo-sim-check').checked;
+    const simMin = parseInt(document.getElementById('promo-sim-min').value) || 0;
+    const simMax = parseInt(document.getElementById('promo-sim-max').value) || 0;
+    const totalPlays = parseInt(document.getElementById('promo-total-plays').value);
+
+    if (simEnabled && simMin > simMax) {
+      showToast('Min must be ≤ Max', 'error');
+      return;
+    }
+
+    const statusEl = document.getElementById('promo-apply-status');
+    statusEl.textContent = 'Applying...';
+
+    const update = {
+      is_promoted: featured,
+      fake_players_enabled: simEnabled,
+      fake_players_min: simMin,
+      fake_players_max: simMax,
+    };
+    // Only set total_plays if it's not 0 (avoid accidentally zeroing out multi-select)
+    if (totalPlays > 0 || promoSelected.size === 1) {
+      update.total_plays = totalPlays;
+    }
+
+    let success = 0;
+    let fail = 0;
+
+    for (const id of promoSelected) {
+      try {
+        const { error } = await sb.from('games').update(update).eq('id', id);
+        if (error) throw error;
+        // Update local cache
+        const g = promoGames.find(x => x.id === id);
+        if (g) Object.assign(g, update);
+        success++;
+      } catch (e) {
+        console.error('Failed to update game', id, e);
+        fail++;
+      }
+    }
+
+    if (fail > 0) {
+      statusEl.textContent = `✓ ${success} updated, ${fail} failed`;
+      statusEl.style.color = 'var(--red)';
+    } else {
+      statusEl.textContent = `✓ ${success} game${success > 1 ? 's' : ''} updated`;
+      statusEl.style.color = 'var(--mint)';
+    }
+    setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = ''; }, 3000);
+
+    // Refresh display
+    renderPromoGames(document.getElementById('promo-search').value);
+    renderPromoActive();
+  });
+});

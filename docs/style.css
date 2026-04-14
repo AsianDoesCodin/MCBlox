@@ -1246,6 +1246,50 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
 .status-pending { background: rgba(255,224,130,0.12); color: var(--yellow); }
 .status-rejected { background: rgba(239,83,80,0.12); color: var(--red); }
 
+/* ── PROMOTION TAB ── */
+.promo-layout { display: flex; gap: 20px; padding: 0 24px 40px; max-width: 1200px; }
+.promo-game-list { width: 340px; flex-shrink: 0; }
+.promo-games-scroll { max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.promo-game-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-sm);
+  cursor: pointer; transition: border-color 0.15s;
+}
+.promo-game-row:hover { border-color: var(--warm); }
+.promo-game-row.selected { border-color: var(--warm); background: var(--warm-glow); }
+.promo-game-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--warm); flex-shrink: 0; }
+.promo-game-row .promo-game-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: var(--bg3); flex-shrink: 0; }
+.promo-game-row .promo-game-info { flex: 1; min-width: 0; }
+.promo-game-row .promo-game-name { font-size: 13px; color: var(--text1); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.promo-game-row .promo-game-meta { font-size: 10px; color: var(--text4); display: flex; gap: 8px; }
+.promo-controls { flex: 1; min-width: 0; }
+.promo-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; }
+.promo-field { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.promo-field:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.promo-label { font-size: 14px; font-weight: 600; color: var(--text2); margin-bottom: 8px; display: block; }
+.promo-toggle-row { display: flex; align-items: center; gap: 10px; }
+.promo-status { font-size: 12px; color: var(--text3); }
+.promo-range-row { display: flex; gap: 16px; margin-top: 10px; }
+.promo-range-input { display: flex; align-items: center; gap: 6px; }
+.promo-range-input label { font-size: 12px; color: var(--text3); }
+.promo-range-input input { width: 70px; padding: 6px 10px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg3); color: var(--text1); font-size: 13px; font-family: inherit; }
+.promo-number-input { padding: 6px 10px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg3); color: var(--text1); font-size: 13px; font-family: inherit; }
+/* Toggle switch */
+.toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--bg3); border: 1px solid var(--border); border-radius: 22px; transition: 0.2s; }
+.toggle-slider::before { content: ""; position: absolute; width: 16px; height: 16px; left: 2px; bottom: 2px; background: var(--text3); border-radius: 50%; transition: 0.2s; }
+.toggle-switch input:checked + .toggle-slider { background: var(--warm); border-color: var(--warm); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); background: #fff; }
+/* Active promotions table */
+.promo-active-scroll { max-height: 260px; overflow-y: auto; }
+.promo-active-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.promo-active-row:last-child { border-bottom: none; }
+.promo-active-row .pa-name { flex: 1; color: var(--text1); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.promo-active-row .pa-badge { padding: 2px 8px; border-radius: var(--r-sm); font-size: 10px; font-weight: 600; }
+.pa-badge.featured { background: rgba(255,224,130,0.12); color: var(--yellow); }
+.pa-badge.sim { background: rgba(184,169,232,0.12); color: var(--lavender); }
+
 /* ── LOADING ── */
 .page-loading { text-align: center; padding: 40px; color: var(--text3); }
 .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--warm); border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 12px; }

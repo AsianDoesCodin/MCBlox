@@ -17,6 +17,9 @@ export interface Game {
   player_count?: number;
   is_promoted: boolean;
   auto_join: boolean;
+  fake_players_enabled?: boolean;
+  fake_players_min?: number;
+  fake_players_max?: number;
   status: string;
   created_at: string;
   author?: string;

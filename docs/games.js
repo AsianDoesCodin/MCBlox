@@ -208,6 +208,19 @@ function scrollFeatured(idx) {
   featuredCarousel.scrollTo({ left: idx * featuredCarousel.offsetWidth, behavior: 'smooth' });
 }
 
+// Simulated player count: stable random that shifts every ~30s
+function getFakePlayerCount(game) {
+  if (!game.fake_players_enabled) return 0;
+  const min = game.fake_players_min || 0;
+  const max = game.fake_players_max || 0;
+  if (max <= 0) return 0;
+  const bucket = Math.floor(Date.now() / 30000);
+  let h = 0;
+  const seed = game.id + bucket;
+  for (let i = 0; i < seed.length; i++) { h = ((h << 5) - h + seed.charCodeAt(i)) | 0; }
+  return min + (Math.abs(h) % (max - min + 1));
+}
+
 async function fetchGames() {
   const sb = getSupabase();
   if (!sb) { empty.style.display = ''; return; }
@@ -223,7 +236,7 @@ async function fetchGames() {
 
     allGames = (data || []).map(g => ({
       ...g,
-      player_count: counts[g.id] || 0,
+      player_count: (counts[g.id] || 0) + getFakePlayerCount(g),
       author: g.profiles?.username || 'Unknown'
     }));
     render();

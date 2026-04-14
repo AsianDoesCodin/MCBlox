@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS games (
   player_count INT DEFAULT 0,
   is_promoted BOOLEAN DEFAULT FALSE,
   auto_join BOOLEAN DEFAULT FALSE,
+  fake_players_enabled BOOLEAN DEFAULT FALSE,
+  fake_players_min INT DEFAULT 0,
+  fake_players_max INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

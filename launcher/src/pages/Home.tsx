@@ -55,11 +55,23 @@ export default function Home({ session, onPlay, onStop }: Props) {
             }
           }
 
-          setGames(data.map((g: any) => ({
-            ...g,
-            player_count: counts[g.id] || 0,
-            author: g.profiles?.username || 'Unknown',
-          })));
+          setGames(data.map((g: any) => {
+            let fakeCount = 0;
+            if (g.fake_players_enabled) {
+              const min = g.fake_players_min || 0, max = g.fake_players_max || 0;
+              if (max > 0) {
+                const bucket = Math.floor(Date.now() / 30000);
+                let h = 0; const seed = g.id + String(bucket);
+                for (let i = 0; i < seed.length; i++) { h = ((h << 5) - h + seed.charCodeAt(i)) | 0; }
+                fakeCount = min + (Math.abs(h) % (max - min + 1));
+              }
+            }
+            return {
+              ...g,
+              player_count: (counts[g.id] || 0) + fakeCount,
+              author: g.profiles?.username || 'Unknown',
+            };
+          }));
         }
       }
     } finally {

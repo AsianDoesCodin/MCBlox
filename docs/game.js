@@ -46,7 +46,20 @@ async function loadGame() {
     // Active players
     const twoMinAgo = new Date(Date.now() - 120000).toISOString();
     const { data: activity } = await sb.from('player_activity').select('id').eq('game_id', gameId).gte('last_heartbeat', twoMinAgo);
-    const playerCount = activity ? activity.length : 0;
+    let playerCount = activity ? activity.length : 0;
+
+    // Add simulated players
+    if (game.fake_players_enabled) {
+      const min = game.fake_players_min || 0;
+      const max = game.fake_players_max || 0;
+      if (max > 0) {
+        const bucket = Math.floor(Date.now() / 30000);
+        let h = 0;
+        const seed = game.id + bucket;
+        for (let i = 0; i < seed.length; i++) { h = ((h << 5) - h + seed.charCodeAt(i)) | 0; }
+        playerCount += min + (Math.abs(h) % (max - min + 1));
+      }
+    }
 
     renderGame(game, playerCount);
     loadComments();
