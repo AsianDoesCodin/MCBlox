@@ -4,17 +4,13 @@
 const SUPABASE_URL = 'https://ldipundnojizgnykqvdd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_l5NXtUaTUkl6zzEMZlBAjw_fw-8YJb7';
 
-const ADMIN_IDS = [
-  'ff83d829-9583-4025-af2c-8cf082696d55'
-];
-
 function isAdmin() {
-  const user = getUser();
-  return user && ADMIN_IDS.includes(user.id);
+  return _isAdmin;
 }
 
 let _supabase = null;
 let _session = null;
+let _isAdmin = false;
 
 function getSupabase() {
   if (!_supabase && window.supabase) {
@@ -46,6 +42,19 @@ function _notifyAuth() {
   _authCallbacks.forEach(cb => cb(_session));
 }
 
+async function refreshAdminStatus() {
+  const sb = getSupabase();
+  const user = getUser();
+  if (!sb || !user) {
+    _isAdmin = false;
+    return false;
+  }
+
+  const { data, error } = await sb.rpc('current_user_is_admin');
+  _isAdmin = !error && data === true;
+  return _isAdmin;
+}
+
 // Init auth on page load
 async function initAuth() {
   const sb = getSupabase();
@@ -53,11 +62,13 @@ async function initAuth() {
 
   const { data: { session } } = await sb.auth.getSession();
   _session = session;
+  await refreshAdminStatus();
   _authInitialized = true;
   _notifyAuth();
 
-  sb.auth.onAuthStateChange((_event, session) => {
+  sb.auth.onAuthStateChange(async (_event, session) => {
     _session = session;
+    await refreshAdminStatus();
     _notifyAuth();
   });
 }
@@ -124,11 +135,18 @@ function setupNavAuth() {
       if (publishBtn) publishBtn.style.display = '';
       if (navAvatar) {
         navAvatar.style.display = '';
+        navAvatar.replaceChildren();
         if (avatarUrl) {
-          navAvatar.innerHTML = `<img src="${encodeURI(avatarUrl)}" alt="">`;
+          const img = document.createElement('img');
+          img.src = avatarUrl;
+          img.alt = '';
+          navAvatar.appendChild(img);
         } else {
           const initial = (name || '?')[0].toUpperCase();
-          navAvatar.innerHTML = `<span style="font-size:14px;font-weight:700;color:#fff;line-height:30px;">${initial}</span>`;
+          const span = document.createElement('span');
+          span.style.cssText = 'font-size:14px;font-weight:700;color:#fff;line-height:30px;';
+          span.textContent = initial;
+          navAvatar.appendChild(span);
         }
       }
 

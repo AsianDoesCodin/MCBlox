@@ -1,5 +1,5 @@
 // Admin panel — uses shared supabase-client.js for auth
-// ADMIN_IDS is defined in supabase-client.js
+// Database RLS is the source of truth for admin access.
 
 const adminGate = document.getElementById('admin-gate');
 const adminPanel = document.getElementById('admin-panel');
@@ -18,16 +18,15 @@ let allGames = [];
 let currentTab = 'pending';
 let reviewingGame = null;
 
-function updateAdminAuth() {
+async function updateAdminAuth() {
   const user = getUser();
-  // For development: allow any signed-in user. In production, check ADMIN_IDS.
-  const isAdmin = user && (ADMIN_IDS.length === 0 || ADMIN_IDS.includes(user.id));
+  const userIsAdmin = user && await refreshAdminStatus();
 
-  if (isAdmin) {
+  if (userIsAdmin) {
     adminGate.style.display = 'none';
     adminPanel.style.display = '';
     loadAllGames();
-  } else if (user && !isAdmin) {
+  } else if (user && !userIsAdmin) {
     adminGate.innerHTML = '<h2>Access Denied</h2><p style="color:var(--text3)">You are not an admin.</p>';
     adminGate.style.display = '';
     adminPanel.style.display = 'none';
@@ -37,7 +36,7 @@ function updateAdminAuth() {
   }
 }
 
-onAuthChange(updateAdminAuth);
+onAuthChange(() => { updateAdminAuth(); });
 signinBtn.addEventListener('click', () => showAuthModal());
 
 // --- Sidebar navigation ---
@@ -767,8 +766,7 @@ function renderUsers(filter = '') {
   empty.style.display = 'none';
 
   filtered.forEach(u => {
-    const isAdminUser = ADMIN_IDS.includes(u.id);
-    const role = isAdminUser ? 'admin' : (u._gameCount > 0 ? 'creator' : 'player');
+    const role = u._gameCount > 0 ? 'creator' : 'player';
     const initial = (u.username || '?')[0].toUpperCase();
     const joined = u.created_at ? new Date(u.created_at).toLocaleDateString() : '?';
 

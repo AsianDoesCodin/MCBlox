@@ -4,6 +4,7 @@ target/
 
 # Environment
 .env
+.env.*
 
 # Build output
 dist/
@@ -23,6 +24,8 @@ src-tauri/target/
 
 # Logs
 *.log
+*.log.gz
+logs/
 
 # Archives
 *.zip
@@ -33,3 +36,27 @@ mods/*/build/
 mods/*/.gradle/
 mods/*/bin/
 mods/*/run/
+
+# Local Codex/deployment notes and signing material
+.codex/
+*.key
+*.pem
+*.p12
+
+# Local project notes and backend setup docs
+.env.example
+CONFIG.md
+DESIGN.md
+DOMAIN-NOTES.txt
+TODO.txt
+supabase/
+
+# Local source/build work that is not needed for GitHub Pages
+.github/
+designs/
+launcher/
+mods/
+docs-old/
+gen_key.py
+mcbloxlogo.png
+mcbloxlogo2.png
