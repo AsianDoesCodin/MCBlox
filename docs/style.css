@@ -589,11 +589,12 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
 
 /* Lightbox */
 .lightbox { position: fixed; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center; }
-.lightbox .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); }
-.lightbox .lb-close { position: absolute; top: 20px; right: 20px; background: none; border: none; color: #fff; font-size: 32px; cursor: pointer; z-index: 1; }
-.lightbox .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); border: none; color: #fff; font-size: 28px; cursor: pointer; padding: 10px 16px; border-radius: var(--r-sm); z-index: 1; }
-.lightbox .lb-prev { left: 20px; } .lightbox .lb-next { right: 20px; }
-.lightbox .lb-img { max-width: 90vw; max-height: 85vh; border-radius: var(--r-sm); z-index: 1; }
+.lightbox .backdrop, .lightbox .lightbox-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); }
+.lightbox .lb-close, .lightbox .lightbox-close { position: absolute; top: 20px; right: 20px; background: none; border: none; color: #fff; font-size: 32px; cursor: pointer; z-index: 1; }
+.lightbox .lb-nav, .lightbox .lightbox-prev, .lightbox .lightbox-next { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); border: none; color: #fff; font-size: 28px; cursor: pointer; padding: 10px 16px; border-radius: var(--r-sm); z-index: 1; }
+.lightbox .lb-prev, .lightbox .lightbox-prev { left: 20px; }
+.lightbox .lb-next, .lightbox .lightbox-next { right: 20px; }
+.lightbox .lb-img, .lightbox .lightbox-img { max-width: 90vw; max-height: 85vh; border-radius: var(--r-sm); z-index: 1; }
 
 /* Sidebar */
 .game-sidebar { position: sticky; top: 80px; }
@@ -608,6 +609,7 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
 .sidebar-actions { display: flex; gap: 8px; margin-bottom: 12px; }
 .sidebar-actions .btn { flex: 1; justify-content: center; }
 .vote-active { border-color: var(--warm) !important; color: var(--warm) !important; background: var(--warm-glow) !important; }
+.vote-btn.voted { border-color: var(--warm) !important; color: var(--warm) !important; background: var(--warm-glow) !important; }
 
 /* Comments */
 .comments-section { margin-top: 24px; }
@@ -625,6 +627,27 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
 .comment .comment-text { font-size: 13px; color: var(--text2); }
 .comments-empty { color: var(--text3); font-size: 13px; }
 .comment-signin { color: var(--text3); font-size: 13px; }
+
+/* comment renderer compatibility (game.js) */
+.comment-item { padding: 12px; background: var(--bg3); border-radius: var(--r-sm); display: flex; gap: 10px; }
+.comment-item .comment-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--lavender-glow); flex-shrink: 0; object-fit: cover; }
+.comment-item .comment-body { flex: 1; min-width: 0; }
+.comment-item .comment-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.comment-item .comment-author { font-size: 12px; font-weight: 700; color: var(--lavender); }
+.comment-item .comment-time { font-size: 10px; color: var(--text4); }
+.comment-item .comment-text { font-size: 13px; color: var(--text2); white-space: pre-wrap; word-break: break-word; }
+.comment-item .comment-actions { margin-top: 8px; }
+.comment-delete-btn {
+  background: rgba(239,83,80,0.12);
+  border: 1px solid rgba(239,83,80,0.3);
+  color: var(--red);
+  border-radius: var(--r-xs);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.comment-delete-btn:hover { background: rgba(239,83,80,0.2); }
 
 /* ═══════════════════════════════════════════════
    PAGE: PUBLISH
