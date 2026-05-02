@@ -24,7 +24,7 @@
   <meta name="twitter:image" content="https://www.mcblox.online/embed.png?v=20260430">
   <meta name="twitter:image:alt" content="McBlox - Play Minecraft games. One click.">
   <title>Game — McBlox</title>
-  <link rel="stylesheet" href="style.css?v=20260501a">
+  <link rel="stylesheet" href="style.css?v=20260503a">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="supabase-client.js"></script>
   <script src="toast.js"></script>
@@ -55,7 +55,7 @@
     </div>
   </div>
 
-  <main>
+  <main class="game-page">
     <!-- Loading state -->
     <div id="game-loading" class="game-loading">
       <div class="loading-spinner"></div>
@@ -70,6 +70,8 @@
 
     <!-- Game detail -->
     <div id="game-detail" style="display:none">
+      <a href="games.html" class="game-back-link">&larr; Back to Games</a>
+
       <!-- Hero / Banner -->
       <div class="game-banner" id="game-banner">
         <img id="banner-img" alt="">
@@ -174,6 +176,6 @@
     <p>&copy; 2026 McBlox</p>
   </footer>
 
-  <script src="game.js?v=20260430"></script>
+  <script src="game.js?v=20260503a"></script>
 </body>
 </html>

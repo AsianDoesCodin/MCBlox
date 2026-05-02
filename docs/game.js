@@ -6,6 +6,7 @@ const notFoundEl = document.getElementById('game-not-found');
 const detailEl = document.getElementById('game-detail');
 
 let gameData = null;
+let currentVote = null;
 
 function escapeHtml(str) {
   const d = document.createElement('div');
@@ -43,6 +44,21 @@ function timeAgo(dateStr) {
   return `${Math.floor(months / 12)}y ago`;
 }
 
+function getFakePlayerCount(game) {
+  if (!game.fake_players_enabled) return 0;
+  const min = Math.max(0, game.fake_players_min || 0);
+  const max = Math.max(0, game.fake_players_max || 0);
+  if (max <= 0 || max < min) return 0;
+
+  const bucket = Math.floor(Date.now() / 30000);
+  const seed = `${game.id}:${bucket}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  }
+  return min + (Math.abs(hash) % (max - min + 1));
+}
+
 // --- Fetch and render game ---
 async function loadGame() {
   if (!gameId) {
@@ -65,8 +81,6 @@ async function loadGame() {
       return;
     }
 
-    gameData = data;
-
     // Active players
     const twoMinAgo = new Date(Date.now() - 120000).toISOString();
     const { data: activity } = await sb
@@ -74,9 +88,11 @@ async function loadGame() {
       .select('id')
       .eq('game_id', gameId)
       .gte('last_heartbeat', twoMinAgo);
-    const playerCount = activity ? activity.length : 0;
+    const realPlayerCount = activity ? activity.length : 0;
+    const playerCount = realPlayerCount + getFakePlayerCount(data);
 
-    renderGame(data, playerCount);
+    gameData = { ...data, player_count: playerCount };
+    renderGame(gameData, playerCount);
     loadComments();
   } catch (e) {
     console.error('Failed to load game:', e);
@@ -134,6 +150,7 @@ function renderGame(game, playerCount) {
 
   // Tags
   const tagsEl = document.getElementById('game-tags');
+  tagsEl.innerHTML = '';
   (game.tags || []).forEach(t => {
     const span = document.createElement('span');
     span.className = 'tag';
@@ -147,6 +164,7 @@ function renderGame(game, playerCount) {
     const section = document.getElementById('screenshots-section');
     section.style.display = '';
     const gallery = document.getElementById('screenshot-gallery');
+    gallery.innerHTML = '';
     screenshots.forEach((url, i) => {
       const img = document.createElement('img');
       img.src = url;
@@ -229,62 +247,88 @@ function setupVoting(game) {
   const upBtn = document.getElementById('vote-up-btn');
   const downBtn = document.getElementById('vote-down-btn');
 
-  // Check if user already voted (stored in localStorage)
-  const voteKey = `vote_${game.id}`;
-  const existingVote = localStorage.getItem(voteKey);
-  if (existingVote) {
-    if (existingVote === 'up') upBtn.classList.add('voted');
-    else downBtn.classList.add('voted');
-  }
+  loadCurrentVote(game.id, upBtn, downBtn);
 
   upBtn.addEventListener('click', async () => {
-    await submitVote(game.id, 'up', voteKey, upBtn, downBtn);
+    await submitVote(game.id, 'up', upBtn, downBtn);
   });
   downBtn.addEventListener('click', async () => {
-    await submitVote(game.id, 'down', voteKey, upBtn, downBtn);
+    await submitVote(game.id, 'down', upBtn, downBtn);
   });
 }
 
-async function submitVote(id, direction, voteKey, upBtn, downBtn) {
+async function loadCurrentVote(id, upBtn, downBtn) {
+  const user = getUser();
+  const sb = getSupabase();
+  if (!user || !sb) return;
+
+  const { data } = await sb
+    .from('ratings')
+    .select('vote')
+    .eq('game_id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  currentVote = data?.vote || null;
+  updateVoteButtons(upBtn, downBtn);
+}
+
+function updateVoteButtons(upBtn, downBtn) {
+  upBtn.classList.toggle('voted', currentVote === 'up');
+  downBtn.classList.toggle('voted', currentVote === 'down');
+}
+
+function updateRatingUi(upBtn, downBtn) {
+  const likes = gameData.thumbs_up || 0;
+  const dislikes = gameData.thumbs_down || 0;
+  const total = likes + dislikes;
+  const pct = total > 0 ? Math.round((likes / total) * 100) : 100;
+
+  document.getElementById('rating-up').textContent = `👍 ${likes}`;
+  document.getElementById('rating-down').textContent = `👎 ${dislikes}`;
+  document.getElementById('rating-pct-fill').style.width = `${pct}%`;
+  updateVoteButtons(upBtn, downBtn);
+}
+
+async function submitVote(id, direction, upBtn, downBtn) {
   const user = getUser();
   if (!user) { showToast('Sign in to vote.', 'warning'); return; }
 
-  if (localStorage.getItem(voteKey)) {
-    showToast('You already voted on this game.', 'warning');
+  if (currentVote === direction) {
+    showToast('You already voted that way.', 'warning');
     return;
   }
 
   const sb = getSupabase();
   if (!sb) return;
 
-  const col = direction === 'up' ? 'thumbs_up' : 'thumbs_down';
-  const current = direction === 'up' ? (gameData.thumbs_up || 0) : (gameData.thumbs_down || 0);
+  const oldVote = currentVote;
+  const oldUp = gameData.thumbs_up || 0;
+  const oldDown = gameData.thumbs_down || 0;
+
+  if (oldVote === 'up') gameData.thumbs_up = Math.max(0, oldUp - 1);
+  if (oldVote === 'down') gameData.thumbs_down = Math.max(0, oldDown - 1);
+  if (direction === 'up') gameData.thumbs_up = (gameData.thumbs_up || 0) + 1;
+  else gameData.thumbs_down = (gameData.thumbs_down || 0) + 1;
+  currentVote = direction;
+  updateRatingUi(upBtn, downBtn);
 
   const { error } = await sb
-    .from('games')
-    .update({ [col]: current + 1 })
-    .eq('id', id);
+    .from('ratings')
+    .upsert({
+      game_id: id,
+      user_id: user.id,
+      vote: direction
+    }, { onConflict: 'game_id,user_id' });
 
   if (error) {
+    currentVote = oldVote;
+    gameData.thumbs_up = oldUp;
+    gameData.thumbs_down = oldDown;
+    updateRatingUi(upBtn, downBtn);
     showToast('Failed to vote.', 'error');
     return;
   }
-
-  localStorage.setItem(voteKey, direction);
-  if (direction === 'up') {
-    gameData.thumbs_up = (gameData.thumbs_up || 0) + 1;
-    upBtn.classList.add('voted');
-    document.getElementById('rating-up').textContent = `👍 ${gameData.thumbs_up}`;
-  } else {
-    gameData.thumbs_down = (gameData.thumbs_down || 0) + 1;
-    downBtn.classList.add('voted');
-    document.getElementById('rating-down').textContent = `👎 ${gameData.thumbs_down}`;
-  }
-
-  // Update bar
-  const total = (gameData.thumbs_up || 0) + (gameData.thumbs_down || 0);
-  const pct = total > 0 ? Math.round(((gameData.thumbs_up || 0) / total) * 100) : 100;
-  document.getElementById('rating-pct-fill').style.width = `${pct}%`;
 
   showToast('Vote recorded!', 'success');
 }
