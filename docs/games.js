@@ -104,6 +104,13 @@ function showSkeletons(count) {
 }
 showSkeletons(6);
 
+function showLoadError(message = 'Failed to load games. Refresh and try again.') {
+  grid.innerHTML = '';
+  featuredSection.style.display = 'none';
+  empty.textContent = message;
+  empty.style.display = '';
+}
+
 function escapeHtml(str) {
   const d = document.createElement('div');
   d.textContent = str || '';
@@ -212,6 +219,15 @@ function scrollFeatured(idx) {
   featuredCarousel.scrollTo({ left: idx * featuredCarousel.offsetWidth, behavior: 'smooth' });
 }
 
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    }),
+  ]);
+}
+
 // Simulated player count: stable random that shifts every ~30s
 function getFakePlayerCount(game) {
   if (!usesSimulatedPlayers(game)) return 0;
@@ -227,14 +243,25 @@ function getFakePlayerCount(game) {
 
 async function fetchGames() {
   const sb = getSupabase();
-  if (!sb) { empty.style.display = ''; return; }
+  if (!sb) { showLoadError('Games are unavailable right now. Refresh and try again.'); return; }
 
   try {
-    const { data, error } = await sb.from('games').select('*, profiles:creator_id(username)').eq('status', 'approved');
+    empty.textContent = 'No games found.';
+
+    const { data, error } = await withTimeout(
+      sb.from('games').select('*, profiles:creator_id(username)').eq('status', 'approved'),
+      15000,
+      'Game list request'
+    );
     if (error) throw error;
 
     const twoMinAgo = new Date(Date.now() - 120000).toISOString();
-    const { data: activity } = await sb.from('player_activity').select('game_id').gte('last_heartbeat', twoMinAgo);
+    const { data: activity, error: activityError } = await withTimeout(
+      sb.from('player_activity').select('game_id').gte('last_heartbeat', twoMinAgo),
+      15000,
+      'Player activity request'
+    );
+    if (activityError) throw activityError;
     const counts = {};
     if (activity) activity.forEach(r => { counts[r.game_id] = (counts[r.game_id] || 0) + 1; });
 
@@ -246,7 +273,7 @@ async function fetchGames() {
     render();
   } catch (e) {
     console.error('Failed to fetch games:', e);
-    empty.style.display = '';
+    showLoadError();
   }
 }
 
