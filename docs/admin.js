@@ -229,11 +229,11 @@ function openReview(game) {
       </div>
     </div>
     <div class="review-detail-field">
-      <label>Simulated Players</label>
+      <label>Simulated Players (Singleplayer only)</label>
       <div class="value">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
           <input type="checkbox" id="review-fake-players-check" ${game.fake_players_enabled ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--warm);">
-          <span id="fake-players-status" style="font-size:13px;">${game.fake_players_enabled ? 'Enabled — random player count shown' : 'Disabled'}</span>
+          <span id="fake-players-status" style="font-size:13px;">${game.fake_players_enabled ? 'Enabled — random player count shown for singleplayer only' : 'Disabled'}</span>
         </label>
         <div id="fake-players-range" style="margin-top:8px;display:${game.fake_players_enabled ? 'flex' : 'none'};gap:10px;align-items:center;">
           <label style="font-size:12px;color:var(--text3);">Min</label>
@@ -278,7 +278,7 @@ function openReview(game) {
       const { error } = await sb.from('games').update({ fake_players_enabled: enabled }).eq('id', reviewingGame.id);
       if (error) throw error;
       reviewingGame.fake_players_enabled = enabled;
-      document.getElementById('fake-players-status').textContent = enabled ? 'Enabled — random player count shown' : 'Disabled';
+      document.getElementById('fake-players-status').textContent = enabled ? 'Enabled — random player count shown for singleplayer only' : 'Disabled';
       document.getElementById('fake-players-range').style.display = enabled ? 'flex' : 'none';
     } catch (err) {
       ev.target.checked = !enabled;

@@ -130,6 +130,27 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+function usesSimulatedPlayers(game) {
+  return game.game_type === 'world' && Boolean(game.fake_players_enabled);
+}
+
+function getFakePlayerCount(game) {
+  if (!usesSimulatedPlayers(game)) return 0;
+
+  const min = Math.max(0, game.fake_players_min || 0);
+  const max = Math.max(0, game.fake_players_max || 0);
+  if (max <= 0 || max < min) return 0;
+
+  const bucket = Math.floor(Date.now() / 30000);
+  const seed = `${game.id}:${bucket}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  }
+
+  return min + (Math.abs(hash) % (max - min + 1));
+}
+
 function gameCardHTML(game) {
   const thumbContent = game.thumbnail_url
     ? `<img src="${encodeURI(game.thumbnail_url)}" alt="${escapeHtml(game.title)}">`
@@ -176,19 +197,9 @@ async function loadPopularGames() {
     if (activity) activity.forEach(r => { playerCounts[r.game_id] = (playerCounts[r.game_id] || 0) + 1; });
 
     const games = (data || []).map(g => {
-      let fakeCount = 0;
-      if (g.fake_players_enabled) {
-        const min = g.fake_players_min || 0, max = g.fake_players_max || 0;
-        if (max > 0) {
-          const bucket = Math.floor(Date.now() / 30000);
-          let h = 0; const seed = g.id + bucket;
-          for (let i = 0; i < seed.length; i++) { h = ((h << 5) - h + seed.charCodeAt(i)) | 0; }
-          fakeCount = min + (Math.abs(h) % (max - min + 1));
-        }
-      }
       return {
         ...g,
-        player_count: (playerCounts[g.id] || 0) + fakeCount,
+        player_count: (playerCounts[g.id] || 0) + getFakePlayerCount(g),
         author: g.profiles?.username || 'Unknown'
       };
     });

@@ -110,6 +110,10 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+function usesSimulatedPlayers(game) {
+  return game.game_type === 'world' && Boolean(game.fake_players_enabled);
+}
+
 function gameCardHTML(game) {
   const thumbContent = game.thumbnail_url
     ? `<img src="${encodeURI(game.thumbnail_url)}" alt="${escapeHtml(game.title)}">`
@@ -210,7 +214,7 @@ function scrollFeatured(idx) {
 
 // Simulated player count: stable random that shifts every ~30s
 function getFakePlayerCount(game) {
-  if (!game.fake_players_enabled) return 0;
+  if (!usesSimulatedPlayers(game)) return 0;
   const min = game.fake_players_min || 0;
   const max = game.fake_players_max || 0;
   if (max <= 0) return 0;

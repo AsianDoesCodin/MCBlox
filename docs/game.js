@@ -44,8 +44,12 @@ function timeAgo(dateStr) {
   return `${Math.floor(months / 12)}y ago`;
 }
 
+function usesSimulatedPlayers(game) {
+  return game.game_type === 'world' && Boolean(game.fake_players_enabled);
+}
+
 function getFakePlayerCount(game) {
-  if (!game.fake_players_enabled) return 0;
+  if (!usesSimulatedPlayers(game)) return 0;
   const min = Math.max(0, game.fake_players_min || 0);
   const max = Math.max(0, game.fake_players_max || 0);
   if (max <= 0 || max < min) return 0;
