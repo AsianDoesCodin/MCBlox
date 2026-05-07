@@ -1158,6 +1158,7 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
 /* Admin header */
 .admin-header { display: flex; align-items: center; justify-content: space-between; padding: 32px 24px 16px; max-width: 1000px; }
 .admin-header h1 { font-size: 24px; font-weight: 700; color: var(--warm); }
+.admin-subtitle { color: var(--text3); font-size: 13px; margin-top: 4px; }
 .admin-stats { display: flex; gap: 16px; }
 .stat-badge { padding: 4px 12px; border-radius: var(--r-sm); font-size: 12px; font-weight: 600; }
 .stat-badge.pending { background: rgba(255,224,130,0.12); color: var(--yellow); }
@@ -1293,7 +1294,8 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
 .user-card .user-info { flex: 1; min-width: 0; }
 .user-card .user-info .username { font-size: 14px; font-weight: 600; color: var(--text); }
 .user-card .user-info .user-meta { font-size: 12px; color: var(--text3); display: flex; gap: 16px; margin-top: 2px; }
-.user-card .user-role {
+.user-card .user-role,
+.staff-row .user-role {
   padding: 2px 8px;
   border-radius: var(--r-xs);
   font-size: 10px;
@@ -1301,9 +1303,96 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
   text-transform: uppercase;
   flex-shrink: 0;
 }
-.user-card .user-role.admin { background: rgba(255,224,130,0.12); color: var(--yellow); }
-.user-card .user-role.creator { background: var(--mint-glow); color: var(--mint); }
-.user-card .user-role.player { background: var(--bg3); color: var(--text4); }
+.user-card .user-role.admin,
+.staff-row .user-role.admin { background: rgba(255,224,130,0.12); color: var(--yellow); }
+.user-card .user-role.mod,
+.staff-row .user-role.mod { background: rgba(184,169,232,0.14); color: var(--lavender); }
+.user-card .user-role.creator,
+.staff-row .user-role.creator { background: var(--mint-glow); color: var(--mint); }
+.user-card .user-role.player,
+.staff-row .user-role.player { background: var(--bg3); color: var(--text4); }
+.user-rank-select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg3);
+  color: var(--text2);
+  font: inherit;
+  font-size: 12px;
+}
+
+/* Staff panel */
+.staff-panel {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 0 24px 40px;
+  max-width: 1100px;
+}
+.staff-column {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  min-width: 0;
+}
+.staff-column h3 {
+  color: var(--text1);
+  font-size: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.staff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  max-height: 620px;
+  overflow-y: auto;
+}
+.staff-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg1);
+}
+.staff-row .user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--warm-glow);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--warm);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.staff-user-info { flex: 1; min-width: 0; }
+.staff-user-info .username { font-size: 13px; font-weight: 700; color: var(--text); }
+.staff-user-info .user-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+  color: var(--text4);
+  font-size: 11px;
+}
+.staff-user-info .user-meta span {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.staff-muted {
+  color: var(--text4);
+  font-size: 12px;
+  text-align: center;
+  padding: 20px 0;
+}
 
 /* Stats grid */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; padding: 0 24px 40px; max-width: 1000px; }
@@ -1394,4 +1483,7 @@ footer { text-align: center; padding: 20px; font-size: 12px; color: var(--text4)
   .catalog-bar .search-input, .catalog-bar .sort-select { max-width: 100%; }
   .form-row { grid-template-columns: 1fr; }
   .admin-layout { grid-template-columns: 1fr; }
+  .staff-panel { grid-template-columns: 1fr; padding: 0 12px 32px; }
+  .staff-row { align-items: flex-start; flex-wrap: wrap; }
+  .staff-row .user-rank-select { width: 100%; }
 }

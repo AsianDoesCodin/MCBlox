@@ -40,7 +40,7 @@
 <!-- Auth gate -->
 <div id="admin-gate" class="admin-gate content">
   <h2>Admin Panel</h2>
-  <p style="color:var(--text3);margin-bottom:24px;">This area is restricted to McBlox admins.</p>
+  <p style="color:var(--text3);margin-bottom:24px;">This area is restricted to McBlox staff.</p>
   <button class="btn btn-warm" id="signin-btn">Sign In</button>
 </div>
 
@@ -57,15 +57,19 @@
           <span class="admin-nav-icon">&#9654;</span>
           <span>Games</span>
         </button>
-        <button class="admin-nav-item" data-section="users">
+        <button class="admin-nav-item" data-section="users" data-min-role="admin">
           <span class="admin-nav-icon">&#9787;</span>
           <span>Users</span>
         </button>
-        <button class="admin-nav-item" data-section="stats">
+        <button class="admin-nav-item" data-section="staff" data-min-role="admin">
+          <span class="admin-nav-icon">&#9874;</span>
+          <span>Staff</span>
+        </button>
+        <button class="admin-nav-item" data-section="stats" data-min-role="admin">
           <span class="admin-nav-icon">&#9733;</span>
           <span>Stats</span>
         </button>
-        <button class="admin-nav-item" data-section="promotion">
+        <button class="admin-nav-item" data-section="promotion" data-min-role="admin">
           <span class="admin-nav-icon">&#128640;</span>
           <span>Promotion</span>
         </button>
@@ -101,11 +105,38 @@
           <div class="admin-stats" id="user-stats"></div>
         </div>
         <div class="admin-user-search">
-          <input type="text" class="search-input" id="user-search" placeholder="Search by username or email...">
+          <input type="text" class="search-input" id="user-search" placeholder="Search by username or user ID...">
         </div>
         <div class="admin-queue" id="user-list"></div>
         <div class="empty-state" id="user-empty" style="display:none">
           <p>No users found.</p>
+        </div>
+      </div>
+
+      <!-- Staff Section -->
+      <div class="admin-section" id="section-staff">
+        <div class="admin-header">
+          <div>
+            <h1>Staff Roles</h1>
+            <p class="admin-subtitle">Promote users to admin or mod without SQL.</p>
+          </div>
+          <div class="admin-stats" id="staff-stats"></div>
+        </div>
+        <div class="admin-user-search">
+          <input type="text" class="search-input" id="staff-search" placeholder="Search by username or user ID...">
+        </div>
+        <div class="staff-panel">
+          <div class="staff-column">
+            <h3>Current Staff</h3>
+            <div id="staff-current-list" class="staff-list"></div>
+          </div>
+          <div class="staff-column">
+            <h3>Promote User</h3>
+            <div id="staff-user-list" class="staff-list"></div>
+          </div>
+        </div>
+        <div class="empty-state" id="staff-empty" style="display:none">
+          <p>No matching users found.</p>
         </div>
       </div>
 
@@ -229,6 +260,6 @@
 
 <footer>&copy; 2026 McBlox</footer>
 
-<script src="admin.js?v=20260507a"></script>
+<script src="admin.js?v=20260507c"></script>
 </body>
 </html>

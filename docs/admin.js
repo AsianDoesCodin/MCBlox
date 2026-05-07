@@ -17,17 +17,51 @@ const reviewCancel = document.getElementById('review-cancel');
 let allGames = [];
 let currentTab = 'pending';
 let reviewingGame = null;
+let currentUserFilter = '';
+let currentStaffFilter = '';
+
+function currentAdminRole() {
+  return typeof getAdminRole === 'function' ? getAdminRole() : (isAdmin() ? 'admin' : null);
+}
+
+function canManageAdminSystem() {
+  return currentAdminRole() === 'admin';
+}
+
+function applyAdminRolePermissions() {
+  const isFullAdmin = canManageAdminSystem();
+  document.querySelectorAll('[data-min-role="admin"]').forEach(el => {
+    el.style.display = isFullAdmin ? '' : 'none';
+  });
+
+  if (!isFullAdmin) {
+    const activeRestricted = document.querySelector('.admin-nav-item.active[data-min-role="admin"]');
+    if (activeRestricted) {
+      document.querySelector('.admin-nav-item[data-section="games"]')?.click();
+    }
+  }
+
+  const editButton = document.getElementById('review-edit');
+  if (editButton) editButton.style.display = isFullAdmin ? '' : 'none';
+}
+
+function hideReviewControl(id) {
+  const el = document.getElementById(id);
+  const field = el?.closest('.review-detail-field') || el?.closest('label');
+  if (field) field.style.display = 'none';
+}
 
 async function updateAdminAuth() {
   const user = getUser();
-  const userIsAdmin = user && await refreshAdminStatus();
+  const userHasAdminAccess = user && await refreshAdminStatus();
 
-  if (userIsAdmin) {
+  if (userHasAdminAccess) {
     adminGate.style.display = 'none';
     adminPanel.style.display = '';
+    applyAdminRolePermissions();
     loadAllGames();
-  } else if (user && !userIsAdmin) {
-    adminGate.innerHTML = '<h2>Access Denied</h2><p style="color:var(--text3)">You are not an admin.</p>';
+  } else if (user && !userHasAdminAccess) {
+    adminGate.innerHTML = '<h2>Access Denied</h2><p style="color:var(--text3)">You are not McBlox staff.</p>';
     adminGate.style.display = '';
     adminPanel.style.display = 'none';
   } else {
@@ -42,6 +76,7 @@ signinBtn.addEventListener('click', () => showAuthModal());
 // --- Sidebar navigation ---
 document.querySelectorAll('.admin-nav-item').forEach(item => {
   item.addEventListener('click', () => {
+    if (item.dataset.minRole === 'admin' && !canManageAdminSystem()) return;
     document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
     item.classList.add('active');
     const section = item.dataset.section;
@@ -49,6 +84,7 @@ document.querySelectorAll('.admin-nav-item').forEach(item => {
     document.getElementById('section-' + section).classList.add('active');
     // Lazy-load section data
     if (section === 'users' && !_usersLoaded) loadUsers();
+    if (section === 'staff' && !_staffLoaded) loadStaff();
     if (section === 'stats' && !_statsLoaded) loadStats();
     if (section === 'promotion' && !_promoLoaded) loadPromotion();
   });
@@ -167,6 +203,7 @@ function renderQueue() {
 // --- Review modal ---
 function openReview(game) {
   reviewingGame = game;
+  const canManage = canManageAdminSystem();
 
   const tags = (game.tags || []).map(t => `<span style="display:inline-block;padding:2px 8px;background:var(--warm-glow);border:1px solid rgba(255,155,106,0.3);border-radius:var(--r-xs);color:var(--warm);font-size:12px;margin-right:4px;">${escapeHtml(t)}</span>`).join('');
 
@@ -254,7 +291,16 @@ function openReview(game) {
     </div>
   `;
 
-  document.getElementById('review-promote-check').addEventListener('change', async (ev) => {
+  if (!canManage) {
+    hideReviewControl('review-thumb-upload');
+    hideReviewControl('review-promote-check');
+    hideReviewControl('review-fake-players-check');
+    hideReviewControl('review-total-plays');
+  }
+
+  reviewEdit.style.display = canManage ? '' : 'none';
+
+  if (canManage) document.getElementById('review-promote-check').addEventListener('change', async (ev) => {
     const promoted = ev.target.checked;
     const sb = getSupabase();
     if (!sb || !reviewingGame) return;
@@ -270,7 +316,7 @@ function openReview(game) {
   });
 
   // Fake players toggle
-  document.getElementById('review-fake-players-check').addEventListener('change', async (ev) => {
+  if (canManage) document.getElementById('review-fake-players-check').addEventListener('change', async (ev) => {
     const enabled = ev.target.checked;
     const sb = getSupabase();
     if (!sb || !reviewingGame) return;
@@ -287,7 +333,7 @@ function openReview(game) {
   });
 
   // Fake players min/max save
-  document.getElementById('review-fake-save').addEventListener('click', async () => {
+  if (canManage) document.getElementById('review-fake-save').addEventListener('click', async () => {
     const sb = getSupabase();
     if (!sb || !reviewingGame) return;
     const min = parseInt(document.getElementById('review-fake-min').value) || 0;
@@ -305,7 +351,7 @@ function openReview(game) {
   });
 
   // Total plays save
-  document.getElementById('review-plays-save').addEventListener('click', async () => {
+  if (canManage) document.getElementById('review-plays-save').addEventListener('click', async () => {
     const sb = getSupabase();
     if (!sb || !reviewingGame) return;
     const plays = parseInt(document.getElementById('review-total-plays').value) || 0;
@@ -321,7 +367,7 @@ function openReview(game) {
   });
 
   // Thumbnail upload handler
-  document.getElementById('review-thumb-upload').addEventListener('change', async (ev) => {
+  if (canManage) document.getElementById('review-thumb-upload').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
     if (!file || !reviewingGame) return;
 
@@ -396,11 +442,21 @@ async function setGameStatus(status) {
   if (!sb) return;
 
   try {
-    const { error } = await sb
-      .from('games')
-      .update({ status })
-      .eq('id', reviewingGame.id);
-    if (error) throw error;
+    const { error } = await sb.rpc('moderate_game_status', {
+      p_game_id: reviewingGame.id,
+      p_status: status
+    });
+
+    if (error) {
+      if (!canManageAdminSystem()) throw error;
+
+      // Fallback keeps existing admins working until the role SQL is applied.
+      const { error: updateError } = await sb
+        .from('games')
+        .update({ status })
+        .eq('id', reviewingGame.id);
+      if (updateError) throw updateError;
+    }
 
     reviewingGame.status = status;
     updateStats();
@@ -421,6 +477,10 @@ const TAGS = [
 
 function openAdminEdit() {
   if (!reviewingGame) return;
+  if (!canManageAdminSystem()) {
+    showToast('Only admins can edit games.', 'error');
+    return;
+  }
   const game = reviewingGame;
 
   const tags = (game.tags || []);
@@ -697,7 +757,7 @@ const _originalCloseReview = closeReview;
 closeReview = function() {
   reviewApprove.style.display = '';
   reviewReject.style.display = '';
-  reviewEdit.style.display = '';
+  reviewEdit.style.display = canManageAdminSystem() ? '' : 'none';
   const saveBtn = document.getElementById('admin-edit-save');
   if (saveBtn) saveBtn.remove();
   _originalCloseReview();
@@ -733,7 +793,25 @@ async function loadUsers() {
     (gameCounts || []).forEach(g => {
       countMap[g.creator_id] = (countMap[g.creator_id] || 0) + 1;
     });
-    allUsers.forEach(u => { u._gameCount = countMap[u.id] || 0; });
+
+    const rankMap = {};
+    if (canManageAdminSystem()) {
+      const { data: staffRows, error: staffError } = await sb
+        .from('admin_users')
+        .select('user_id, role');
+      if (staffError) {
+        console.warn('Staff ranks are unavailable until admin role SQL is applied:', staffError);
+      } else {
+        (staffRows || []).forEach(row => {
+          rankMap[row.user_id] = row.role;
+        });
+      }
+    }
+
+    allUsers.forEach(u => {
+      u._gameCount = countMap[u.id] || 0;
+      u._adminRole = rankMap[u.id] || null;
+    });
 
     document.getElementById('user-stats').innerHTML = `
       <span class="stat-badge approved">${allUsers.length} total</span>
@@ -755,7 +833,7 @@ function renderUsers(filter = '') {
   const filtered = filter
     ? allUsers.filter(u =>
         (u.username || '').toLowerCase().includes(filter) ||
-        (u.email || '').toLowerCase().includes(filter)
+        (u.id || '').toLowerCase().includes(filter)
       )
     : allUsers;
 
@@ -766,10 +844,10 @@ function renderUsers(filter = '') {
   empty.style.display = 'none';
 
   filtered.forEach(u => {
-    const role = u._gameCount > 0 ? 'creator' : 'player';
+    const baseRole = u._gameCount > 0 ? 'creator' : 'player';
+    const role = u._adminRole || baseRole;
     const initial = (u.username || '?')[0].toUpperCase();
     const joined = u.created_at ? new Date(u.created_at).toLocaleDateString() : '?';
-
     const avatarHtml = u.avatar_url
       ? `<div class="user-avatar"><img src="${encodeURI(u.avatar_url)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`
       : `<div class="user-avatar">${escapeHtml(initial)}</div>`;
@@ -793,8 +871,131 @@ function renderUsers(filter = '') {
 
 // User search
 document.getElementById('user-search').addEventListener('input', (e) => {
-  renderUsers(e.target.value.toLowerCase());
+  currentUserFilter = e.target.value.toLowerCase();
+  renderUsers(currentUserFilter);
 });
+
+// ==========================================
+// Staff Section
+// ==========================================
+let _staffLoaded = false;
+
+async function loadStaff() {
+  if (_staffLoaded) return;
+  _staffLoaded = true;
+
+  if (!_usersLoaded) {
+    await loadUsers();
+  }
+
+  renderStaff();
+}
+
+function renderStaff(filter = currentStaffFilter) {
+  const currentList = document.getElementById('staff-current-list');
+  const userList = document.getElementById('staff-user-list');
+  const empty = document.getElementById('staff-empty');
+  const stats = document.getElementById('staff-stats');
+  if (!currentList || !userList) return;
+
+  const term = (filter || '').toLowerCase().trim();
+  const users = term
+    ? allUsers.filter(u =>
+        (u.username || '').toLowerCase().includes(term) ||
+        (u.email || '').toLowerCase().includes(term) ||
+        (u.id || '').toLowerCase().includes(term)
+      )
+    : allUsers;
+
+  const staff = allUsers.filter(u => u._adminRole);
+  const admins = staff.filter(u => u._adminRole === 'admin').length;
+  const mods = staff.filter(u => u._adminRole === 'mod').length;
+  if (stats) {
+    stats.innerHTML = `
+      <span class="stat-badge approved">${admins} admin${admins !== 1 ? 's' : ''}</span>
+      <span class="stat-badge pending">${mods} mod${mods !== 1 ? 's' : ''}</span>
+    `;
+  }
+
+  currentList.innerHTML = staff.length
+    ? staff
+        .sort((a, b) => (a._adminRole === b._adminRole ? 0 : a._adminRole === 'admin' ? -1 : 1))
+        .map(renderStaffRow)
+        .join('')
+    : '<p class="staff-muted">No staff users found.</p>';
+
+  userList.innerHTML = users.length
+    ? users.map(renderStaffRow).join('')
+    : '';
+
+  empty.style.display = users.length ? 'none' : '';
+
+  document.querySelectorAll('.staff-rank-select').forEach(select => {
+    select.addEventListener('change', () => {
+      updateUserRank(select.dataset.userId, select.value || null);
+    });
+  });
+}
+
+function renderStaffRow(user) {
+  const role = user._adminRole || 'none';
+  const username = escapeHtml(user.username || 'Anonymous');
+  const email = escapeHtml(user.email || '');
+  const id = escapeHtml(user.id || '');
+  const initial = escapeHtml((user.username || user.email || '?')[0].toUpperCase());
+  const avatar = user.avatar_url
+    ? `<div class="user-avatar"><img src="${encodeURI(user.avatar_url)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`
+    : `<div class="user-avatar">${initial}</div>`;
+
+  return `
+    <div class="staff-row">
+      ${avatar}
+      <div class="staff-user-info">
+        <div class="username">${username}</div>
+        <div class="user-meta">
+          ${email ? `<span>${email}</span>` : ''}
+          <span>${id}</span>
+        </div>
+      </div>
+      <span class="user-role ${role === 'none' ? 'player' : role}">${role === 'none' ? 'no rank' : role}</span>
+      <select class="user-rank-select staff-rank-select" data-user-id="${id}">
+        <option value="" ${!user._adminRole ? 'selected' : ''}>No staff rank</option>
+        <option value="mod" ${user._adminRole === 'mod' ? 'selected' : ''}>Mod</option>
+        <option value="admin" ${user._adminRole === 'admin' ? 'selected' : ''}>Admin</option>
+      </select>
+    </div>
+  `;
+}
+
+document.getElementById('staff-search')?.addEventListener('input', (e) => {
+  currentStaffFilter = e.target.value.toLowerCase();
+  renderStaff(currentStaffFilter);
+});
+
+async function updateUserRank(userId, role) {
+  if (!canManageAdminSystem()) return;
+
+  const sb = getSupabase();
+  if (!sb) return;
+
+  try {
+    const { error } = await sb.rpc('set_admin_role', {
+      p_user_id: userId,
+      p_role: role
+    });
+    if (error) throw error;
+
+    const user = allUsers.find(u => u.id === userId);
+    if (user) user._adminRole = role;
+    renderUsers(currentUserFilter);
+    renderStaff(currentStaffFilter);
+    showToast(role ? `Staff rank set to ${role}.` : 'Staff rank removed.', 'success');
+  } catch (err) {
+    renderUsers(currentUserFilter);
+    renderStaff(currentStaffFilter);
+    showToast('Error updating staff rank: ' + (err.message || 'Unknown'), 'error');
+  }
+}
 
 // ==========================================
 // Stats Section

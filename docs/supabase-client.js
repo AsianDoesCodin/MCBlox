@@ -5,12 +5,20 @@ const SUPABASE_URL = 'https://ldipundnojizgnykqvdd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_l5NXtUaTUkl6zzEMZlBAjw_fw-8YJb7';
 
 function isAdmin() {
-  return _isAdmin;
+  return _adminRole === 'admin';
+}
+
+function canAccessAdminPanel() {
+  return _adminRole === 'admin' || _adminRole === 'mod';
+}
+
+function getAdminRole() {
+  return _adminRole;
 }
 
 let _supabase = null;
 let _session = null;
-let _isAdmin = false;
+let _adminRole = null;
 
 function getSupabase() {
   if (!_supabase && window.supabase) {
@@ -46,13 +54,20 @@ async function refreshAdminStatus() {
   const sb = getSupabase();
   const user = getUser();
   if (!sb || !user) {
-    _isAdmin = false;
+    _adminRole = null;
     return false;
   }
 
+  const { data: role, error: roleError } = await sb.rpc('current_user_admin_role');
+  if (!roleError) {
+    _adminRole = role === 'admin' || role === 'mod' ? role : null;
+    return canAccessAdminPanel();
+  }
+
+  // Backward-compatible fallback for deployments before admin role SQL is applied.
   const { data, error } = await sb.rpc('current_user_is_admin');
-  _isAdmin = !error && data === true;
-  return _isAdmin;
+  _adminRole = !error && data === true ? 'admin' : null;
+  return canAccessAdminPanel();
 }
 
 // Init auth on page load
@@ -153,8 +168,9 @@ function setupNavAuth() {
       // Build dropdown
       if (userDropdown) {
         let items = `<a href="profile.html">👤 Profile</a>`;
-        if (isAdmin()) {
-          items += `<a href="admin.html" style="color:var(--red);font-weight:700;">🛡️ Admin</a>`;
+        if (canAccessAdminPanel()) {
+          const adminLabel = isAdmin() ? 'Admin' : 'Mod';
+          items += `<a href="admin.html" style="color:var(--red);font-weight:700;">🛡️ ${adminLabel}</a>`;
         }
         items += `<a href="#" id="logout-link" class="danger">↩ Sign Out</a>`;
         userDropdown.innerHTML = items;
