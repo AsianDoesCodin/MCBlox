@@ -1351,20 +1351,13 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
 }
 .staff-row {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) minmax(160px, 220px);
+  grid-template-columns: 36px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--bg1);
-}
-.staff-column:first-child .staff-row {
-  grid-template-columns: 36px minmax(0, 1fr);
-}
-.staff-column:first-child .staff-row .user-rank-select {
-  grid-column: 1 / -1;
-  width: 100%;
 }
 .staff-row .user-avatar {
   width: 36px;
@@ -1404,6 +1397,7 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
   white-space: nowrap;
 }
 .staff-row .user-rank-select {
+  grid-column: 2;
   width: 100%;
   min-width: 0;
 }
