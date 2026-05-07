@@ -1350,13 +1350,21 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
   overflow-y: auto;
 }
 .staff-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) minmax(160px, 220px);
   align-items: center;
   gap: 12px;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--bg1);
+}
+.staff-column:first-child .staff-row {
+  grid-template-columns: 36px minmax(0, 1fr);
+}
+.staff-column:first-child .staff-row .user-rank-select {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 .staff-row .user-avatar {
   width: 36px;
@@ -1372,11 +1380,19 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
   flex-shrink: 0;
 }
 .staff-user-info { flex: 1; min-width: 0; }
-.staff-user-info .username { font-size: 13px; font-weight: 700; color: var(--text); }
+.staff-user-info .username {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .staff-user-info .user-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
   margin-top: 2px;
   color: var(--text4);
   font-size: 11px;
@@ -1386,6 +1402,13 @@ label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); 
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.staff-row .user-rank-select {
+  width: 100%;
+  min-width: 0;
+}
+.staff-row .user-role {
+  max-width: max-content;
 }
 .staff-muted {
   color: var(--text4);
@@ -1484,6 +1507,7 @@ footer { text-align: center; padding: 20px; font-size: 12px; color: var(--text4)
   .form-row { grid-template-columns: 1fr; }
   .admin-layout { grid-template-columns: 1fr; }
   .staff-panel { grid-template-columns: 1fr; padding: 0 12px 32px; }
-  .staff-row { align-items: flex-start; flex-wrap: wrap; }
+  .staff-row { grid-template-columns: 36px minmax(0, 1fr); align-items: flex-start; }
   .staff-row .user-rank-select { width: 100%; }
+  .staff-row .user-rank-select { grid-column: 1 / -1; }
 }

@@ -943,6 +943,8 @@ function renderStaffRow(user) {
   const email = escapeHtml(user.email || '');
   const id = escapeHtml(user.id || '');
   const initial = escapeHtml((user.username || user.email || '?')[0].toUpperCase());
+  const roleLabel = role === 'none' ? 'no rank' : role;
+  const roleChip = `<span class="user-role ${role === 'none' ? 'player' : role}">${roleLabel}</span>`;
   const avatar = user.avatar_url
     ? `<div class="user-avatar"><img src="${encodeURI(user.avatar_url)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`
     : `<div class="user-avatar">${initial}</div>`;
@@ -953,11 +955,11 @@ function renderStaffRow(user) {
       <div class="staff-user-info">
         <div class="username">${username}</div>
         <div class="user-meta">
+          ${roleChip}
           ${email ? `<span>${email}</span>` : ''}
           <span>${id}</span>
         </div>
       </div>
-      <span class="user-role ${role === 'none' ? 'player' : role}">${role === 'none' ? 'no rank' : role}</span>
       <select class="user-rank-select staff-rank-select" data-user-id="${id}">
         <option value="" ${!user._adminRole ? 'selected' : ''}>No staff rank</option>
         <option value="mod" ${user._adminRole === 'mod' ? 'selected' : ''}>Mod</option>
