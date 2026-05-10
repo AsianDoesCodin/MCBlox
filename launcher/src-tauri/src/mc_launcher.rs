@@ -429,10 +429,11 @@ pub async fn install_forge(
 
     // Extract Forge-specific JVM arguments (--add-opens, --add-exports, etc.)
     let mut forge_jvm_args: Vec<String> = Vec::new();
+    let forge_version_name = format!("forge-{}", forge_version);
     if let Some(args) = version_json["arguments"]["jvm"].as_array() {
         for arg in args {
             if let Some(s) = arg.as_str() {
-                forge_jvm_args.push(s.to_string());
+                forge_jvm_args.push(s.replace("${version_name}", &forge_version_name));
             }
         }
     }
