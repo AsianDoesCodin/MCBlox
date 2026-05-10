@@ -533,25 +533,50 @@ document.querySelectorAll('.screenshot-slot').forEach(slot => {
   screenshotCrops.push(setupCrop(slot, canvas, input, placeholder, null, null));
 });
 
+function setSubmitState(button, text, disabled = true) {
+  if (!button) return;
+  button.disabled = disabled;
+  button.textContent = text;
+}
+
+function resetSubmitState(button) {
+  setSubmitState(button, 'Submit for Review', false);
+}
+
+async function withTimeout(promise, label, timeoutMs = 45000) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out. Check your connection and try again.`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 // --- Form submission ---
 document.getElementById('game-form').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const wizSubmitBtn = document.getElementById('wizard-submit');
   if (wizSubmitBtn && wizSubmitBtn.disabled) return;
-  if (wizSubmitBtn) { wizSubmitBtn.disabled = true; wizSubmitBtn.textContent = 'Submitting...'; }
+  setSubmitState(wizSubmitBtn, 'Preparing...');
 
   const sb = getSupabase();
   const user = getUser();
   if (!sb || !user) {
     showToast('Please sign in first.', 'warning');
-    if (wizSubmitBtn) { wizSubmitBtn.disabled = false; wizSubmitBtn.textContent = 'Submit for Review'; }
+    resetSubmitState(wizSubmitBtn);
     return;
   }
 
   if (!thumbCrop.hasImage()) {
     showToast('Please upload a thumbnail (Step 4).', 'warning');
-    if (wizSubmitBtn) { wizSubmitBtn.disabled = false; wizSubmitBtn.textContent = 'Submit for Review'; }
+    resetSubmitState(wizSubmitBtn);
     return;
   }
 
@@ -561,20 +586,25 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
   // Upload thumbnail
   let thumbnailUrl = null;
   try {
-    const thumbBlob = await thumbCrop.getBlob();
+    setSubmitState(wizSubmitBtn, 'Processing thumbnail...');
+    const thumbBlob = await withTimeout(thumbCrop.getBlob(), 'Thumbnail processing', 15000);
     if (thumbBlob) {
       const thumbPath = `${gameId}/thumbnail.jpg`;
-      const { error: upErr } = await sb.storage.from('MCBlox').upload(thumbPath, thumbBlob, {
-        contentType: 'image/jpeg',
-        upsert: true
-      });
+      setSubmitState(wizSubmitBtn, 'Uploading thumbnail...');
+      const { error: upErr } = await withTimeout(
+        sb.storage.from('MCBlox').upload(thumbPath, thumbBlob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        }),
+        'Thumbnail upload'
+      );
       if (upErr) throw upErr;
       const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(thumbPath);
       thumbnailUrl = urlData.publicUrl;
     }
   } catch (err) {
     showToast('Failed to upload thumbnail: ' + (err.message || 'Unknown error'), 'error');
-    if (wizSubmitBtn) { wizSubmitBtn.disabled = false; wizSubmitBtn.textContent = 'Submit for Review'; }
+    resetSubmitState(wizSubmitBtn);
     return;
   }
 
@@ -583,18 +613,24 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
   for (let i = 0; i < screenshotCrops.length; i++) {
     if (!screenshotCrops[i].hasImage()) continue;
     try {
-      const blob = await screenshotCrops[i].getBlob();
+      setSubmitState(wizSubmitBtn, `Processing screenshot ${i + 1}...`);
+      const blob = await withTimeout(screenshotCrops[i].getBlob(), `Screenshot ${i + 1} processing`, 15000);
       if (!blob) continue;
       const ssPath = `${gameId}/screenshot_${i}.jpg`;
-      const { error: upErr } = await sb.storage.from('MCBlox').upload(ssPath, blob, {
-        contentType: 'image/jpeg',
-        upsert: true
-      });
+      setSubmitState(wizSubmitBtn, `Uploading screenshot ${i + 1}...`);
+      const { error: upErr } = await withTimeout(
+        sb.storage.from('MCBlox').upload(ssPath, blob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        }),
+        `Screenshot ${i + 1} upload`
+      );
       if (upErr) throw upErr;
       const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(ssPath);
       screenshotUrls.push(urlData.publicUrl);
     } catch (err) {
-      console.warn('Screenshot upload failed:', err);
+      showToast(`Screenshot ${i + 1} upload failed, continuing without it.`, 'warning');
+      console.warn(`Screenshot ${i + 1} upload failed:`, err);
     }
   }
 
@@ -626,12 +662,13 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
   };
 
   try {
-    const { error } = await sb.from('games').insert(gameData);
+    setSubmitState(wizSubmitBtn, 'Submitting for review...');
+    const { error } = await withTimeout(sb.from('games').insert(gameData), 'Review submission');
     if (error) throw error;
     showToast('Game submitted for review! You can track it in your Dashboard.', 'success');
     window.location.href = 'dashboard.html';
   } catch (e) {
     showToast('Error submitting: ' + (e.message || 'Unknown error'), 'error');
-    if (wizSubmitBtn) { wizSubmitBtn.disabled = false; wizSubmitBtn.textContent = 'Submit for Review'; }
+    resetSubmitState(wizSubmitBtn);
   }
 });
