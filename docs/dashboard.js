@@ -147,6 +147,10 @@ let editRemoveThumb = false;
 let editNewScreenshots = []; // {file, url} for newly added
 let editRemoveScreenshots = []; // URLs to remove
 
+function gameAssetPath(userId, gameId, fileName) {
+  return `${userId}/${gameId}/${fileName}`;
+}
+
 // Image upload elements
 const editThumbInput = document.getElementById('edit-thumb-input');
 const editThumbImg = document.getElementById('edit-thumb-img');
@@ -428,7 +432,8 @@ editForm.addEventListener('submit', async (e) => {
   if (!editingGame) return;
 
   const sb = getSupabase();
-  if (!sb) return;
+  const user = getUser();
+  if (!sb || !user) return;
 
   const updated = {
     title: document.getElementById('edit-title').value.trim(),
@@ -447,7 +452,7 @@ editForm.addEventListener('submit', async (e) => {
   try {
     // Upload new thumbnail if selected
     if (editNewThumb) {
-      const thumbPath = `${editingGame.id}/thumbnail.jpg`;
+      const thumbPath = gameAssetPath(editingGame.creator_id || user.id, editingGame.id, 'thumbnail.jpg');
       const { error: upErr } = await sb.storage.from('MCBlox').upload(thumbPath, editNewThumb, {
         contentType: editNewThumb.type || 'image/jpeg',
         upsert: true
@@ -458,14 +463,16 @@ editForm.addEventListener('submit', async (e) => {
     } else if (editRemoveThumb) {
       updated.thumbnail_url = null;
       // Remove from storage
-      await sb.storage.from('MCBlox').remove([`${editingGame.id}/thumbnail.jpg`]);
+      await sb.storage.from('MCBlox').remove([
+        gameAssetPath(editingGame.creator_id || user.id, editingGame.id, 'thumbnail.jpg')
+      ]);
     }
 
     // Upload new screenshots
     let screenshotUrls = (editingGame.screenshots || []).filter(u => !editRemoveScreenshots.includes(u));
     for (let i = 0; i < editNewScreenshots.length; i++) {
       const ss = editNewScreenshots[i];
-      const ssPath = `${editingGame.id}/screenshot_${Date.now()}_${i}.jpg`;
+      const ssPath = gameAssetPath(editingGame.creator_id || user.id, editingGame.id, `screenshot_${Date.now()}_${i}.jpg`);
       const { error: upErr } = await sb.storage.from('MCBlox').upload(ssPath, ss.file, {
         contentType: ss.file.type || 'image/jpeg',
         upsert: true

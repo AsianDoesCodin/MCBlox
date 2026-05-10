@@ -563,6 +563,10 @@ function storageObjectUrl(path) {
   return `${SUPABASE_URL}/storage/v1/object/MCBlox/${encodedPath}`;
 }
 
+function gameAssetPath(userId, gameId, fileName) {
+  return `${userId}/${gameId}/${fileName}`;
+}
+
 async function uploadStorageBlob(path, blob, contentType, label, timeoutMs = 30000) {
   const session = getSession();
   const token = session?.access_token;
@@ -633,7 +637,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     setSubmitState(wizSubmitBtn, 'Processing thumbnail...');
     const thumbBlob = await withTimeout(thumbCrop.getBlob(), 'Thumbnail processing', 15000);
     if (thumbBlob) {
-      const thumbPath = `${gameId}/thumbnail.jpg`;
+      const thumbPath = gameAssetPath(user.id, gameId, 'thumbnail.jpg');
       setSubmitState(wizSubmitBtn, 'Uploading thumbnail...');
       await uploadStorageBlob(thumbPath, thumbBlob, 'image/jpeg', 'Thumbnail upload');
       const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(thumbPath);
@@ -653,7 +657,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
       setSubmitState(wizSubmitBtn, `Processing screenshot ${i + 1}...`);
       const blob = await withTimeout(screenshotCrops[i].getBlob(), `Screenshot ${i + 1} processing`, 15000);
       if (!blob) continue;
-      const ssPath = `${gameId}/screenshot_${i}.jpg`;
+      const ssPath = gameAssetPath(user.id, gameId, `screenshot_${i}.jpg`);
       setSubmitState(wizSubmitBtn, `Uploading screenshot ${i + 1}...`);
       await uploadStorageBlob(ssPath, blob, 'image/jpeg', `Screenshot ${i + 1} upload`);
       const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(ssPath);
