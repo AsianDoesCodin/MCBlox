@@ -381,32 +381,46 @@ pub async fn install_forge(
         download_file(client, &installer_url, &installer_path).await?;
     }
 
-    // Extract version JSON from installer JAR
+    // Extract Forge metadata from installer JAR. Modern Forge installers ship
+    // both files: version.json drives launch args, install_profile.json drives
+    // processors/data such as the processed client SRG jar.
     let file = std::fs::File::open(&installer_path).map_err(|e| e.to_string())?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Bad Forge installer: {}", e))?;
 
-    let raw_json: serde_json::Value = {
-        // Try "version.json" first (modern Forge has both; legacy only has install_profile.json)
-        // Read the entry names first to avoid borrow issues with ZipArchive
-        let has_version_json = (0..archive.len()).any(|i| {
-            archive.by_index(i).map(|e| e.name() == "version.json").unwrap_or(false)
-        });
-        let entry_name = if has_version_json { "version.json" } else { "install_profile.json" };
+    let entry_names: Vec<String> = (0..archive.len())
+        .filter_map(|i| archive.by_index(i).ok().map(|entry| entry.name().to_string()))
+        .collect();
+    let has_version_json = entry_names.iter().any(|name| name == "version.json");
+    let has_install_profile_json = entry_names.iter().any(|name| name == "install_profile.json");
+
+    let mut read_installer_json = |entry_name: &str| -> Result<serde_json::Value, String> {
         println!("[McBlox] Reading Forge installer entry: {}", entry_name);
-        let entry = archive.by_name(entry_name).map_err(|e| format!("No version info in Forge installer: {}", e))?;
-        serde_json::from_reader(entry).map_err(|e| format!("Bad Forge version JSON: {}", e))?
+        let entry = archive
+            .by_name(entry_name)
+            .map_err(|e| format!("Missing Forge installer entry {}: {}", entry_name, e))?;
+        serde_json::from_reader(entry)
+            .map_err(|e| format!("Bad Forge installer JSON {}: {}", entry_name, e))
+    };
+
+    let version_raw = if has_version_json {
+        read_installer_json("version.json")?
+    } else {
+        read_installer_json("install_profile.json")?
+    };
+    let install_profile = if has_install_profile_json {
+        read_installer_json("install_profile.json")?
+    } else {
+        version_raw.clone()
     };
 
     // Legacy Forge installers (pre-2859) have everything under "versionInfo"
     // Modern ones have it at top level. Normalize to always use top-level access.
-    let version_json = if raw_json.get("versionInfo").is_some() {
+    let version_json = if version_raw.get("versionInfo").is_some() {
         println!("[McBlox] Legacy Forge installer detected (versionInfo format)");
-        raw_json["versionInfo"].clone()
+        version_raw["versionInfo"].clone()
     } else {
-        raw_json.clone()
+        version_raw.clone()
     };
-    // Keep raw_json around for install_profile data like processors
-    let install_profile = &raw_json;
 
     let main_class = version_json["mainClass"].as_str()
         .unwrap_or("net.minecraft.launchwrapper.Launch")

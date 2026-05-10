@@ -303,9 +303,27 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
         println!("[McBlox] Modpack already extracted");
     }
 
-    // Inject McBlox auto-join mod if enabled
-    if request.auto_join.unwrap_or(false) {
-        let mods_dir = instance_dir.join("mods");
+    // Inject McBlox mod only when we need client-side screen control. Server
+    // auto-join should use vanilla launch args so custom menu mods can own the
+    // title screen without our Forge mod competing with them.
+    let auto_join = request.auto_join.unwrap_or(false);
+    let inject_mcblox_mod = auto_join && request.game_type != "server";
+    let mods_dir = instance_dir.join("mods");
+    let target_jar = mods_dir.join("mcblox-mod.jar");
+    let config_path = instance_dir.join("mcblox_config.json");
+    if !inject_mcblox_mod {
+        if target_jar.exists() {
+            std::fs::remove_file(&target_jar)
+                .map_err(|e| format!("Failed to remove stale mcblox mod: {}", e))?;
+            println!("[McBlox] Removed stale mcblox-mod.jar; server auto-join uses launch args");
+        }
+        if config_path.exists() {
+            std::fs::remove_file(&config_path)
+                .map_err(|e| format!("Failed to remove stale mcblox config: {}", e))?;
+        }
+    }
+
+    if inject_mcblox_mod {
         std::fs::create_dir_all(&mods_dir).ok();
         
         // Write mcblox_config.json
@@ -314,7 +332,6 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
             "server_address": request.server_address,
             "world_name": request.world_name,
         });
-        let config_path = instance_dir.join("mcblox_config.json");
         std::fs::write(&config_path, serde_json::to_string_pretty(&config).unwrap())
             .map_err(|e| format!("Failed to write mcblox config: {}", e))?;
         emit("setup", "Injecting McBlox auto-join mod...", 0.22);
@@ -352,8 +369,7 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
                 }
             },
         };
-        let target_jar = mods_dir.join("mcblox-mod.jar");
-        
+
         // Try to find bundled mod JAR in resource dir
         let resource_dir = app_handle.path().resource_dir()
             .map_err(|e| format!("Failed to get resource dir: {}", e))?;
@@ -432,9 +448,11 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     let classpath = mc_launcher::build_classpath(client_jar_for_classpath, &lib_paths, &loader_libs);
     println!("[McBlox] Classpath entries: {}", classpath.matches(';').count() + 1);
 
-    // Build launch args
-    // If auto_join is on, don't pass --server since the mod handles it
-    let server_for_args = if request.auto_join.unwrap_or(false) {
+    // Build launch args. Server auto-join is handled by Minecraft's native
+    // --server/--port args; world auto-open is handled by the McBlox mod.
+    let server_for_args = if request.game_type == "server" && request.auto_join.unwrap_or(false) {
+        request.server_address.as_deref()
+    } else if request.auto_join.unwrap_or(false) {
         None
     } else {
         request.server_address.as_deref()
