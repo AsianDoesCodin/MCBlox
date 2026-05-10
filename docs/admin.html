@@ -7,8 +7,8 @@
   <title>Admin — McBlox</title>
   <link rel="stylesheet" href="style.css?v=20260507b">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-client.js"></script>
-  <script src="toast.js"></script>
+  <script src="supabase-client.js?v=20260511a"></script>
+  <script src="toast.js?v=20260511a"></script>
 </head>
 <body>
 
@@ -82,7 +82,10 @@
       <div class="admin-section active" id="section-games">
         <div class="admin-header">
           <h1>Review Queue</h1>
-          <div class="admin-stats" id="admin-stats"></div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-ghost" id="admin-refresh">Refresh</button>
+            <div class="admin-stats" id="admin-stats"></div>
+          </div>
         </div>
 
         <div class="admin-tabs">
@@ -260,6 +263,6 @@
 
 <footer>&copy; 2026 McBlox</footer>
 
-<script src="admin.js?v=20260507e"></script>
+<script src="admin.js?v=20260511a"></script>
 </body>
 </html>

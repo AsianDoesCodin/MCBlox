@@ -192,7 +192,7 @@ editScreenshotInput.addEventListener('change', (e) => {
 function renderEditScreenshots() {
   editScreenshotsWrap.innerHTML = '';
   // Existing screenshots (from DB)
-  const existing = (editingGame?.screenshot_urls || []).filter(u => !editRemoveScreenshots.includes(u));
+  const existing = (editingGame?.screenshots || []).filter(u => !editRemoveScreenshots.includes(u));
   existing.forEach(url => {
     const item = document.createElement('div');
     item.className = 'edit-screenshot-item';
@@ -462,7 +462,7 @@ editForm.addEventListener('submit', async (e) => {
     }
 
     // Upload new screenshots
-    let screenshotUrls = (editingGame.screenshot_urls || []).filter(u => !editRemoveScreenshots.includes(u));
+    let screenshotUrls = (editingGame.screenshots || []).filter(u => !editRemoveScreenshots.includes(u));
     for (let i = 0; i < editNewScreenshots.length; i++) {
       const ss = editNewScreenshots[i];
       const ssPath = `${editingGame.id}/screenshot_${Date.now()}_${i}.jpg`;
@@ -475,7 +475,7 @@ editForm.addEventListener('submit', async (e) => {
       screenshotUrls.push(urlData.publicUrl);
     }
     if (editNewScreenshots.length > 0 || editRemoveScreenshots.length > 0) {
-      updated.screenshot_urls = screenshotUrls;
+      updated.screenshots = screenshotUrls;
     }
 
     const { error } = await sb

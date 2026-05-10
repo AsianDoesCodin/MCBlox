@@ -13,6 +13,7 @@ const reviewClose = document.getElementById('review-close');
 const reviewApprove = document.getElementById('review-approve');
 const reviewReject = document.getElementById('review-reject');
 const reviewCancel = document.getElementById('review-cancel');
+const adminRefresh = document.getElementById('admin-refresh');
 
 let allGames = [];
 let currentTab = 'pending';
@@ -102,16 +103,26 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
 
 // --- Load games ---
 let _gamesLoaded = false;
-async function loadAllGames() {
+let _gamesLoading = false;
+async function loadAllGames(force = false) {
+  if (_gamesLoading) {
+    if (adminRefresh) adminRefresh.disabled = false;
+    return;
+  }
+  if (force) _gamesLoaded = false;
   if (_gamesLoaded) return;
+  _gamesLoading = true;
   _gamesLoaded = true;
 
   const sb = getSupabase();
-  if (!sb) { _gamesLoaded = false; return; }
+  if (!sb) { _gamesLoaded = false; _gamesLoading = false; return; }
 
   try {
     const statuses = ['pending_review', 'approved', 'rejected', 'unlisted'];
     const results = [];
+    const errors = [];
+    adminEmpty.style.display = 'none';
+    adminQueue.innerHTML = '<div class="empty-state"><p>Loading review queue...</p></div>';
 
     for (const status of statuses) {
       const { data, error } = await sb
@@ -124,7 +135,13 @@ async function loadAllGames() {
           ...g,
           author: g.profiles?.username || 'Unknown'
         })));
+      } else if (error) {
+        errors.push(`${status}: ${error.message || 'query failed'}`);
       }
+    }
+
+    if (errors.length) {
+      throw new Error(errors.join('; '));
     }
 
     allGames = results;
@@ -132,9 +149,29 @@ async function loadAllGames() {
     renderQueue();
   } catch (e) {
     console.error('Failed to load games:', e);
+    adminQueue.innerHTML = '';
+    adminEmpty.style.display = '';
+    adminEmpty.querySelector('p').textContent = 'Failed to load review queue. Refresh and try again.';
+    showToast('Failed to load review queue: ' + (e.message || 'Unknown error'), 'error');
     _gamesLoaded = false;
+  } finally {
+    _gamesLoading = false;
+    if (adminRefresh) adminRefresh.disabled = false;
   }
 }
+
+if (adminRefresh) {
+  adminRefresh.addEventListener('click', () => {
+    adminRefresh.disabled = true;
+    loadAllGames(true);
+  });
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && adminPanel.style.display !== 'none') {
+    loadAllGames(true);
+  }
+});
 
 function updateStats() {
   const pending = allGames.filter(g => g.status === 'pending_review').length;
@@ -167,6 +204,9 @@ function renderQueue() {
   }
 
   if (filtered.length === 0) {
+    adminEmpty.querySelector('p').textContent = currentTab === 'pending'
+      ? 'No games to review.'
+      : 'No games found.';
     adminEmpty.style.display = '';
     return;
   }

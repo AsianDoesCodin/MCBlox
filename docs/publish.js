@@ -73,7 +73,7 @@ function validateStep(step) {
       const url = document.getElementById('modpack-url').value.trim();
       const mc = document.getElementById('mc-version').value;
       const loader = document.getElementById('mod-loader').value;
-      const loaderVer = document.getElementById('loader-version').value;
+      const loaderVer = getLoaderVersionValue();
       if (!url) { showToast('Please enter a modpack download link.', 'warning'); return false; }
       if (!mc) { showToast('Please select a Minecraft version.', 'warning'); return false; }
       if (!loader) { showToast('Please select a mod loader.', 'warning'); return false; }
@@ -130,7 +130,7 @@ function buildReviewSummary() {
   const url = document.getElementById('modpack-url').value.trim();
   const mc = document.getElementById('mc-version').value;
   const loader = document.getElementById('mod-loader').value;
-  const loaderVer = document.getElementById('loader-version').value;
+  const loaderVer = getLoaderVersionValue();
   const type = document.getElementById('game-type').value;
   const serverAddr = document.getElementById('server-address').value.trim();
   const worldNm = document.getElementById('world-name').value.trim();
@@ -246,6 +246,40 @@ fetchMcVersions();
 // --- Loader version combobox ---
 const loaderVersionSelect = document.getElementById('loader-version');
 let loaderVersionCache = {};
+let loaderVersionManualInput = null;
+
+function ensureLoaderVersionManualInput() {
+  if (loaderVersionManualInput) return loaderVersionManualInput;
+
+  loaderVersionManualInput = document.createElement('input');
+  loaderVersionManualInput.type = 'text';
+  loaderVersionManualInput.id = 'loader-version-manual';
+  loaderVersionManualInput.placeholder = 'Type loader version manually';
+  loaderVersionManualInput.style.cssText = 'margin-top:8px;display:none';
+  loaderVersionSelect.insertAdjacentElement('afterend', loaderVersionManualInput);
+  return loaderVersionManualInput;
+}
+
+function clearLoaderVersionManualMode() {
+  loaderVersionSelect.disabled = false;
+  if (loaderVersionManualInput) {
+    loaderVersionManualInput.value = '';
+    loaderVersionManualInput.style.display = 'none';
+  }
+}
+
+function setLoaderVersionManualMode(message) {
+  loaderVersionSelect.innerHTML = `<option value="">${message}</option>`;
+  loaderVersionSelect.disabled = true;
+  ensureLoaderVersionManualInput().style.display = '';
+}
+
+function getLoaderVersionValue() {
+  if (loaderVersionManualInput && loaderVersionManualInput.style.display !== 'none') {
+    return loaderVersionManualInput.value.trim();
+  }
+  return loaderVersionSelect.value.trim();
+}
 
 // Fetch with CORS proxy fallback (Forge/NeoForge don't set CORS headers)
 async function fetchWithCorsProxy(url) {
@@ -273,6 +307,7 @@ async function fetchWithCorsProxy(url) {
 async function fetchLoaderVersions() {
   const mc = mcVersionSelect.value;
   const loader = modLoaderSelect.value;
+  clearLoaderVersionManualMode();
   if (!mc || !loader) {
     loaderVersionSelect.innerHTML = '<option value="">Select MC version & mod loader first</option>';
     return;
@@ -323,18 +358,16 @@ async function fetchLoaderVersions() {
     populateLoaderVersions(versions);
   } catch (e) {
     console.error('Failed to fetch loader versions:', e);
-    loaderVersionSelect.innerHTML = '<option value="">Could not load versions — type manually below</option>';
-    // Allow manual input fallback
-    loaderVersionSelect.insertAdjacentHTML('afterend',
-      '<input type="text" id="loader-version-manual" placeholder="Type version manually" style="margin-top:4px;display:none">');
+    setLoaderVersionManualMode('Could not load versions - type manually below');
   }
 }
 
 function populateLoaderVersions(versions) {
   if (versions.length === 0) {
-    loaderVersionSelect.innerHTML = '<option value="">No versions found for this MC version</option>';
+    setLoaderVersionManualMode('No versions found - type manually below');
     return;
   }
+  clearLoaderVersionManualMode();
   loaderVersionSelect.innerHTML = '<option value="">Select version</option>';
   // Mark first as recommended
   versions.forEach((v, i) => {
@@ -576,7 +609,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     modpack_url: document.getElementById('modpack-url').value.trim(),
     mc_version: document.getElementById('mc-version').value.trim(),
     mod_loader: document.getElementById('mod-loader').value,
-    loader_version: document.getElementById('loader-version').value.trim() || null,
+    loader_version: getLoaderVersionValue() || null,
     game_type: gameTypeSelect.value,
     server_address: gameTypeSelect.value === 'server'
       ? document.getElementById('server-address').value.trim() || null
