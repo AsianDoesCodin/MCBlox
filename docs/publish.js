@@ -558,6 +558,50 @@ async function withTimeout(promise, label, timeoutMs = 45000) {
   }
 }
 
+function storageObjectUrl(path) {
+  const encodedPath = path.split('/').map(part => encodeURIComponent(part)).join('/');
+  return `${SUPABASE_URL}/storage/v1/object/MCBlox/${encodedPath}`;
+}
+
+async function uploadStorageBlob(path, blob, contentType, label, timeoutMs = 30000) {
+  const session = getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('Your sign-in session expired. Sign in again and retry.');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(storageObjectUrl(path), {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': contentType,
+        'x-upsert': 'true'
+      },
+      body: blob,
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      let message = `${label} failed with HTTP ${response.status}`;
+      try {
+        const data = await response.json();
+        message = data.message || data.error || message;
+      } catch {}
+      throw new Error(message);
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(`${label} timed out. The image upload could not reach storage.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 // --- Form submission ---
 document.getElementById('game-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -591,14 +635,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
     if (thumbBlob) {
       const thumbPath = `${gameId}/thumbnail.jpg`;
       setSubmitState(wizSubmitBtn, 'Uploading thumbnail...');
-      const { error: upErr } = await withTimeout(
-        sb.storage.from('MCBlox').upload(thumbPath, thumbBlob, {
-          contentType: 'image/jpeg',
-          upsert: true
-        }),
-        'Thumbnail upload'
-      );
-      if (upErr) throw upErr;
+      await uploadStorageBlob(thumbPath, thumbBlob, 'image/jpeg', 'Thumbnail upload');
       const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(thumbPath);
       thumbnailUrl = urlData.publicUrl;
     }
@@ -618,14 +655,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
       if (!blob) continue;
       const ssPath = `${gameId}/screenshot_${i}.jpg`;
       setSubmitState(wizSubmitBtn, `Uploading screenshot ${i + 1}...`);
-      const { error: upErr } = await withTimeout(
-        sb.storage.from('MCBlox').upload(ssPath, blob, {
-          contentType: 'image/jpeg',
-          upsert: true
-        }),
-        `Screenshot ${i + 1} upload`
-      );
-      if (upErr) throw upErr;
+      await uploadStorageBlob(ssPath, blob, 'image/jpeg', `Screenshot ${i + 1} upload`);
       const { data: urlData } = sb.storage.from('MCBlox').getPublicUrl(ssPath);
       screenshotUrls.push(urlData.publicUrl);
     } catch (err) {
