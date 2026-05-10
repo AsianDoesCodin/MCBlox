@@ -447,17 +447,18 @@ pub async fn install_forge(
     // Only needed for modern Forge (1.13+) which has processors in install_profile.json
     let has_processors = install_profile.get("processors").is_some() 
         || install_profile.get("data").is_some();
+    let mut processed_client_jar: Option<PathBuf> = None;
     if has_processors {
-    let srg_path = libraries_dir.join(maven_to_path(
-        &format!("net.minecraft:client:{}:srg", 
-            install_profile["data"]["MCP_VERSION"]["client"].as_str()
+        let srg_path = libraries_dir.join(maven_to_path(&format!(
+            "net.minecraft:client:{}:srg",
+            install_profile["data"]["MCP_VERSION"]["client"]
+                .as_str()
                 .map(|s| format!("{}-{}", mc_version, s.trim_matches('\'')))
                 .unwrap_or_else(|| format!("{}-20230612.114412", mc_version))
-        )
-    ));
-    if !srg_path.exists() {
-        println!("[McBlox] Running Forge installer processors (generating client-srg, client-extra, patched)...");
-        println!("[McBlox] Expected SRG at: {:?}", srg_path);
+        )));
+        if !srg_path.exists() {
+            println!("[McBlox] Running Forge installer processors (generating client-srg, client-extra, patched)...");
+            println!("[McBlox] Expected SRG at: {:?}", srg_path);
         
         // Create dummy launcher_profiles.json that Forge installer expects
         let profiles_path = game_dir.join("launcher_profiles.json");
@@ -508,6 +509,13 @@ pub async fn install_forge(
     } else {
         println!("[McBlox] Forge client already patched");
     }
+    if !srg_path.exists() {
+        return Err(format!(
+            "Forge installer did not produce the processed client jar required for launch: {}",
+            srg_path.display()
+        ));
+    }
+    processed_client_jar = Some(srg_path);
     } else {
         println!("[McBlox] Legacy Forge — no processor step needed");
     }
@@ -609,6 +617,13 @@ pub async fn install_forge(
             if is_runtime_lib && seen_forge_libs.insert(lib_path.clone()) {
                 forge_libs.push(lib_path);
             }
+        }
+    }
+
+    if let Some(client_jar) = processed_client_jar {
+        if seen_forge_libs.insert(client_jar.clone()) {
+            println!("[McBlox] Adding Forge processed client to classpath: {:?}", client_jar);
+            forge_libs.push(client_jar);
         }
     }
 
@@ -761,7 +776,7 @@ pub async fn install_neoforge(
 
 /// Build the classpath string
 pub fn build_classpath(
-    client_jar: &Path,
+    client_jar: Option<&Path>,
     library_paths: &[PathBuf],
     fabric_libs: &[PathBuf],
 ) -> String {
@@ -774,7 +789,9 @@ pub fn build_classpath(
     for lib in fabric_libs {
         parts.push(lib.display().to_string());
     }
-    parts.push(client_jar.display().to_string());
+    if let Some(client_jar) = client_jar {
+        parts.push(client_jar.display().to_string());
+    }
 
     parts.join(sep)
 }
