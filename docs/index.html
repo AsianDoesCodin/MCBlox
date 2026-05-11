@@ -28,6 +28,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="supabase-client.js"></script>
   <script src="toast.js"></script>
+  <script src="server-status.js?v=20260511a"></script>
 </head>
 <body>
 
@@ -199,10 +200,13 @@ async function loadPopularGames() {
     const games = (data || []).map(g => {
       return {
         ...g,
-        player_count: (playerCounts[g.id] || 0) + getFakePlayerCount(g),
+        player_count: g.game_type === 'server' ? 0 : (playerCounts[g.id] || 0) + getFakePlayerCount(g),
         author: g.profiles?.username || 'Unknown'
       };
     });
+    if (window.McBloxServerStatus) {
+      await window.McBloxServerStatus.hydrateServerStatuses(games);
+    }
 
     const sorted = [...games].sort((a, b) => (b.total_plays || 0) - (a.total_plays || 0)).slice(0, 8);
     const grid = document.getElementById('home-game-grid');

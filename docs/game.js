@@ -85,7 +85,7 @@ async function loadGame() {
       return;
     }
 
-    // Active players
+    // Active players for worlds. Multiplayer cards use the actual Minecraft server status.
     const twoMinAgo = new Date(Date.now() - 120000).toISOString();
     const { data: activity } = await sb
       .from('player_activity')
@@ -93,10 +93,13 @@ async function loadGame() {
       .eq('game_id', gameId)
       .gte('last_heartbeat', twoMinAgo);
     const realPlayerCount = activity ? activity.length : 0;
-    const playerCount = realPlayerCount + getFakePlayerCount(data);
+    const playerCount = data.game_type === 'server' ? 0 : realPlayerCount + getFakePlayerCount(data);
 
     gameData = { ...data, player_count: playerCount };
-    renderGame(gameData, playerCount);
+    if (window.McBloxServerStatus) {
+      await window.McBloxServerStatus.hydrateServerStatuses([gameData]);
+    }
+    renderGame(gameData, gameData.player_count || 0);
     loadComments();
   } catch (e) {
     console.error('Failed to load game:', e);
@@ -189,7 +192,11 @@ function renderGame(game, playerCount) {
   document.getElementById('rating-down').textContent = `👎 ${dislikes}`;
   document.getElementById('rating-pct-fill').style.width = `${pct}%`;
 
-  document.getElementById('stat-players').textContent = `${playerCount} active`;
+  const playerLabel = game.game_type === 'server' ? 'online' : 'active';
+  const playerValue = game.game_type === 'server' && game.max_players
+    ? `${playerCount}/${game.max_players}`
+    : `${playerCount}`;
+  document.getElementById('stat-players').textContent = `${playerValue} ${playerLabel}`;
   document.getElementById('stat-plays').textContent = (game.total_plays || 0).toLocaleString();
   document.getElementById('stat-type').textContent =
     game.game_type === 'server' ? 'Multiplayer' : 'Singleplayer';

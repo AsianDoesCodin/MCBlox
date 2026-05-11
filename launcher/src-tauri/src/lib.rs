@@ -241,17 +241,27 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     std::fs::create_dir_all(&assets_dir).ok();
     std::fs::create_dir_all(&versions_dir).ok();
 
-    // Check MC auth
-    println!("[McBlox] Checking MC auth...");
-    let account = mc_auth::load_account()
-        .ok_or("Please sign in with your Microsoft account in Settings first.")?;
-    println!("[McBlox] Signed in as: {}", account.username);
-    emit("auth", &format!("Signed in as {}", account.username), 0.05);
-
     let client = reqwest::Client::builder()
         .user_agent("McBlox/0.2.0")
         .build()
         .map_err(|e| e.to_string())?;
+
+    // Check and refresh MC auth. Minecraft access tokens expire quickly; using
+    // a saved token directly lets the game start but multiplayer rejects it.
+    println!("[McBlox] Checking MC auth...");
+    let mut account = mc_auth::load_account()
+        .ok_or("Please sign in with your Microsoft account in Settings first.")?;
+    println!("[McBlox] Signed in as: {}", account.username);
+    emit("auth", &format!("Refreshing session for {}...", account.username), 0.03);
+    let refresh_token = account
+        .msa_refresh_token
+        .clone()
+        .ok_or("Your saved Minecraft session cannot be refreshed. Please sign in again in Settings.")?;
+    account = mc_auth::refresh_auth(&client, &refresh_token)
+        .await
+        .map_err(|e| format!("Failed to refresh Minecraft session. Please sign in again in Settings. {}", e))?;
+    mc_auth::save_account(&account)?;
+    emit("auth", &format!("Signed in as {}", account.username), 0.05);
 
     // Download modpack if not cached
     let modpack_path = instance_dir.join("modpack.zip");
@@ -303,11 +313,11 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
         println!("[McBlox] Modpack already extracted");
     }
 
-    // Inject McBlox mod only when we need client-side screen control. Server
-    // auto-join should use vanilla launch args so custom menu mods can own the
-    // title screen without our Forge mod competing with them.
+    // Inject McBlox mod when auto-join is enabled. The mod owns the full
+    // game-launcher behavior: direct server/world entry and Exit Game on
+    // disconnect/save-and-quit.
     let auto_join = request.auto_join.unwrap_or(false);
-    let inject_mcblox_mod = auto_join && request.game_type != "server";
+    let inject_mcblox_mod = auto_join;
     let mods_dir = instance_dir.join("mods");
     let target_jar = mods_dir.join("mcblox-mod.jar");
     let config_path = instance_dir.join("mcblox_config.json");
@@ -315,7 +325,7 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
         if target_jar.exists() {
             std::fs::remove_file(&target_jar)
                 .map_err(|e| format!("Failed to remove stale mcblox mod: {}", e))?;
-            println!("[McBlox] Removed stale mcblox-mod.jar; server auto-join uses launch args");
+            println!("[McBlox] Removed stale mcblox-mod.jar; auto-join is disabled");
         }
         if config_path.exists() {
             std::fs::remove_file(&config_path)
@@ -433,14 +443,9 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     mc_launcher::extract_natives(&version_json, &libraries_dir, &natives_dir)?;
 
     // Build classpath
-    let uses_processed_forge_client = request.mod_loader == "forge" && loader_libs.iter().any(|path| {
-        path.file_name()
-            .and_then(|name| name.to_str())
-            .map(|name| name.starts_with(&format!("client-{}-", request.mc_version)) && name.ends_with("-srg.jar"))
-            .unwrap_or(false)
-    });
+    let uses_processed_forge_client = request.mod_loader == "forge" && loader_game_args.iter().any(|arg| arg == "--launchTarget");
     let client_jar_for_classpath = if uses_processed_forge_client {
-        println!("[McBlox] Using Forge processed client jar; skipping vanilla client jar on classpath");
+        println!("[McBlox] Using modern Forge client from libraryDirectory; skipping vanilla client jar on classpath");
         None
     } else {
         Some(client_jar.as_path())
@@ -448,15 +453,9 @@ async fn launch_game(app_handle: tauri::AppHandle, request: LaunchRequest) -> Re
     let classpath = mc_launcher::build_classpath(client_jar_for_classpath, &lib_paths, &loader_libs);
     println!("[McBlox] Classpath entries: {}", classpath.matches(';').count() + 1);
 
-    // Build launch args. Server auto-join is handled by Minecraft's native
-    // --server/--port args; world auto-open is handled by the McBlox mod.
-    let server_for_args = if request.game_type == "server" && request.auto_join.unwrap_or(false) {
-        request.server_address.as_deref()
-    } else if request.auto_join.unwrap_or(false) {
-        None
-    } else {
-        request.server_address.as_deref()
-    };
+    // The McBlox mod handles direct server/world entry. Passing vanilla
+    // server args here bypasses the mod-owned session behavior.
+    let server_for_args = None;
     let memory = request.memory.as_deref().unwrap_or("4G");
     let args = mc_launcher::build_launch_args(
         &version_json,

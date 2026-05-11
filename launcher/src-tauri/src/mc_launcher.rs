@@ -437,6 +437,11 @@ pub async fn install_forge(
             }
         }
     }
+    for arg in &mut forge_jvm_args {
+        if arg.starts_with("-DignoreList=") && !arg.contains(&format!(",{}", forge_version_name)) {
+            arg.push_str(&format!(",{}", forge_version_name));
+        }
+    }
     
     // Extract Forge-specific game arguments (--launchTarget, --fml.forgeVersion, etc.)
     let mut forge_game_args: Vec<String> = Vec::new();
@@ -508,7 +513,7 @@ pub async fn install_forge(
             .arg("-jar")
             .arg(&installer_path)
             .arg("--installClient")
-            .arg(game_dir.display().to_string())
+            .arg(libraries_dir.parent().unwrap_or(game_dir).display().to_string())
             .output()
             .map_err(|e| format!("Failed to run Forge installer: {}", e))?;
         
@@ -531,6 +536,51 @@ pub async fn install_forge(
         ));
     }
     processed_client_jar = Some(srg_path);
+
+    let patched_coordinate = install_profile["data"]["PATCHED"]["client"]
+        .as_str()
+        .map(|value| value.trim().trim_start_matches('[').trim_end_matches(']').to_string())
+        .unwrap_or_else(|| format!("net.minecraftforge:forge:{}-{}:client", mc_version, forge_version));
+    let patched_client_path = libraries_dir.join(maven_to_path(&patched_coordinate));
+    if !patched_client_path.exists() {
+        println!("[McBlox] Forge patched client missing; rerunning installer for {:?}", patched_client_path);
+        let install_root = libraries_dir.parent().unwrap_or(game_dir);
+        let profiles_path = install_root.join("launcher_profiles.json");
+        if !profiles_path.exists() {
+            std::fs::write(&profiles_path, r#"{"profiles":{}}"#).ok();
+        }
+        let java_exe = {
+            let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
+            let java_dir = base.join("McBlox").join("java");
+            let mut found = None;
+            if let Ok(entries) = std::fs::read_dir(&java_dir) {
+                for entry in entries.flatten() {
+                    let java = entry.path().join("bin").join("java.exe");
+                    if java.exists() {
+                        found = Some(java.display().to_string());
+                        break;
+                    }
+                }
+            }
+            found.unwrap_or_else(|| "java.exe".to_string())
+        };
+        let output = std::process::Command::new(&java_exe)
+            .arg("-jar")
+            .arg(&installer_path)
+            .arg("--installClient")
+            .arg(install_root.display().to_string())
+            .output()
+            .map_err(|e| format!("Failed to run Forge installer: {}", e))?;
+        if !output.status.success() {
+            println!("[McBlox] Forge installer exited with: {}", output.status);
+        }
+    }
+    if !patched_client_path.exists() {
+        return Err(format!(
+            "Forge installer did not produce the patched client jar required for launch: {}",
+            patched_client_path.display()
+        ));
+    }
     } else {
         println!("[McBlox] Legacy Forge — no processor step needed");
     }
@@ -622,40 +672,41 @@ pub async fn install_forge(
                     .map_err(|e| format!("Required Forge install-profile library {} failed to download: {}", name, e))?;
             }
 
-            // These are loaded by Forge at runtime. Processor-only tools are
-            // downloaded for installer steps but kept off the game classpath.
+            // These are discovered by Forge from -DlibraryDirectory. Keeping
+            // them off -cp avoids duplicate Java modules with modern Forge.
             let is_runtime_lib = name.starts_with("net.minecraftforge:fmlcore:")
                 || name.starts_with("net.minecraftforge:javafmllanguage:")
                 || name.starts_with("net.minecraftforge:lowcodelanguage:")
                 || name.starts_with("net.minecraftforge:mclanguage:")
                 || name.starts_with("net.minecraftforge:forge:");
-            if is_runtime_lib && seen_forge_libs.insert(lib_path.clone()) {
-                forge_libs.push(lib_path);
+            if is_runtime_lib {
+                println!("[McBlox]   Installed Forge runtime artifact off classpath: {}", name);
             }
         }
     }
 
     if let Some(client_jar) = processed_client_jar {
-        if seen_forge_libs.insert(client_jar.clone()) {
-            println!("[McBlox] Adding Forge processed client to classpath: {:?}", client_jar);
-            forge_libs.push(client_jar);
-        }
+        println!("[McBlox] Forge processed client installed off classpath: {:?}", client_jar);
     }
 
-    // Also add the Forge universal/client JAR itself
-    let forge_jar_path = maven_to_path(&format!("net.minecraftforge:forge:{}", full_version));
-    let forge_jar = libraries_dir.join(&forge_jar_path);
-    if !forge_jar.exists() {
-        let forge_universal_url = format!(
-            "https://maven.minecraftforge.net/net/minecraftforge/forge/{}/forge-{}-universal.jar",
-            full_version, full_version
-        );
-        if let Err(_) = download_file(client, &forge_universal_url, &forge_jar).await {
-            let inner = format!("maven/{}", forge_jar_path);
-            extract_from_zip(&installer_path, &inner, &forge_jar).ok();
+    if !has_processors {
+        // Legacy Forge expects its launcher jar on the classpath.
+        let forge_jar_path = maven_to_path(&format!("net.minecraftforge:forge:{}", full_version));
+        let forge_jar = libraries_dir.join(&forge_jar_path);
+        if !forge_jar.exists() {
+            let forge_url = format!(
+                "https://maven.minecraftforge.net/net/minecraftforge/forge/{}/forge-{}.jar",
+                full_version, full_version
+            );
+            if let Err(_) = download_file(client, &forge_url, &forge_jar).await {
+                let inner = format!("maven/{}", forge_jar_path);
+                extract_from_zip(&installer_path, &inner, &forge_jar).ok();
+            }
+        }
+        if seen_forge_libs.insert(forge_jar.clone()) {
+            forge_libs.push(forge_jar);
         }
     }
-    forge_libs.push(forge_jar);
 
     println!("[McBlox] Forge {} installed ({} libraries), {} JVM args", full_version, forge_libs.len(), forge_jvm_args.len());
     Ok((main_class, forge_libs, forge_jvm_args, forge_game_args))
@@ -1015,14 +1066,18 @@ pub fn build_launch_args(
         }
     }
 
-    // Auto-join server
+    // Optional vanilla server entry point. McBlox auto-join normally passes
+    // None here so the injected mod owns direct launch and disconnect behavior.
     if let Some(addr) = server_address {
-        let parts: Vec<&str> = addr.split(':').collect();
-        args.push("--server".to_string());
-        args.push(parts[0].to_string());
-        if parts.len() > 1 {
-            args.push("--port".to_string());
+        let parts: Vec<&str> = addr.rsplitn(2, ':').collect();
+        if parts.len() == 2 {
+            args.push("--server".to_string());
             args.push(parts[1].to_string());
+            args.push("--port".to_string());
+            args.push(parts[0].to_string());
+        } else {
+            args.push("--server".to_string());
+            args.push(addr.to_string());
         }
     }
 

@@ -267,9 +267,12 @@ async function fetchGames() {
 
     allGames = (data || []).map(g => ({
       ...g,
-      player_count: (counts[g.id] || 0) + getFakePlayerCount(g),
+      player_count: g.game_type === 'server' ? 0 : (counts[g.id] || 0) + getFakePlayerCount(g),
       author: g.profiles?.username || 'Unknown'
     }));
+    if (window.McBloxServerStatus) {
+      await window.McBloxServerStatus.hydrateServerStatuses(allGames);
+    }
     render();
   } catch (e) {
     console.error('Failed to fetch games:', e);
